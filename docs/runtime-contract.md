@@ -1,0 +1,130 @@
+# Runtime Contract
+
+This document defines the shared file and state contract used by the **combined
+harness** (orchestration + guardrails):
+
+- `harness.sh` autonomous execution (Claude Code)
+- `cursor-harness.sh` autonomous execution (Cursor CLI)
+- Cursor human-in-the-loop execution (`scripts/cursor-*.sh` + Agent Manager)
+- SDK orchestrator (`npm run harness:sdk`)
+
+If all modes follow this contract, you can switch between them at any time.
+
+Both autonomous runners write `docs/workflow-handoff.json` at phase boundaries
+via `sdk-orchestrator/cli.mjs`.
+
+## Architecture Layers
+
+1. **Environment (always on):** `harness/AGENT-INSTRUCTIONS.md`, git hooks,
+   ESLint plugin, sandbox settings. Every agent invocation follows these rules.
+2. **Orchestration:** Planner → Generator → **Pre-QA Gate** → Evaluator loop.
+3. **Phase gates (programmatic):** `scripts/pre-qa-gate.sh` runs mechanical
+   checks before Evaluator. Failures return to Generator without consuming a QA round.
+
+## Canonical Files
+
+### Core planning artifacts
+- `docs/spec.md`: product vision, features, design language, AI integration.
+- `docs/sprint-plan.md`: sprint sequence and per-sprint "done when" outcomes.
+- `docs/sprint-status.md`: source of truth for sprint state.
+
+### Sprint artifacts
+- `docs/sprint-[N]-contract.md`: sprint scope, acceptance criteria, self-eval.
+- `docs/mechanical-checks-sprint-[N].md`: pre-QA gate results (written by orchestrator).
+- `docs/qa-report-sprint-[N].md`: evaluator QA results and recommendations.
+
+### Guardrail artifacts
+- `harness/AGENT-INSTRUCTIONS.md`: universal agent rules (sandbox, lints, anti-slop).
+- `review-personas/*.md`: security, frontend, reliability review checklists.
+- `.gc-cache/weekly-report.jsonl`: QA failure log for anti-slop loop (gitignored).
+
+### Shared context
+- `CLAUDE.md`: project-level context, stack defaults, design defaults, and links.
+- `agents/*.md`: planner/generator/evaluator role instructions.
+- `agents/criteria/*.md`: QA scoring and quality rubrics.
+
+## Ownership And Read/Write Rules
+
+### Planner phase
+- Reads: `CLAUDE.md`, `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
+  `agents/criteria/*.md`, `harness/workspace-template.md`
+- Writes:
+  - `docs/spec.md`
+  - `docs/sprint-plan.md`
+  - `docs/sprint-status.md` (initialize all sprints as `Not started`)
+  - `CLAUDE.md` (project-specific updates)
+
+### Generator phase
+- Reads:
+  - `docs/spec.md`
+  - `docs/sprint-plan.md`
+  - `docs/sprint-status.md`
+  - `CLAUDE.md`
+  - `harness/AGENT-INSTRUCTIONS.md`
+  - `agents/generator.md`
+  - `agents/criteria/*.md`
+  - previous `docs/qa-report-sprint-[N].md` if present
+  - previous `docs/mechanical-checks-sprint-[N].md` if gate failed
+- Writes:
+  - `docs/sprint-[N]-contract.md` (create/update)
+  - `docs/sprint-status.md` (set target sprint to `Ready for QA`)
+  - application code and related assets (must pass pre-commit hook)
+
+### Pre-QA Gate (orchestrator, not an agent)
+- Reads: sprint contract, sprint status, application source
+- Writes: `docs/mechanical-checks-sprint-[N].md`
+- Blocks Evaluator if Result: FAIL
+
+### Evaluator phase
+- Reads:
+  - `docs/spec.md`
+  - `docs/sprint-status.md`
+  - `docs/sprint-[N]-contract.md`
+  - `docs/mechanical-checks-sprint-[N].md`
+  - `harness/AGENT-INSTRUCTIONS.md`
+  - `agents/evaluator.md`
+  - `agents/criteria/*.md`
+  - `review-personas/*.md`
+- Writes:
+  - `docs/qa-report-sprint-[N].md`
+  - `docs/sprint-status.md` (set QA result for target sprint)
+
+## Sprint State Machine (`docs/sprint-status.md`)
+
+Expected status progression per sprint:
+
+1. `Not started`
+2. `In progress` (optional intermediate)
+3. `Ready for QA`
+4. `Pass` or `Fail`
+
+Rules:
+- A sprint can only be evaluated when status is `Ready for QA` **and** pre-QA gate passes.
+- A `Fail` sprint can return to `In progress`/`Ready for QA` for rework cycles.
+- Harness resumes from the first sprint not in terminal `Pass` state.
+- On max QA rounds: **halt by default**. Set `HARNESS_ON_MAX_ROUNDS=advance` to advance with known issues.
+
+## Mode Switching Rules
+
+### Claude CLI -> Cursor
+1. Stop after any completed phase (planner/generator/evaluator).
+2. Ensure the relevant output files exist and are committed or intentionally staged.
+3. Run the matching `scripts/cursor-*.sh` to generate a handoff prompt.
+4. Execute the next phase in Cursor Agent Manager using generated context.
+
+### Cursor -> Claude CLI (or Cursor CLI loop)
+1. Ensure Cursor phase updated the canonical files listed above.
+2. Ensure `docs/sprint-status.md` reflects latest sprint state.
+3. Re-run `./harness.sh "<same prompt>" [max_qa_rounds]` or `./cursor-harness.sh "<same prompt>" [max_qa_rounds]`.
+4. Harness resume logic should pick up at the correct sprint/QA round boundary.
+
+## Conflict Resolution
+
+If mode outputs disagree, trust these in order:
+
+1. `docs/sprint-status.md` for current state
+2. latest `docs/qa-report-sprint-[N].md` for QA truth
+3. latest `docs/sprint-[N]-contract.md` for sprint acceptance criteria
+4. `docs/spec.md` for product intent
+
+When in doubt, run a focused evaluator pass and update status/report first.

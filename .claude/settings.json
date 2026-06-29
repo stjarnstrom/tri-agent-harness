@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "mcp__playwright__*",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep"
+    ],
+    "deny": []
+  },
+  "sandbox": {
+    "enabled": true,
+    "readWritePaths": ["."],
+    "readOnlyPaths": [],
+    "blockNetwork": false
+  }
+}
