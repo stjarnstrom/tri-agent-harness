@@ -365,7 +365,3 @@ Pre-commit hook checks:
 2. Harness lints on staged JS/TS
 3. Blocks staging `.env` / credential files
 4. Secret scan (gitleaks or regex fallback)
-
-## Reference implementations
-
-The `_ref/` directory contains the original separate harnesses for comparison. The combined harness at the repo root is the canonical version.
