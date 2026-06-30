@@ -176,8 +176,23 @@ On **FAIL**, the Generator fixes issues and retries (default max 3 QA rounds per
 
 | Phase | Output style | If it looks "stuck" |
 |-------|--------------|---------------------|
-| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` do not stream tool steps to the shell) | Check `pgrep -fl claude` or `pgrep -fl cursor`; watch for new files in `docs/` |
+| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` do not stream tool steps to the shell) | Watch for new files in `docs/`; `cursor-harness.sh` auto-stops when phase artifacts are complete |
 | Pre-QA Gate | **Verbose** — each check prints pass/fail | Fails fast with a clear error list |
+
+**Cursor hang after Evaluator:** `cursor agent` sometimes finishes writing
+`docs/qa-report-sprint-[N].md` but never exits (MCP/dev child processes stay
+alive). `cursor-harness.sh` runs an **artifact watchdog** (on by default) that
+polls for canonical phase outputs and stops the agent process group when they
+are stable. You will see `▶ Agent watchdog: phase artifacts complete` in the
+terminal, then the harness continues to the next sprint.
+
+```bash
+# Tune or disable (defaults shown)
+HARNESS_AGENT_WATCHDOG=1          # set 0 to wait for cursor agent to exit on its own
+HARNESS_AGENT_POLL_SEC=15         # seconds between artifact checks
+HARNESS_AGENT_STABLE_POLLS=2      # consecutive ready polls before stopping agent
+HARNESS_PHASE_TIMEOUT=7200        # wall-clock seconds per agent run (0 = no limit)
+```
 
 ### Typical duration (rough)
 

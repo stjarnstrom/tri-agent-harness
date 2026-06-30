@@ -278,6 +278,10 @@ the blocking issues and return for re-evaluation. Key issues to resolve:
 
 Update `docs/sprint-status.md` with the QA result.
 
+**When both files are written, stop immediately.** Do not leave dev servers or
+MCP browser sessions running. The harness treats artifact completion as phase
+done.
+
 ---
 
 ## Re-evaluation

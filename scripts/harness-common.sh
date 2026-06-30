@@ -260,6 +260,157 @@ mark_sprint_skipped() {
   return 1
 }
 
+# ─── Agent watchdog (cursor-harness) ─────────────────────────────────
+# cursor agent often finishes writing artifacts but keeps MCP/dev child
+# processes alive. Poll for canonical phase outputs and stop the agent
+# process group when they are stable.
+#
+# HARNESS_AGENT_WATCHDOG=0     disable (wait for cursor agent to exit on its own)
+# HARNESS_AGENT_POLL_SEC=15    seconds between artifact checks
+# HARNESS_AGENT_STABLE_POLLS=2 consecutive ready polls before stopping agent
+# HARNESS_PHASE_TIMEOUT=7200   wall-clock seconds per agent run (0 = no limit)
+
+harness_get_sprint_row_status() {
+  local sprint_num="$1"
+  awk -F'|' -v s="$sprint_num" '
+    /^\|[[:space:]]*[0-9]+/ {
+      num=$2; st=$4
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", num)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", st)
+      if (num == s) { print st; exit }
+    }
+  ' docs/sprint-status.md 2>/dev/null
+}
+
+harness_phase_artifacts_ready() {
+  local phase="$1"
+  local sprint="${2:-1}"
+  local row_status=""
+
+  case "$phase" in
+    planner)
+      [[ -f docs/spec.md && -f docs/sprint-plan.md && -f docs/sprint-status.md ]]
+      ;;
+    generator)
+      [[ -f "docs/sprint-${sprint}-contract.md" && -f docs/sprint-status.md ]] || return 1
+      row_status="$(harness_get_sprint_row_status "$sprint")"
+      [[ "$row_status" == "Ready for QA" ]]
+      ;;
+    evaluator)
+      [[ -f "docs/qa-report-sprint-${sprint}.md" && -f docs/sprint-status.md ]] || return 1
+      grep -qiE 'Result:[[:space:]]*(PASS|FAIL)' "docs/qa-report-sprint-${sprint}.md" || return 1
+      row_status="$(harness_get_sprint_row_status "$sprint")"
+      [[ "$row_status" == "Pass" || "$row_status" == "Fail" ]]
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+harness_stop_agent_process_group() {
+  local agent_pid="$1"
+  local agent_pgid="$2"
+  local reason="$3"
+
+  echo ""
+  echo "▶ Agent watchdog: $reason"
+
+  if [ -n "$agent_pgid" ]; then
+    kill -TERM "-$agent_pgid" 2>/dev/null || kill -TERM "$agent_pid" 2>/dev/null || true
+  else
+    kill -TERM "$agent_pid" 2>/dev/null || true
+  fi
+
+  local grace=0
+  while kill -0 "$agent_pid" 2>/dev/null && [ "$grace" -lt 30 ]; do
+    sleep 1
+    grace=$((grace + 1))
+  done
+
+  if kill -0 "$agent_pid" 2>/dev/null; then
+    echo "  → Force-stopping hung agent (PID $agent_pid)..."
+    if [ -n "$agent_pgid" ]; then
+      kill -KILL "-$agent_pgid" 2>/dev/null || kill -KILL "$agent_pid" 2>/dev/null || true
+    else
+      kill -KILL "$agent_pid" 2>/dev/null || true
+    fi
+  fi
+}
+
+run_cursor_agent() {
+  local phase="${1:?phase required (planner|generator|evaluator)}"
+  local sprint="${2:?sprint required}"
+  local phase_prompt="${3:?prompt required}"
+
+  local cursor_args=(
+    agent -p --force --approve-mcps
+    --workspace "$PROJECT_DIR"
+  )
+  if [ -n "${HARNESS_MODEL:-}" ]; then
+    cursor_args+=(--model "$HARNESS_MODEL")
+  fi
+  cursor_args+=("$phase_prompt")
+
+  if [ "${HARNESS_AGENT_WATCHDOG:-1}" = "0" ]; then
+    cursor "${cursor_args[@]}"
+    return $?
+  fi
+
+  local poll_sec="${HARNESS_AGENT_POLL_SEC:-15}"
+  local stable_needed="${HARNESS_AGENT_STABLE_POLLS:-2}"
+  local timeout_sec="${HARNESS_PHASE_TIMEOUT:-7200}"
+  local started_at=$SECONDS
+  local stable_count=0
+  local agent_pid=""
+  local agent_pgid=""
+  local job_control_was_on=0
+
+  case "$-" in
+    *m*) job_control_was_on=1 ;;
+  esac
+
+  set -m
+  cursor "${cursor_args[@]}" &
+  agent_pid=$!
+  agent_pgid="$(ps -o pgid= -p "$agent_pid" 2>/dev/null | tr -d ' ')"
+
+  while kill -0 "$agent_pid" 2>/dev/null; do
+    if harness_phase_artifacts_ready "$phase" "$sprint"; then
+      stable_count=$((stable_count + 1))
+      if [ "$stable_count" -ge "$stable_needed" ]; then
+        harness_stop_agent_process_group "$agent_pid" "$agent_pgid" \
+          "phase artifacts complete (${phase}, sprint ${sprint})"
+        break
+      fi
+    else
+      stable_count=0
+    fi
+
+    if [ "$timeout_sec" -gt 0 ] && [ $((SECONDS - started_at)) -ge "$timeout_sec" ]; then
+      harness_stop_agent_process_group "$agent_pid" "$agent_pgid" \
+        "wall-clock timeout (${timeout_sec}s)"
+      break
+    fi
+
+    sleep "$poll_sec"
+  done
+
+  local exit_code=0
+  wait "$agent_pid" 2>/dev/null || exit_code=$?
+
+  if [ "$job_control_was_on" -eq 0 ]; then
+    set +m
+  fi
+
+  if harness_phase_artifacts_ready "$phase" "$sprint"; then
+    echo "✓ Phase artifacts verified (${phase}, sprint ${sprint})"
+    return 0
+  fi
+
+  return "$exit_code"
+}
+
 # ─── Helper: handle max QA rounds reached ────────────────────────────
 # Returns 0 to break inner loop (advance), 1 to halt harness
 handle_max_rounds() {

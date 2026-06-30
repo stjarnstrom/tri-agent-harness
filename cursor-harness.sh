@@ -9,6 +9,12 @@
 #   ./cursor-harness.sh "Build a DAW in the browser" 5
 #   HARNESS_ON_MAX_ROUNDS=advance ./cursor-harness.sh "..."
 #
+# Agent watchdog (default on — stops hung cursor agent after artifacts land):
+#   HARNESS_AGENT_WATCHDOG=0          wait for cursor agent to exit on its own
+#   HARNESS_AGENT_POLL_SEC=15         seconds between artifact checks
+#   HARNESS_AGENT_STABLE_POLLS=2      consecutive ready polls before stopping
+#   HARNESS_PHASE_TIMEOUT=7200        wall-clock seconds per run (0 = no limit)
+#
 # Setup (first time):
 #   bun install && bun run setup
 
@@ -22,14 +28,6 @@ HARNESS_SOURCE="cursor-harness.sh"
 
 cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
-
-run_cursor_agent() {
-  local phase_prompt="$1"
-  cursor agent -p --force --approve-mcps \
-    --workspace "$PROJECT_DIR" \
-    ${HARNESS_MODEL:+--model "$HARNESS_MODEL"} \
-    "$phase_prompt"
-}
 
 # Ensure guardrails are installed
 if [ ! -f ".git/hooks/pre-commit" ] && [ -d ".git" ]; then
@@ -65,7 +63,7 @@ else
 
   harness_maybe_pause_phase "planner"
 
-  run_cursor_agent "$(cat agents/planner.md)
+  run_cursor_agent planner 1 "$(cat agents/planner.md)
 
 $GUARDRAIL_CONTEXT
 Read harness/workspace-template.md for optional domain-scoped monorepo layout.
@@ -144,7 +142,7 @@ IMPORTANT: The evaluator found issues in the last round. Read docs/qa-report-spr
 IMPORTANT: Pre-QA mechanical checks failed. Read docs/mechanical-checks-sprint-${CURRENT}.md and fix ALL listed issues."
     fi
 
-    run_cursor_agent "$(cat agents/generator.md)
+    run_cursor_agent generator "$CURRENT" "$(cat agents/generator.md)
 
 $GUARDRAIL_CONTEXT
 $GENERATOR_LINT_CONTEXT
@@ -183,7 +181,7 @@ $HARNESS_AUTONOMOUS_SUFFIX"
 
     harness_maybe_pause_phase "evaluator" "$CURRENT" "$qa_round"
 
-    run_cursor_agent "$(cat agents/evaluator.md)
+    run_cursor_agent evaluator "$CURRENT" "$(cat agents/evaluator.md)
 
 $GUARDRAIL_CONTEXT
 Read docs/spec.md for the product context and design language.
