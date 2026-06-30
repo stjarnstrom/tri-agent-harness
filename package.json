@@ -9,7 +9,8 @@
     "lint:harness": "eslint --config .eslintrc.harness.cjs",
     "gc:weekly": "node scripts/anti-slop.mjs",
     "harness:sdk": "node sdk-orchestrator/cli.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test:harness": "node --test tests/*.test.mjs",
+    "test": "npm run test:harness",
     "pre-qa-gate": "bash scripts/pre-qa-gate.sh"
   },
   "devDependencies": {

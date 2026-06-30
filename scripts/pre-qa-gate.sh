@@ -59,6 +59,16 @@ check_generator_self_eval() {
   fi
 }
 
+is_harness_test_script() {
+  local script_name="${1:-test}"
+  node -e "
+    const pkg = require('./package.json');
+    const script = pkg.scripts?.['${script_name}'] || '';
+    const harnessPattern = /test:harness|tests\/\*\.test\.mjs|sdk-orchestrator/;
+    process.exit(harnessPattern.test(script) ? 0 : 1);
+  " 2>/dev/null
+}
+
 check_app_build_and_tests() {
   if [ ! -f package.json ] || ! has_app_source; then
     echo "No application source detected — skipping build/test/typecheck checks."
@@ -88,19 +98,45 @@ check_app_build_and_tests() {
     fi
   fi
 
-  if has_npm_script test; then
-    echo "Running tests..."
+  # Application unit tests — never run test:harness / orchestrator tests here.
+  if has_npm_script test:unit; then
+    echo "Running test:unit..."
+    if ! run_pm_script test:unit 2>&1; then
+      FAILURES+=("npm run test:unit failed")
+    fi
+  elif has_npm_script test && ! is_harness_test_script test; then
+    echo "Running test (application)..."
     if ! run_pm_script test 2>&1; then
       FAILURES+=("npm test failed")
     fi
+  elif is_harness_test_script test; then
+    echo "npm test points at harness tests — add test:unit for application unit tests."
+    FAILURES+=(
+      "npm test runs test:harness (orchestrator tests). Add test:unit for app unit tests — see docs/templates/app-package-scripts.md"
+    )
   else
-    echo "No test script — skipping test check."
+    echo "No test:unit script — skipping application unit tests."
   fi
 
-  if [ -f playwright.config.ts ] || [ -f playwright.config.js ] || [ -f playwright.config.mjs ]; then
-    echo "Playwright config present."
+  # Application E2E — Playwright only (not harness orchestrator tests).
+  if has_npm_script test:e2e; then
+    echo "Running test:e2e..."
+    if ! run_pm_script test:e2e 2>&1; then
+      FAILURES+=("npm run test:e2e failed")
+    fi
+  elif [ -f playwright.config.ts ] || [ -f playwright.config.js ] || [ -f playwright.config.mjs ]; then
+    echo "Running playwright test..."
+    if command -v npx >/dev/null 2>&1; then
+      if ! npx playwright test 2>&1; then
+        FAILURES+=("playwright test failed")
+      fi
+    else
+      FAILURES+=("Playwright config present but npx unavailable")
+    fi
   else
-    FAILURES+=("Application source present but no playwright.config.* — install Playwright before QA")
+    FAILURES+=(
+      "Application source present but no test:e2e or playwright.config.* — add test:e2e (see docs/templates/app-package-scripts.md)"
+    )
   fi
 }
 
@@ -195,7 +231,7 @@ All pre-QA mechanical checks passed:
 - Generator self-evaluation present (if contract exists)
 - Harness lints clean (if applicable)
 - Build/typecheck/tests passed (if application source exists)
-- Playwright config present (if application source exists)
+- test:unit and test:e2e passed separately (never test:harness in pre-QA gate)
 - No secrets detected in staged changes
 
 The Evaluator should include this section in the QA report.

@@ -136,7 +136,8 @@ npm run dev
 bun lint:harness
 
 # Tests
-npx playwright test
+npm run test:harness   # harness orchestrator tests only
+npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 ```
 
 ---

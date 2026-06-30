@@ -84,6 +84,18 @@ complexity demands it.
 - **Error handling**: User-facing errors should be helpful. Don't let raw
 exceptions hit the UI.
 
+### Application test scripts (required once app source exists)
+
+Read `docs/templates/app-package-scripts.md`. When you scaffold the app, add
+**separate** scripts — do not fold harness tests into `npm test`:
+
+- `test:unit` — application unit/integration tests only
+- `test:e2e` — `playwright test` only
+- `test` — optional: `npm run test:unit && npm run test:e2e`
+
+Keep harness scripts untouched: `test:harness`, `lint:harness`, `pre-qa-gate`.
+The pre-QA gate runs `test:unit` and `test:e2e`; it never runs `test:harness`.
+
 ### AI integration
 
 If this sprint includes AI features (per the spec):

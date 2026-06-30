@@ -16,6 +16,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile || bun install
+      - name: Run harness orchestrator tests
+        run: npm run test:harness
       - name: Run harness lint rules
         run: npx eslint --config .eslintrc.harness.cjs --format compact harness/eslint-plugin-harness/ scripts/
 

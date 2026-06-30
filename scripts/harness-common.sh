@@ -112,7 +112,9 @@ harness_maybe_pause_phase() {
   local label="$phase"
   if [ -n "$sprint" ]; then
     label="$phase (Sprint $sprint"
-    [ -n "$round" ] && label="$label, Round $round"
+    if [ -n "$round" ]; then
+      label="$label, Round $round"
+    fi
     label="$label)"
   fi
 
@@ -138,9 +140,15 @@ harness_track_sprint_finished() {
 harness_print_pause_config() {
   if [ "$HARNESS_PAUSE" != "off" ] || [ -n "$HARNESS_MAX_SPRINTS_PER_RUN" ] || [ "$HARNESS_USAGE_CHECK" = "1" ]; then
     echo "  Pause mode: $HARNESS_PAUSE"
-    [ -n "$HARNESS_MAX_SPRINTS_PER_RUN" ] && echo "  Max sprints this run: $HARNESS_MAX_SPRINTS_PER_RUN"
-    [ "$HARNESS_USAGE_CHECK" = "1" ] && echo "  Usage check: enabled"
-    [ "$HARNESS_YES" = "1" ] && echo "  Auto-continue: yes (HARNESS_YES=1)"
+    if [ -n "$HARNESS_MAX_SPRINTS_PER_RUN" ]; then
+      echo "  Max sprints this run: $HARNESS_MAX_SPRINTS_PER_RUN"
+    fi
+    if [ "$HARNESS_USAGE_CHECK" = "1" ]; then
+      echo "  Usage check: enabled"
+    fi
+    if [ "$HARNESS_YES" = "1" ]; then
+      echo "  Auto-continue: yes (HARNESS_YES=1)"
+    fi
   fi
 }
 
@@ -282,8 +290,9 @@ Read harness/AGENT-INSTRUCTIONS.md before acting. Follow sandbox, lint, and comm
 GENERATOR_LINT_CONTEXT="
 Before marking Ready for QA:
 1. Run 'bun lint:harness' (or npm run lint:harness) and fix all issues.
-2. Commit with messages that pass the pre-commit hook (bun run setup installs it).
-3. Do not stage .env files or hardcode secrets."
+2. If app source exists, ensure package.json has test:unit and test:e2e (see docs/templates/app-package-scripts.md) — do not run test:harness via npm test.
+3. Commit with messages that pass the pre-commit hook (bun run setup installs it).
+4. Do not stage .env files or hardcode secrets."
 
 EVALUATOR_MECHANICAL_CONTEXT="
 Read docs/mechanical-checks-sprint-[N].md for automated lint/artifact results.

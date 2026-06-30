@@ -146,6 +146,7 @@ Sprint status progression: `Not started` → `In progress` → `Ready for QA` �
 | Add security / frontend / reliability review checks | [`review-personas/`](review-personas/) |
 | Adopt domain-scoped monorepo layout | [`harness/workspace-template.md`](harness/workspace-template.md) |
 | Write sprint contracts | [`docs/templates/sprint-contract.md`](docs/templates/sprint-contract.md) |
+| Configure app vs harness test scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |
 | Extend lints, personas, or guardrails | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Understand SDK orchestrator internals | [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor-sdk-orchestrator-design.md) |
 | See stack defaults and project context | [`CLAUDE.md`](CLAUDE.md) |
@@ -170,7 +171,7 @@ After adding guardrails:
 
 ```bash
 bun lint:harness    # verify lint rules pass
-npm test            # run harness unit tests (tests/*.test.mjs)
+npm run test:harness # run harness unit tests (tests/*.test.mjs) — not app tests
 bun run setup       # verify hooks still install
 ```
 
