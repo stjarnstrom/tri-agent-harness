@@ -4,10 +4,6 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
 
-Built by merging:
-- `_ref/cursor-claude-harness-main/` — three-agent sprint loop
-- `_ref/agent-harness-main/` — professional dev environment constraints
-
 ## Architecture
 
 ```
