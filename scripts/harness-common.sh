@@ -1,6 +1,6 @@
 # harness-common.sh — Shared sprint helpers for harness runners
 #
-# Sourced by harness.sh and cursor-harness.sh. Do not execute directly.
+# Sourced by harness.sh, cursor-harness.sh, and opencode-harness.sh. Do not execute directly.
 
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
@@ -65,7 +65,7 @@ harness_prompt_continue() {
       ;;
     *)
       echo ""
-      echo "Paused. Re-run ./harness.sh or ./cursor-harness.sh with the same prompt to resume."
+      echo "Paused. Re-run ./harness.sh, ./cursor-harness.sh, or ./opencode-harness.sh with the same prompt to resume."
       exit 0
       ;;
   esac
@@ -265,8 +265,8 @@ mark_sprint_skipped() {
   return 1
 }
 
-# ─── Agent watchdog (cursor-harness) ─────────────────────────────────
-# cursor agent often finishes writing artifacts but keeps MCP/dev child
+# ─── Agent watchdog (cursor-harness / opencode-harness) ───────────────
+# CLI agents often finish writing artifacts but keep MCP/dev child
 # processes alive. Poll for canonical phase outputs and stop the agent
 # process group when they are stable.
 #
@@ -346,22 +346,14 @@ harness_stop_agent_process_group() {
   fi
 }
 
-run_cursor_agent() {
-  local phase="${1:?phase required (planner|generator|evaluator)}"
+run_agent_with_watchdog() {
+  local phase="${1:?phase required}"
   local sprint="${2:?sprint required}"
-  local phase_prompt="${3:?prompt required}"
-
-  local cursor_args=(
-    agent -p --force --approve-mcps
-    --workspace "$PROJECT_DIR"
-  )
-  if [ -n "${HARNESS_MODEL:-}" ]; then
-    cursor_args+=(--model "$HARNESS_MODEL")
-  fi
-  cursor_args+=("$phase_prompt")
+  shift 2
+  local -a agent_cmd=("$@")
 
   if [ "${HARNESS_AGENT_WATCHDOG:-1}" = "0" ]; then
-    cursor "${cursor_args[@]}"
+    "${agent_cmd[@]}"
     return $?
   fi
 
@@ -379,7 +371,7 @@ run_cursor_agent() {
   esac
 
   set -m
-  cursor "${cursor_args[@]}" &
+  "${agent_cmd[@]}" &
   agent_pid=$!
   agent_pgid="$(ps -o pgid= -p "$agent_pid" 2>/dev/null | tr -d ' ')"
 
@@ -417,6 +409,46 @@ run_cursor_agent() {
   fi
 
   return "$exit_code"
+}
+
+run_cursor_agent() {
+  local phase="${1:?phase required (planner|generator|evaluator)}"
+  local sprint="${2:?sprint required}"
+  local phase_prompt="${3:?prompt required}"
+
+  local cursor_args=(
+    agent -p --force --approve-mcps
+    --workspace "$PROJECT_DIR"
+  )
+  if [ -n "${HARNESS_MODEL:-}" ]; then
+    cursor_args+=(--model "$HARNESS_MODEL")
+  fi
+  cursor_args+=("$phase_prompt")
+
+  run_agent_with_watchdog "$phase" "$sprint" cursor "${cursor_args[@]}"
+}
+
+run_opencode_agent() {
+  local phase="${1:?phase required (planner|generator|evaluator)}"
+  local sprint="${2:?sprint required}"
+  local phase_prompt="${3:?prompt required}"
+  local agent_name="${HARNESS_OPENCODE_AGENT:-$phase}"
+
+  local opencode_args=(
+    run
+    --dir "$PROJECT_DIR"
+    --dangerously-skip-permissions
+    --agent "$agent_name"
+  )
+  if [ -n "${HARNESS_MODEL:-}" ]; then
+    opencode_args+=(--model "$HARNESS_MODEL")
+  fi
+  if [ -n "${HARNESS_OPENCODE_ATTACH:-}" ]; then
+    opencode_args+=(--attach "$HARNESS_OPENCODE_ATTACH")
+  fi
+  opencode_args+=("$phase_prompt")
+
+  run_agent_with_watchdog "$phase" "$sprint" opencode "${opencode_args[@]}"
 }
 
 # ─── Helper: handle max QA rounds reached ────────────────────────────
@@ -644,7 +676,7 @@ harness_handle_design_scout_complete() {
   echo "  Next steps:"
   echo "    1. Review docs/design-options.md"
   echo "    2. Create design/selected-direction.md with your pick (e.g. 'Option B — Momentum Dark')"
-  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (or ./cursor-harness.sh)"
+  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (or ./cursor-harness.sh / ./opencode-harness.sh)"
   echo ""
 
   if harness_should_pause_design; then

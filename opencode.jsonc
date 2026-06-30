@@ -1,41 +1,27 @@
 {
-  "version": "0.1",
-  "name": "harness-scaffold",
+  "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "Read `harness/AGENT-INSTRUCTIONS.md` before starting any work — it contains the four core rules for this project.",
-    "Respect filesystem sandbox boundaries. Never read/write outside project root without asking."
+    "harness/AGENT-INSTRUCTIONS.md",
+    "CLAUDE.md"
   ],
-
-  "permissions": {
-    "filesystem": {
-      "allowedPaths": ["."],
-      "blockedPatterns": ["/../**", "/etc/**", "~/.ssh/**", "**/.env", "**/.env.local", "**/.env.production", "**/.env.development", "**/.env.staging", "**/credentials.json", "**/*.pem", "**/*.key"]
+  "permission": {
+    "read": {
+      "**/.env": "deny",
+      "**/.env.*": "deny",
+      "**/credentials.json": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny"
     },
-    "exec": {
-      "allowList": ["bun", "git", "npx", "node"],
-      "blockList": ["rm -rf /", "sudo", "curl http://exfil.example.com"]
+    "bash": {
+      "rm -rf /": "deny",
+      "sudo *": "deny"
     }
   },
-
-  "hooks": {
-    "pre-commit": [
-      "bun lint:harness"
-    ],
-    "post-merge": ["harness/hooks/post-merge"]
-  },
-
-  "subagents": {
-    "review-security": {
-      "model": "claude-sonnet",
-      "instructionsFile": "review-personas/security.md"
-    },
-    "review-frontend": {
-      "model": "claude-sonnet",
-      "instructionsFile": "review-personas/frontend-architecture.md"
-    },
-    "review-reliability": {
-      "model": "claude-sonnet",
-      "instructionsFile": "review-personas/reliability.md"
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest"],
+      "enabled": true
     }
   }
 }

@@ -1,15 +1,15 @@
 # Agent Instructions — Tool-Agnostic Core Rules
 
-These rules apply regardless of which AI coding agent you use (Claude Code, Cursor, opencode, etc.).
+These rules apply regardless of which AI coding agent you use (Claude Code, Cursor, OpenCode, etc.).
 Each tool reads this file in its own way:
 
 - **Claude Code**: Referenced via `CLAUDE.md` → "Read `harness/AGENT-INSTRUCTIONS.md`"
 - **Cursor**: Referenced via `.cursorrules` → same content adapted for Cursor's format
-- **opencode**: Referenced via `opencode.jsonc` → loaded as system instructions
+- **OpenCode**: Loaded via `opencode.jsonc` → `instructions` array; phase agents in `.opencode/agents/`
 
 ## Domain Packages
 
-When working inside a domain package (e.g. `packages/billing/`), read that package's `CLAUDE.md` before making changes. Claude Code loads these automatically; Cursor, opencode, and other tools must read them explicitly.
+When working inside a domain package (e.g. `packages/billing/`), read that package's `CLAUDE.md` before making changes. Claude Code loads these automatically; Cursor, OpenCode, and other tools must read them explicitly.
 
 ## The Four Rules Every Agent Must Follow
 
@@ -25,7 +25,7 @@ The pre-commit hook (`harness/hooks/pre-commit`) enforces this at git level — 
 3. Reference secrets in code as `process.env.VAR_NAME` — never as string literals.
 4. If you need a new env var, add it to `.env.example` with a dummy value and tell the user to set the real one locally.
 
-The pre-commit hook blocks staging `.env` files and scans for leaked keys. opencode blocks reads of `.env` and credential files; Cursor uses `.cursorignore` (install via `bun run setup`).
+The pre-commit hook blocks staging `.env` files and scans for leaked keys. OpenCode denies reads of `.env` and credential paths via `opencode.jsonc` `permission.read`; Cursor uses `.cursorignore` (install via `bun run setup`).
 
 ### 2. Lints Are Instructions, Not Diagnostics
 

@@ -49,3 +49,4 @@ echo "  3. Optional: brew install gitleaks — enables full secret scan in pre-c
 echo "  4. Read harness/AGENT-INSTRUCTIONS.md and docs/runtime-contract.md"
 echo "  5. Run autonomous build: ./harness.sh \"your product prompt\""
 echo "     Or Cursor CLI: ./cursor-harness.sh \"your product prompt\""
+echo "     Or OpenCode CLI: ./opencode-harness.sh \"your product prompt\""

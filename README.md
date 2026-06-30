@@ -4,6 +4,8 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
 
+> **Claude Code only?** See the [`examples/claude-only`](examples/claude-only) branch for a stripped-down teaching example without Cursor, OpenCode, or SDK paths.
+
 ## Architecture
 
 ```
@@ -22,6 +24,7 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 | **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback |
 | **Claude Code CLI** (`claude`) | For `./harness.sh` autonomous mode |
 | **Cursor CLI** | For `./cursor-harness.sh` autonomous mode |
+| **OpenCode CLI** (`opencode`) | For `./opencode-harness.sh` autonomous mode |
 | **`.env.local`** | Copy from `.env.example`; never commit real secrets |
 
 Optional:
@@ -40,6 +43,8 @@ cp .env.example .env.local   # fill in values locally
 ./harness.sh "Build a project management tool with kanban boards"
 # or
 ./cursor-harness.sh "Build a project management tool with kanban boards"
+# or
+./opencode-harness.sh "Build a project management tool with kanban boards"
 
 # 3. Resume after interruption — re-run the same command
 ./harness.sh "Build a project management tool with kanban boards"
@@ -58,6 +63,7 @@ Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`):
 ```bash
 ./harness.sh "your product prompt"              # Claude Code
 ./cursor-harness.sh "your product prompt"       # Cursor CLI
+./opencode-harness.sh "your product prompt"     # OpenCode CLI
 ./harness.sh "your product prompt" 5            # max 5 QA rounds per sprint
 ```
 
@@ -191,19 +197,19 @@ See [`design/README.md`](design/README.md) and [`docs/templates/design-brief.md`
 
 | Phase | Output style | If it looks "stuck" |
 |-------|--------------|---------------------|
-| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` do not stream tool steps to the shell) | Watch for new files in `docs/`; `cursor-harness.sh` auto-stops when phase artifacts are complete |
+| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` / `opencode run` do not stream tool steps to the shell) | Watch for new files in `docs/`; `cursor-harness.sh` and `opencode-harness.sh` auto-stop when phase artifacts are complete |
 | Pre-QA Gate | **Verbose** — each check prints pass/fail | Fails fast with a clear error list |
 
-**Cursor hang after Evaluator:** `cursor agent` sometimes finishes writing
-`docs/qa-report-sprint-[N].md` but never exits (MCP/dev child processes stay
-alive). `cursor-harness.sh` runs an **artifact watchdog** (on by default) that
+**CLI hang after Evaluator:** `cursor agent` and `opencode run` sometimes finish writing
+`docs/qa-report-sprint-[N].md` but never exit (MCP/dev child processes stay
+alive). `cursor-harness.sh` and `opencode-harness.sh` run an **artifact watchdog** (on by default) that
 polls for canonical phase outputs and stops the agent process group when they
 are stable. You will see `▶ Agent watchdog: phase artifacts complete` in the
 terminal, then the harness continues to the next sprint.
 
 ```bash
 # Tune or disable (defaults shown)
-HARNESS_AGENT_WATCHDOG=1          # set 0 to wait for cursor agent to exit on its own
+HARNESS_AGENT_WATCHDOG=1          # set 0 to wait for the CLI agent to exit on its own
 HARNESS_AGENT_POLL_SEC=15         # seconds between artifact checks
 HARNESS_AGENT_STABLE_POLLS=2      # consecutive ready polls before stopping agent
 HARNESS_PHASE_TIMEOUT=7200        # wall-clock seconds per agent run (0 = no limit)
@@ -238,7 +244,7 @@ Check progress without stopping the run:
 
 ```bash
 ls -lt docs/
-pgrep -fl 'harness|claude|cursor'    # process still alive?
+pgrep -fl 'harness|claude|cursor|opencode'    # process still alive?
 ```
 
 ### Dogfood without polluting the harness template
@@ -301,6 +307,7 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 |------|---------|
 | `harness.sh` | Autonomous loop via Claude Code CLI |
 | `cursor-harness.sh` | Autonomous loop via Cursor CLI |
+| `opencode-harness.sh` | Autonomous loop via OpenCode CLI |
 | `sdk-orchestrator/` | SDK-based orchestrator (alternative to bash loops) |
 | `scripts/pre-qa-gate.sh` | Mechanical gate between Generator and Evaluator |
 | `scripts/cursor-*.sh` | Cursor Agent Manager handoff generators |
@@ -319,7 +326,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HARNESS_MODEL` | `claude-opus-4-6` / `composer-2.5` | Model override |
+| `HARNESS_MODEL` | `claude-opus-4-6` / `composer-2.5` / `anthropic/claude-sonnet-4-5` | Model override (Claude / Cursor / OpenCode) |
+| `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (avoids MCP cold start) |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
 | `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |
 | `HARNESS_PAUSE` | `off` | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout |
@@ -341,7 +349,7 @@ HARNESS_PAUSE=sprint ./harness.sh "Build a kanban app"
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "Build a kanban app"
 
 # Confirm before every Generator/Evaluator call
-HARNESS_PAUSE=phase ./cursor-harness.sh "Build a kanban app"
+HARNESS_PAUSE=phase ./opencode-harness.sh "Build a kanban app"
 
 # Custom usage probe (your script exits 1 when low)
 HARNESS_USAGE_CHECK=1 HARNESS_USAGE_CMD='./my-usage-probe.sh' ./harness.sh "..."

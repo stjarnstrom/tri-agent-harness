@@ -5,6 +5,7 @@ harness** (orchestration + guardrails):
 
 - `harness.sh` autonomous execution (Claude Code)
 - `cursor-harness.sh` autonomous execution (Cursor CLI)
+- `opencode-harness.sh` autonomous execution (OpenCode CLI)
 - Cursor human-in-the-loop execution (`scripts/cursor-*.sh` + Agent Manager)
 - SDK orchestrator (`npm run harness:sdk`)
 
@@ -139,6 +140,14 @@ Rules:
 2. Ensure `docs/sprint-status.md` reflects latest sprint state.
 3. Re-run `./harness.sh "<same prompt>" [max_qa_rounds]` or `./cursor-harness.sh "<same prompt>" [max_qa_rounds]`.
 4. Harness resume logic should pick up at the correct sprint/QA round boundary.
+
+### OpenCode CLI
+1. OpenCode loads project config from `opencode.jsonc` and phase agents from `.opencode/agents/`.
+2. Autonomous runs use `./opencode-harness.sh` with `--agent planner|generator|evaluator` (via `run_opencode_agent`).
+3. Switch mid-run the same way as Claude/Cursor: stop after a completed phase, ensure canonical files are updated, re-run `./opencode-harness.sh "<same prompt>"`.
+
+### Claude-only teaching branch
+For a stripped-down harness with only Claude Code (no Cursor, OpenCode, or SDK), see the `examples/claude-only` branch.
 
 ## Conflict Resolution
 

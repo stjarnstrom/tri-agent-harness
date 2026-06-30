@@ -160,6 +160,7 @@ npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 ```bash
 ./harness.sh "product prompt"              # Claude Code loop
 ./cursor-harness.sh "product prompt"       # Cursor CLI loop
+./opencode-harness.sh "product prompt"     # OpenCode CLI loop
 ./harness.sh "product prompt" 5            # max 5 QA rounds per sprint
 HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failure
 HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
