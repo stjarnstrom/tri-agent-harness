@@ -125,20 +125,108 @@ Architecture and roadmap: [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor
 
 ## What happens during a run
 
-1. **Planner** (once) — writes `docs/spec.md`, `docs/sprint-plan.md`, `docs/sprint-status.md`, updates `CLAUDE.md`
-2. **Per sprint:**
-   - **Generator** — writes sprint contract, implements scope, commits (pre-commit hook enforces lints/secrets)
-   - **Pre-QA Gate** — mechanical checks via `scripts/pre-qa-gate.sh`; failures return to Generator without consuming a QA round
-   - **Evaluator** — Playwright testing + rubric grading + review personas → `docs/qa-report-sprint-[N].md`
-   - On **FAIL**: Generator fixes and retries (default max 3 rounds per sprint)
+High-level flow:
+
+1. **Planner** (once) — product spec and sprint plan
+2. **Per sprint:** Generator → Pre-QA Gate → Evaluator (retry loop on failure)
 3. **Anti-slop** — QA failures logged to `.gc-cache/` for weekly guardrail review
 
 Sprint status progression: `Not started` → `In progress` → `Ready for QA` → `Pass` or `Fail` (or `Skipped` when advancing after max QA rounds).
+
+### Phase guide — what each step does
+
+| Phase | Who runs it | What it does | Key outputs |
+|-------|-------------|--------------|-------------|
+| **Planner** | AI agent (once) | Reads your prompt + criteria; defines product vision, design language, sprint breakdown | `docs/spec.md`, `docs/sprint-plan.md`, `docs/sprint-status.md`, `CLAUDE.md` |
+| **Generator** | AI agent (per sprint, per retry) | Writes sprint contract, implements features, commits, self-evaluates | `docs/sprint-[N]-contract.md`, app source, git commits, status → `Ready for QA` |
+| **Pre-QA Gate** | Shell script (not an agent) | Mechanical checks: artifacts, lints, build, `test:unit`, `test:e2e`, secrets | `docs/mechanical-checks-sprint-[N].md` (`PASS` or `FAIL`) |
+| **Evaluator** | AI agent (per sprint, per retry) | Live app testing (Playwright), rubric grading, review personas, QA report | `docs/qa-report-sprint-[N].md`, status → `Pass` or `Fail` |
+
+On **FAIL**, the Generator fixes issues and retries (default max 3 QA rounds per sprint). On **PASS**, the harness moves to the next sprint.
+
+#### Planner
+
+- Expands your one-line prompt into a full spec (features, design language, stack, AI integration).
+- Initializes all sprints as `Not started` in `docs/sprint-status.md`.
+- **Terminal:** prints `▶ PHASE 1: PLANNER`, then may go quiet while Claude/Cursor runs (no streaming progress).
+
+#### Generator
+
+- Writes `docs/sprint-[N]-contract.md` (acceptance criteria the Evaluator will test against).
+- In **autonomous mode**, implements immediately — no waiting for contract approval.
+- Scaffolds or extends the app (`src/`, Playwright, `test:unit`, `test:e2e` — see [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md)).
+- Runs `bun lint:harness`, commits via pre-commit hook, marks sprint `Ready for QA`.
+- **Terminal:** prints `▶ GENERATOR (Sprint N, Round M)`; quiet during agent work; file changes appear in the repo.
+
+#### Pre-QA Gate
+
+- Runs **deterministic scripts** — you get verbose output (build, typecheck, tests).
+- Blocks Evaluator if anything fails; sends work back to Generator **without consuming a QA round**.
+- Checks include: contract + status, harness lints, generator self-eval, `npm run build`, `test:unit`, `test:e2e` (never `test:harness`).
+- **Terminal:** prints `=== Pre-QA Gate (Sprint N) ===` and step-by-step results; ends with `✓ Pre-QA gate PASSED` or failure list.
+
+#### Evaluator
+
+- Reads spec, contract, mechanical checks, criteria, and review personas.
+- Starts or confirms `npm run dev`, then tests the **live app** via Playwright (navigate, click, forms, edge cases, screenshots).
+- Grades six weighted criteria; writes a detailed QA report; updates sprint status.
+- **Terminal:** prints `▶ EVALUATOR (Sprint N, Round M)`, then often **goes quiet for a long time** — this is normal (see below).
+
+### What to expect in the terminal
+
+| Phase | Output style | If it looks "stuck" |
+|-------|--------------|---------------------|
+| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` do not stream tool steps to the shell) | Check `pgrep -fl claude` or `pgrep -fl cursor`; watch for new files in `docs/` |
+| Pre-QA Gate | **Verbose** — each check prints pass/fail | Fails fast with a clear error list |
+
+### Typical duration (rough)
+
+Depends on prompt size, model, and app complexity. First sprint is usually the longest.
+
+| Phase | Ballpark | Why |
+|-------|----------|-----|
+| Planner | 5–15 min | Large spec + many sprints to plan |
+| Generator | 10–30+ min | Scaffolding app + first features + commits |
+| Pre-QA Gate | 1–5 min | Deterministic build/tests |
+| Evaluator | **15–45+ min** | Many Playwright MCP round-trips, rubric scoring, long QA report |
+
+The Evaluator is slowest because it is instructed to **exercise every acceptance criterion**, test edge cases, screenshot screens, check the console, score six criteria, and write a formal report — not because the shell script is hanging.
+
+### Artifacts to watch during a run
+
+```
+docs/spec.md                          ← Planner done
+docs/sprint-plan.md
+docs/sprint-status.md                 ← source of truth for resume
+docs/sprint-[N]-contract.md           ← Generator scoped the sprint
+docs/mechanical-checks-sprint-[N].md  ← Pre-QA gate result
+docs/qa-report-sprint-[N].md          ← Evaluator done
+docs/workflow-handoff.json            ← cross-runner resume metadata
+```
+
+Check progress without stopping the run:
+
+```bash
+ls -lt docs/
+pgrep -fl 'harness|claude|cursor'    # process still alive?
+```
+
+### Dogfood without polluting the harness template
+
+Copy this repo to a sibling folder before your first full run — the loop creates app code and product docs in the same tree:
+
+```bash
+cp -R agent-harness-loops ../my-product-dogfood
+cd ../my-product-dogfood && rm -rf .git _ref && git init && bun install && bun run setup
+```
+
+Re-run the same harness command to resume; state lives in `docs/sprint-status.md`.
 
 ## Documentation map
 
 | If you want to… | Read |
 |-----------------|------|
+| Understand what each phase does and how long it takes | [What happens during a run](#what-happens-during-a-run) (this README) |
 | Understand phase boundaries and file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | See agent sandbox, lint, and anti-slop rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Customize Planner / Generator / Evaluator behavior | [`agents/planner.md`](agents/planner.md), [`agents/generator.md`](agents/generator.md), [`agents/evaluator.md`](agents/evaluator.md) |
