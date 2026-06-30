@@ -326,7 +326,7 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HARNESS_MODEL` | `claude-opus-4-6` / `composer-2.5` / `anthropic/claude-sonnet-4-5` | Model override (Claude / Cursor / OpenCode) |
+| `HARNESS_MODEL` | *(CLI default)* / `composer-2.5` / `anthropic/claude-sonnet-4-5` | Optional model override. When unset, each runner uses its own default (Claude Code typically latest Opus). Set to pin a specific model, e.g. `claude-opus-4-6` or alias `opus`. |
 | `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (avoids MCP cold start) |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
 | `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |

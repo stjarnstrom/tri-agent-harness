@@ -18,12 +18,18 @@ set -euo pipefail
 
 PROMPT="${1:?Usage: ./harness.sh \"your product prompt here\" [max_qa_rounds]}"
 MAX_QA_ROUNDS="${2:-3}"
-HARNESS_MODEL="${HARNESS_MODEL:-claude-opus-4-6}"
+# HARNESS_MODEL: optional override (e.g. claude-opus-4-6, opus). When unset,
+# Claude Code uses its configured default (typically latest Opus).
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HARNESS_SOURCE="harness.sh"
 
 cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
+
+claude_model_args=()
+if [ -n "${HARNESS_MODEL:-}" ]; then
+  claude_model_args+=(--model "$HARNESS_MODEL")
+fi
 
 # Ensure guardrails are installed
 if [ ! -f ".git/hooks/pre-commit" ] && [ -d ".git" ]; then
@@ -36,7 +42,11 @@ echo "  COMBINED HARNESS: Build + Guardrails"
 echo "  Prompt: $PROMPT"
 echo "  Max QA rounds per sprint: $MAX_QA_ROUNDS"
 echo "  On max rounds: $HARNESS_ON_MAX_ROUNDS"
-echo "  Model: $HARNESS_MODEL"
+if [ -n "${HARNESS_MODEL:-}" ]; then
+  echo "  Model: $HARNESS_MODEL"
+else
+  echo "  Model: (Claude Code default)"
+fi
 harness_print_pause_config
 echo "============================================"
 
@@ -64,7 +74,7 @@ else
   harness_maybe_pause_phase "planner"
 
   claude --dangerously-skip-permissions \
-    --model "$HARNESS_MODEL" \
+    "${claude_model_args[@]}" \
     -p "$(harness_build_planner_prompt "$PROMPT")"
 
   validate_phase planner 1
@@ -142,7 +152,7 @@ IMPORTANT: Pre-QA mechanical checks failed. Read docs/mechanical-checks-sprint-$
     fi
 
     claude --dangerously-skip-permissions \
-      --model "$HARNESS_MODEL" \
+      "${claude_model_args[@]}" \
       -p "$(cat agents/generator.md)
 
 $GUARDRAIL_CONTEXT
@@ -183,7 +193,7 @@ $HARNESS_AUTONOMOUS_SUFFIX"
     harness_maybe_pause_phase "evaluator" "$CURRENT" "$qa_round"
 
     claude --dangerously-skip-permissions \
-      --model "$HARNESS_MODEL" \
+      "${claude_model_args[@]}" \
       -p "$(cat agents/evaluator.md)
 
 $GUARDRAIL_CONTEXT
