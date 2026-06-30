@@ -17,8 +17,7 @@ Evaluator agent will do the real QA. A **pre-QA gate** runs mechanical checks
 
 ## Sprint contract negotiation
 
-Before writing any code, you and the QA agent need to agree on exactly what
-"done" means for this sprint.
+Before writing any code, define exactly what "done" means for this sprint.
 
 **Write `docs/sprint-[N]-contract.md`** using the template in
 `docs/templates/sprint-contract.md`. Include:
@@ -29,10 +28,14 @@ Before writing any code, you and the QA agent need to agree on exactly what
 - Out of scope for this sprint
 - Test setup notes (seed data, env vars, running services)
 
-Write the contract, then pause and tell the user: "Contract written. Review
-`docs/sprint-[N]-contract.md` before I build, or say 'proceed' to continue."
+**Interactive mode** (Cursor chat, slash commands, handoff scripts without
+`AUTONOMOUS MODE` in the prompt): After writing the contract, pause and tell
+the user: "Contract written. Review `docs/sprint-[N]-contract.md` before I build,
+or say 'proceed' to continue." Wait for approval before implementing.
 
-If the user says to proceed, build to the contract.
+**Autonomous mode** (orchestrator prompts include `AUTONOMOUS MODE`): Write
+the contract and implement it immediately in the same session. Do not wait for
+user approval.
 
 ---
 

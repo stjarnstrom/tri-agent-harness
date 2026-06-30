@@ -96,13 +96,13 @@ Expected status progression per sprint:
 1. `Not started`
 2. `In progress` (optional intermediate)
 3. `Ready for QA`
-4. `Pass` or `Fail`
+4. `Pass`, `Fail`, or `Skipped` (terminal — `Skipped` when max QA rounds reached with `HARNESS_ON_MAX_ROUNDS=advance`)
 
 Rules:
 - A sprint can only be evaluated when status is `Ready for QA` **and** pre-QA gate passes.
 - A `Fail` sprint can return to `In progress`/`Ready for QA` for rework cycles.
-- Harness resumes from the first sprint not in terminal `Pass` state.
-- On max QA rounds: **halt by default**. Set `HARNESS_ON_MAX_ROUNDS=advance` to advance with known issues.
+- Harness resumes from the first sprint not in terminal `Pass` or `Skipped` state.
+- On max QA rounds: **halt by default**. Set `HARNESS_ON_MAX_ROUNDS=advance` to mark the sprint `Skipped` and continue to the next sprint with known issues.
 
 ## Mode Switching Rules
 

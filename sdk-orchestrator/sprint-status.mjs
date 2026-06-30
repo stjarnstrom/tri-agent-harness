@@ -1,11 +1,17 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const SPRINT_STATUS_FILE = path.join("docs", "sprint-status.md");
 
-const TERMINAL_PASS = "Pass";
+export const TERMINAL_PASS = "Pass";
+export const TERMINAL_SKIPPED = "Skipped";
+const TERMINAL_STATUSES = new Set([TERMINAL_PASS, TERMINAL_SKIPPED]);
 const GENERATOR_STATUSES = new Set(["Not started", "In progress", "Fail"]);
 const EVALUATOR_STATUS = "Ready for QA";
+
+export function isTerminalStatus(status) {
+  return TERMINAL_STATUSES.has(status);
+}
 
 function parseStatusFromRow(line) {
   const trimmed = line.trim();
@@ -58,7 +64,7 @@ export function computeNextActionFromRows(rows) {
   }
 
   for (const row of rows) {
-    if (row.status === TERMINAL_PASS) {
+    if (isTerminalStatus(row.status)) {
       continue;
     }
 
@@ -87,6 +93,61 @@ export function computeNextActionFromRows(rows) {
 
   return {
     action: "done",
-    reason: "All sprints are in Pass state.",
+    reason: "All sprints are complete (Pass or Skipped).",
   };
+}
+
+export async function updateSprintStatus({
+  sprint,
+  status,
+  notes,
+  filePath = SPRINT_STATUS_FILE,
+}) {
+  if (!Number.isInteger(sprint) || sprint < 1) {
+    throw new Error("sprint must be a positive integer.");
+  }
+
+  const raw = await readFile(filePath, "utf8");
+  let updated = false;
+
+  const newLines = raw.split("\n").map((line) => {
+    const parsed = parseStatusFromRow(line);
+    if (!parsed || parsed.sprint !== sprint) {
+      return line;
+    }
+
+    updated = true;
+    const cells = line
+      .trim()
+      .split("|")
+      .map((cell) => cell.trim())
+      .filter((cell, idx, arr) => !(idx === 0 || idx === arr.length - 1));
+
+    cells[2] = status;
+    if (notes !== undefined && cells.length >= 4) {
+      cells[cells.length - 1] = notes;
+    }
+
+    return `| ${cells.join(" | ")} |`;
+  });
+
+  if (!updated) {
+    throw new Error(`Sprint ${sprint} not found in ${filePath}.`);
+  }
+
+  const trailingNewline = raw.endsWith("\n") ? "\n" : "";
+  await writeFile(filePath, `${newLines.join("\n")}${trailingNewline}`, "utf8");
+}
+
+export async function markSprintSkipped({
+  sprint,
+  notes = "Max QA rounds reached; advanced with known issues",
+  filePath = SPRINT_STATUS_FILE,
+}) {
+  await updateSprintStatus({
+    sprint,
+    status: TERMINAL_SKIPPED,
+    notes,
+    filePath,
+  });
 }

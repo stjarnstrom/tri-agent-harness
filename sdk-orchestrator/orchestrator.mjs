@@ -9,6 +9,7 @@ import {
 import { runPhase } from "./phase-runners.mjs";
 import {
   computeNextActionFromRows,
+  markSprintSkipped,
   readSprintRows,
   SPRINT_STATUS_FILE,
 } from "./sprint-status.mjs";
@@ -426,6 +427,10 @@ export async function runLoop({
 
       if (policyResult.warning) {
         console.warn(policyResult.reason);
+        await markSprintSkipped({
+          sprint,
+          notes: `Max QA rounds (${policy.maxQaRounds}) reached; advanced with known issues`,
+        });
         await logEvent({
           event: "loop.advance-warning",
           sprint,

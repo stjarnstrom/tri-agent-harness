@@ -154,6 +154,9 @@ get_current_sprint() {
   sprint=$(grep -E "^\|\s*[0-9]+" docs/sprint-status.md | while IFS='|' read -r _ num _ status _; do
     num=$(echo "$num" | xargs)
     status=$(echo "$status" | xargs)
+    if [[ "$status" == "Pass" || "$status" == "Skipped" ]]; then
+      continue
+    fi
     if [[ "$status" == "Not started" || "$status" == "In progress" || "$status" == "Ready for QA" || "$status" == "Fail" ]]; then
       echo "$num"
       break
@@ -233,6 +236,22 @@ log_qa_failure() {
     >> "$cache_file"
 }
 
+# ─── Helper: mark sprint skipped after max QA rounds (advance policy) ───
+mark_sprint_skipped() {
+  local sprint="$1"
+  local notes="${2:-Max QA rounds reached; advanced with known issues}"
+
+  if [ -f "$PROJECT_DIR/sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$PROJECT_DIR/sdk-orchestrator/cli.mjs" sprint-mark-skipped \
+      --sprint "$sprint" \
+      --notes "$notes"
+    return 0
+  fi
+
+  echo "ERROR: Node.js is required to mark sprint $sprint as Skipped (sdk-orchestrator/cli.mjs)."
+  return 1
+}
+
 # ─── Helper: handle max QA rounds reached ────────────────────────────
 # Returns 0 to break inner loop (advance), 1 to halt harness
 handle_max_rounds() {
@@ -240,7 +259,11 @@ handle_max_rounds() {
   log_qa_failure "$sprint" "$MAX_QA_ROUNDS"
 
   if [ "$HARNESS_ON_MAX_ROUNDS" = "advance" ]; then
-    echo "  → HARNESS_ON_MAX_ROUNDS=advance: moving to next sprint with known issues."
+    if ! mark_sprint_skipped "$sprint"; then
+      echo "  → Failed to mark Sprint $sprint as Skipped."
+      exit 1
+    fi
+    echo "  → HARNESS_ON_MAX_ROUNDS=advance: marked Sprint $sprint as Skipped; moving to next sprint."
     return 0
   fi
 
@@ -266,3 +289,6 @@ EVALUATOR_MECHANICAL_CONTEXT="
 Read docs/mechanical-checks-sprint-[N].md for automated lint/artifact results.
 Include a 'Mechanical Checks' section in your QA report referencing that file.
 Also review against review-personas/security.md and review-personas/frontend-architecture.md checklists where applicable."
+
+HARNESS_AUTONOMOUS_SUFFIX="
+AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing."

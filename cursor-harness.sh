@@ -23,9 +23,6 @@ HARNESS_SOURCE="cursor-harness.sh"
 cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
 
-AUTONOMOUS_SUFFIX="
-AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. Complete all required artifacts and status updates before finishing."
-
 run_cursor_agent() {
   local phase_prompt="$1"
   cursor agent -p --force --approve-mcps \
@@ -79,7 +76,7 @@ Write docs/spec.md, docs/sprint-plan.md, and docs/sprint-status.md.
 Update CLAUDE.md with the product context.
 
 Prompt: $PROMPT
-$AUTONOMOUS_SUFFIX"
+$HARNESS_AUTONOMOUS_SUFFIX"
 
   validate_phase planner 1
 
@@ -163,7 +160,7 @@ $MECH_CONTEXT
 You are building Sprint $CURRENT. Write the sprint contract to docs/sprint-${CURRENT}-contract.md if it doesn't exist, then implement it. Commit to git after each meaningful unit of work.
 
 After building, write your self-evaluation to the end of docs/sprint-${CURRENT}-contract.md and update docs/sprint-status.md to 'Ready for QA'.
-$AUTONOMOUS_SUFFIX"
+$HARNESS_AUTONOMOUS_SUFFIX"
 
     echo ""
     echo "✓ Generator completed Sprint $CURRENT, Round $qa_round"
@@ -203,7 +200,7 @@ Write your full report to docs/qa-report-sprint-${CURRENT}.md.
 Update docs/sprint-status.md with the result.
 
 Be skeptical. Find problems. Do not praise mediocre work.
-$AUTONOMOUS_SUFFIX"
+$HARNESS_AUTONOMOUS_SUFFIX"
 
     validate_phase evaluator "$CURRENT"
 

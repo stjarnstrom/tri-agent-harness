@@ -49,7 +49,7 @@ cp .env.example .env.local   # fill in values locally
 ./harness.sh "Build a project management tool with kanban boards"
 ```
 
-The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from the first sprint not in `Pass` state.
+The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from the first sprint not in terminal `Pass` or `Skipped` state.
 
 ## Usage modes
 
@@ -133,7 +133,7 @@ Architecture and roadmap: [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor
    - On **FAIL**: Generator fixes and retries (default max 3 rounds per sprint)
 3. **Anti-slop** — QA failures logged to `.gc-cache/` for weekly guardrail review
 
-Sprint status progression: `Not started` → `In progress` → `Ready for QA` → `Pass` or `Fail`.
+Sprint status progression: `Not started` → `In progress` → `Ready for QA` → `Pass` or `Fail` (or `Skipped` when advancing after max QA rounds).
 
 ## Documentation map
 

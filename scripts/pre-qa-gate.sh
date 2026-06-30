@@ -20,6 +20,90 @@ echo "=== Pre-QA Gate (Sprint $SPRINT) ==="
 
 FAILURES=()
 
+has_app_source() {
+  for dir in src app packages frontend backend; do
+    if [ -d "$dir" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+has_npm_script() {
+  local script="$1"
+  node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts['$script']?0:1)" 2>/dev/null
+}
+
+run_pm_script() {
+  local script="$1"
+  if command -v bun >/dev/null 2>&1; then
+    bun run "$script"
+  else
+    npm run "$script"
+  fi
+}
+
+check_generator_self_eval() {
+  local contract="docs/sprint-${SPRINT}-contract.md"
+  if [ ! -f "$contract" ]; then
+    return 0
+  fi
+
+  if ! grep -qi "## Generator self-evaluation" "$contract"; then
+    FAILURES+=("Missing '## Generator self-evaluation' section in $contract")
+    return 0
+  fi
+
+  if ! awk '/## Generator self-evaluation/I {found=1; next} found && /^## / {exit} found {print}' "$contract" | grep -qE '\- \[[ xX]\]'; then
+    FAILURES+=("Generator self-evaluation in $contract is missing checklist items")
+  fi
+}
+
+check_app_build_and_tests() {
+  if [ ! -f package.json ] || ! has_app_source; then
+    echo "No application source detected — skipping build/test/typecheck checks."
+    return 0
+  fi
+
+  if has_npm_script build; then
+    echo "Running build..."
+    if ! run_pm_script build 2>&1; then
+      FAILURES+=("npm run build failed")
+    fi
+  else
+    echo "No build script — skipping build check."
+  fi
+
+  if has_npm_script typecheck; then
+    echo "Running typecheck..."
+    if ! run_pm_script typecheck 2>&1; then
+      FAILURES+=("npm run typecheck failed")
+    fi
+  elif [ -f tsconfig.json ] || [ -f tsconfig.app.json ]; then
+    echo "Running tsc --noEmit..."
+    if command -v npx >/dev/null 2>&1; then
+      if ! npx tsc --noEmit 2>&1; then
+        FAILURES+=("tsc --noEmit failed")
+      fi
+    fi
+  fi
+
+  if has_npm_script test; then
+    echo "Running tests..."
+    if ! run_pm_script test 2>&1; then
+      FAILURES+=("npm test failed")
+    fi
+  else
+    echo "No test script — skipping test check."
+  fi
+
+  if [ -f playwright.config.ts ] || [ -f playwright.config.js ] || [ -f playwright.config.mjs ]; then
+    echo "Playwright config present."
+  else
+    FAILURES+=("Application source present but no playwright.config.* — install Playwright before QA")
+  fi
+}
+
 # ── 1. Artifact validation via sdk-orchestrator ──────────────────────────────
 if [ -f "sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
   echo "Checking phase artifacts..."
@@ -73,7 +157,14 @@ else
   echo "No harness ESLint config — skipping lints."
 fi
 
-# ── 3. Secret scan on working tree changes ───────────────────────────────────
+# ── 4. Generator self-evaluation in sprint contract ────────────────────────
+echo "Checking generator self-evaluation..."
+check_generator_self_eval
+
+# ── 5. Application build, typecheck, tests, Playwright config ──────────────
+check_app_build_and_tests
+
+# ── 6. Secret scan on working tree changes ───────────────────────────────────
 GITLEAKS_CONFIG="$PROJECT_DIR/harness/gitleaks.toml"
 if command -v gitleaks >/dev/null 2>&1 && [ -d ".git" ]; then
   echo "Running gitleaks on uncommitted changes..."
@@ -87,7 +178,7 @@ if command -v gitleaks >/dev/null 2>&1 && [ -d ".git" ]; then
   fi
 fi
 
-# ── 4. Write mechanical check report for Evaluator ───────────────────────────
+# ── 7. Write mechanical check report for Evaluator ───────────────────────────
 REPORT_DIR="docs"
 MECH_REPORT="$REPORT_DIR/mechanical-checks-sprint-${SPRINT}.md"
 mkdir -p "$REPORT_DIR"
@@ -101,7 +192,10 @@ Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 All pre-QA mechanical checks passed:
 - Sprint contract and status validated
+- Generator self-evaluation present (if contract exists)
 - Harness lints clean (if applicable)
+- Build/typecheck/tests passed (if application source exists)
+- Playwright config present (if application source exists)
 - No secrets detected in staged changes
 
 The Evaluator should include this section in the QA report.

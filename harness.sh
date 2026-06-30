@@ -71,7 +71,8 @@ Then expand this prompt into a comprehensive product spec.
 Write docs/spec.md, docs/sprint-plan.md, and docs/sprint-status.md.
 Update CLAUDE.md with the product context.
 
-Prompt: $PROMPT"
+Prompt: $PROMPT
+$HARNESS_AUTONOMOUS_SUFFIX"
 
   validate_phase planner 1
 
@@ -156,7 +157,8 @@ $MECH_CONTEXT
 
 You are building Sprint $CURRENT. Write the sprint contract to docs/sprint-${CURRENT}-contract.md if it doesn't exist, then implement it. Commit to git after each meaningful unit of work.
 
-After building, write your self-evaluation to the end of docs/sprint-${CURRENT}-contract.md and update docs/sprint-status.md to 'Ready for QA'."
+After building, write your self-evaluation to the end of docs/sprint-${CURRENT}-contract.md and update docs/sprint-status.md to 'Ready for QA'.
+$HARNESS_AUTONOMOUS_SUFFIX"
 
     echo ""
     echo "✓ Generator completed Sprint $CURRENT, Round $qa_round"

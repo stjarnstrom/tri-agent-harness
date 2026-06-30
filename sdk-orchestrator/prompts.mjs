@@ -3,7 +3,7 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 
 export const AUTONOMOUS_SUFFIX = `
-AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. Complete all required artifacts and status updates before finishing.`;
+AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing.`;
 
 async function readAgentPersona(phase) {
   return readFile(path.join("agents", `${phase}.md`), "utf8");

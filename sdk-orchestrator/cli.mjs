@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { access } from "node:fs/promises";
-import { computeNextActionFromRows, readSprintRows, SPRINT_STATUS_FILE } from "./sprint-status.mjs";
+import { computeNextActionFromRows, readSprintRows, SPRINT_STATUS_FILE, markSprintSkipped } from "./sprint-status.mjs";
 import { assertPhaseOutputs, sprintPassed } from "./validate.mjs";
 import { HANDOFF_FILE, readWorkflowHandoff, writeWorkflowHandoff } from "./workflow-handoff.mjs";
 import { loadPolicy } from "./policy.mjs";
@@ -64,6 +64,7 @@ function usage() {
   node sdk-orchestrator/cli.mjs dry-run [--prompt "..."] [--max-steps N]
   node sdk-orchestrator/cli.mjs status [--json]
   node sdk-orchestrator/cli.mjs validate --phase <planner|generator|evaluator> --sprint <N>
+  node sdk-orchestrator/cli.mjs sprint-mark-skipped --sprint <N> [--notes "..."]
   node sdk-orchestrator/cli.mjs handoff-write --phase <planner|generator|evaluator> --sprint <N> --qa-round <N> --next <run-planner|run-generator|run-evaluator|done|manual-review> --source <workflow> [--artifacts <comma,separated,paths>] [--runtime-mode <local|cloud>] [--agent-id <id>] [--run-id <id>] [--notes <text>]
   node sdk-orchestrator/cli.mjs post-qa-write [--sprint <N>] [--qa-round <N>] [--source <workflow>]
 
@@ -407,6 +408,21 @@ async function main() {
 
   if (command === "validate") {
     await runValidate(flags);
+    return;
+  }
+
+  if (command === "sprint-mark-skipped") {
+    const sprint = Number.parseInt(flags.sprint, 10);
+    if (!Number.isInteger(sprint) || sprint < 1) {
+      throw new Error("sprint-mark-skipped requires --sprint <N>.");
+    }
+    await markSprintSkipped({
+      sprint,
+      notes:
+        flags.notes ??
+        "Max QA rounds reached; advanced with known issues",
+    });
+    console.log(`Marked sprint ${sprint} as Skipped in ${SPRINT_STATUS_FILE}.`);
     return;
   }
 
