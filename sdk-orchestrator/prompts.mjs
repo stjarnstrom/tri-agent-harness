@@ -1,32 +1,41 @@
-import { readFile } from "node:fs/promises";
-import { access } from "node:fs/promises";
-import path from "node:path";
+import { access, readFile } from "node:fs/promises";
+import {
+  buildPlannerModeInstructions,
+  collectDesignBriefContext,
+  getPlannerMode,
+} from "./design-brief.mjs";
 
 export const AUTONOMOUS_SUFFIX = `
 AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing.`;
 
 async function readAgentPersona(phase) {
-  return readFile(path.join("agents", `${phase}.md`), "utf8");
+  return readFile(`agents/${phase}.md`, "utf8");
 }
 
 async function qaReportExists(sprint) {
   try {
-    await access(path.join("docs", `qa-report-sprint-${sprint}.md`));
+    await access(`docs/qa-report-sprint-${sprint}.md`);
     return true;
   } catch {
     return false;
   }
 }
 
-export async function buildPlannerPrompt({ productPrompt }) {
+export async function buildPlannerPrompt({ productPrompt, harnessYes = false, cwd = process.cwd() }) {
   const persona = await readAgentPersona("planner");
+  const mode = await getPlannerMode(cwd, { harnessYes });
+  const modeInstructions = buildPlannerModeInstructions(mode);
+  const briefContext = await collectDesignBriefContext(cwd);
+
   return `${persona}
 
 Read all criteria files in agents/criteria/ to understand what the evaluator will grade.
-Then expand this prompt into a comprehensive product spec.
+Read harness/workspace-template.md for optional domain-scoped monorepo layout.
+Read docs/templates/design-options.md when in design-scout mode.
+If design/references/ contains images, read/view them before defining the design language.
 
-Write docs/spec.md, docs/sprint-plan.md, and docs/sprint-status.md.
-Update CLAUDE.md with the product context.
+${modeInstructions}
+${briefContext}
 
 Prompt: ${productPrompt}
 ${AUTONOMOUS_SUFFIX}`;
@@ -75,3 +84,5 @@ Update docs/sprint-status.md with the result.
 Be skeptical. Find problems. Do not praise mediocre work.
 ${AUTONOMOUS_SUFFIX}`;
 }
+
+export { getPlannerMode, getPlanningState, collectDesignBriefContext, isDesignScoutComplete, isPlanningComplete, needsPlanning } from "./design-brief.mjs";

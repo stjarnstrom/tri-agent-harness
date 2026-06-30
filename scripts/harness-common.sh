@@ -9,9 +9,10 @@ PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 HARNESS_ON_MAX_ROUNDS="${HARNESS_ON_MAX_ROUNDS:-halt}"
 
 # Pause controls (token/cost management)
-# HARNESS_PAUSE: off (default) | sprint | phase
+# HARNESS_PAUSE: off (default) | sprint | phase | design
 #   sprint — confirm before each new sprint (qa round 1 only)
 #   phase  — confirm before every Planner/Generator/Evaluator invocation
+#   design — confirm after design-scout (when docs/design-options.md exists, no sprint-status)
 # HARNESS_YES=1 — skip all pause prompts (fully autonomous)
 # HARNESS_MAX_SPRINTS_PER_RUN=N — stop after N sprints in this invocation (resume later)
 # HARNESS_USAGE_CHECK=1 — run scripts/usage-check.sh at sprint boundaries
@@ -29,7 +30,11 @@ harness_should_pause_sprint() {
 }
 
 harness_should_pause_phase() {
-  [[ "$HARNESS_PAUSE" == "phase" ]]
+  [[ "$HARNESS_PAUSE" == "phase" || "$HARNESS_PAUSE" == "design" ]]
+}
+
+harness_should_pause_design() {
+  [[ "$HARNESS_PAUSE" == "design" ]]
 }
 
 harness_prompt_continue() {
@@ -289,6 +294,9 @@ harness_phase_artifacts_ready() {
 
   case "$phase" in
     planner)
+      if [[ -f docs/design-options.md && ! -f docs/sprint-status.md ]]; then
+        return 0
+      fi
       [[ -f docs/spec.md && -f docs/sprint-plan.md && -f docs/sprint-status.md ]]
       ;;
     generator)
@@ -432,6 +440,224 @@ handle_max_rounds() {
   echo "  Fix issues and re-run: ./harness.sh \"<same prompt>\""
   echo "  Or advance anyway: HARNESS_ON_MAX_ROUNDS=advance ./harness.sh \"<prompt>\""
   exit 1
+}
+
+# ─── Design brief helpers ─────────────────────────────────────────────
+
+harness_design_file_has_content() {
+  local file_path="$1"
+  [[ -f "$file_path" ]] || return 1
+  grep -q '[^[:space:]]' "$file_path" 2>/dev/null
+}
+
+harness_has_design_brief_input() {
+  if harness_design_file_has_content "design/brief.md"; then
+    return 0
+  fi
+  if harness_design_file_has_content "design/constraints.md"; then
+    return 0
+  fi
+  if harness_design_file_has_content "brand-guidelines.md"; then
+    return 0
+  fi
+  if harness_design_file_has_content "agents/brand-guidelines.md"; then
+    return 0
+  fi
+  if [ -d design/references ]; then
+    local asset
+    for asset in design/references/*.{png,jpg,jpeg,webp,svg}; do
+      [ -f "$asset" ] || continue
+      return 0
+    done
+  fi
+  return 1
+}
+
+harness_has_selected_direction() {
+  harness_design_file_has_content "design/selected-direction.md"
+}
+
+harness_is_design_scout_complete() {
+  [[ -f docs/design-options.md ]] && [[ ! -f docs/sprint-status.md ]]
+}
+
+harness_is_planning_complete() {
+  [[ -f docs/spec.md ]] && [[ -f docs/sprint-status.md ]]
+}
+
+harness_get_planner_mode() {
+  if harness_is_planning_complete; then
+    echo "complete"
+    return
+  fi
+  if harness_has_design_brief_input; then
+    echo "full"
+    return
+  fi
+  if harness_has_selected_direction && [[ -f docs/design-options.md ]]; then
+    echo "finalize"
+    return
+  fi
+  if [ "$HARNESS_YES" = "1" ]; then
+    echo "full"
+    return
+  fi
+  echo "scout"
+}
+
+harness_planner_mode_instructions() {
+  local mode="$1"
+  case "$mode" in
+    scout)
+      cat <<'EOF'
+DESIGN SCOUT MODE: No user design brief was provided.
+
+Write ONLY docs/design-options.md using the shape in docs/templates/design-options.md.
+Include exactly 3 materially different design directions (Option A, B, C). Each must have
+aesthetic, palette, typography, motion, signature element, and rationale.
+
+Do NOT write docs/sprint-plan.md or docs/sprint-status.md.
+Do NOT write a full docs/spec.md — at most a one-paragraph product stub if needed for context.
+
+Stop after docs/design-options.md is complete. The harness will pause for the user to pick a direction.
+EOF
+      ;;
+    finalize)
+      cat <<'EOF'
+DESIGN FINALIZE MODE: The user selected a design direction.
+
+Read design/selected-direction.md and docs/design-options.md.
+Merge the chosen direction (plus any user tweaks) into the final product spec.
+Treat the selection as binding — do not substitute a different aesthetic.
+
+Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update CLAUDE.md.
+EOF
+      ;;
+    full|*)
+      cat <<'EOF'
+FULL PLAN MODE: Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update CLAUDE.md.
+If a user design brief or reference assets were provided, follow them exactly — expand only where the user was silent.
+EOF
+      ;;
+  esac
+}
+
+collect_design_brief_context() {
+  local sections=""
+  local file content rel_path asset
+
+  for file in design/brief.md design/constraints.md; do
+    if harness_design_file_has_content "$file"; then
+      rel_path="$file"
+      content="$(cat "$file")"
+      sections="${sections}### ${rel_path}
+
+${content}
+
+"
+    fi
+  done
+
+  for file in brand-guidelines.md agents/brand-guidelines.md; do
+    if harness_design_file_has_content "$file"; then
+      content="$(cat "$file")"
+      sections="${sections}### ${file} (legacy brand guidelines)
+
+${content}
+
+"
+    fi
+  done
+
+  if harness_design_file_has_content "design/selected-direction.md"; then
+    content="$(cat design/selected-direction.md)"
+    sections="${sections}### design/selected-direction.md
+
+${content}
+
+"
+  fi
+
+  if [ -d design/references ]; then
+    local refs=""
+    for asset in design/references/*; do
+      [ -f "$asset" ] || continue
+      case "$asset" in
+        *.png|*.jpg|*.jpeg|*.webp|*.svg)
+          refs="${refs}- ${asset}
+"
+          ;;
+      esac
+    done
+    if [ -n "$refs" ]; then
+      sections="${sections}### Reference assets (read/view these files)
+
+${refs}
+"
+    fi
+  fi
+
+  if [ -z "$sections" ]; then
+    return 0
+  fi
+
+  printf '%s\n' "## User design input (authoritative — do not override)
+
+${sections}"
+}
+
+harness_build_planner_prompt() {
+  local product_prompt="$1"
+  local mode
+  local brief_context=""
+  local mode_instructions
+  local persona
+
+  mode="$(harness_get_planner_mode)"
+  mode_instructions="$(harness_planner_mode_instructions "$mode")"
+  brief_context="$(collect_design_brief_context || true)"
+  persona="$(cat agents/planner.md)"
+
+  printf '%s\n\n' "$persona"
+  printf '%s\n' "$GUARDRAIL_CONTEXT"
+  printf '%s\n' "Read harness/workspace-template.md for optional domain-scoped monorepo layout."
+  printf '%s\n' "Read all criteria files in agents/criteria/ to understand what the evaluator will grade."
+  printf '%s\n' "Read docs/templates/design-options.md when in design-scout mode."
+  printf '%s\n' "If design/references/ contains images, read/view them before defining the design language."
+  printf '\n%s\n\n' "$mode_instructions"
+  if [ -n "$brief_context" ]; then
+    printf '%s\n\n' "$brief_context"
+  fi
+  printf '%s\n' "Prompt: $product_prompt"
+  printf '%s\n' "$HARNESS_AUTONOMOUS_SUFFIX"
+}
+
+harness_handle_design_scout_complete() {
+  if ! harness_is_design_scout_complete; then
+    return 1
+  fi
+
+  echo ""
+  echo "▶ DESIGN SCOUT COMPLETE"
+  echo "  Three design directions written to docs/design-options.md"
+  echo ""
+  echo "  Next steps:"
+  echo "    1. Review docs/design-options.md"
+  echo "    2. Create design/selected-direction.md with your pick (e.g. 'Option B — Momentum Dark')"
+  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (or ./cursor-harness.sh)"
+  echo ""
+
+  if harness_should_pause_design; then
+    harness_prompt_continue "design direction selection" ""
+  fi
+
+  exit 0
+}
+
+harness_maybe_pause_after_design_scout() {
+  if harness_is_design_scout_complete && harness_should_pause_design; then
+    harness_prompt_continue "review design options in docs/design-options.md" ""
+  fi
 }
 
 # ─── Shared agent context blocks ─────────────────────────────────────

@@ -37,6 +37,7 @@ Prompt: $USER_PROMPT
 - agents/planner.md
 - agents/criteria/*.md
 - CLAUDE.md
+- design/ (if present — brief, constraints, references)
 - $RUNTIME_CONTRACT
 
 ## Expected Outputs

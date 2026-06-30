@@ -46,6 +46,7 @@ user approval.
 - Implement features one at a time, in order of dependency
 - Get each piece working before moving to the next
 - The design language from the spec is not optional — follow it exactly
+- If `design/references/` exists, spot-check Sprint 1 UI against reference intent during design-system work
 - Use the frontend-design skill principles for all UI work
 - Every screen should look like it belongs to the same product
 

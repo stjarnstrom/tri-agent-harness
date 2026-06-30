@@ -144,6 +144,25 @@ Sprint status progression: `Not started` → `In progress` → `Ready for QA` �
 
 On **FAIL**, the Generator fixes issues and retries (default max 3 QA rounds per sprint). On **PASS**, the harness moves to the next sprint.
 
+### Design input (optional)
+
+Steer visual direction before the Planner runs:
+
+```bash
+cp docs/templates/design-brief.md design/brief.md
+# Edit brief.md; add mood images to design/references/
+./harness.sh "Build a kanban app for film editors"
+```
+
+When `design/` is empty, the Planner writes three options to `docs/design-options.md` and the harness pauses. Pick one:
+
+```bash
+echo "Option B — Momentum Dark. Prefer amber accents." > design/selected-direction.md
+./harness.sh "Build a kanban app for film editors"   # same prompt — finalize + build
+```
+
+See [`design/README.md`](design/README.md) and [`docs/templates/design-brief.md`](docs/templates/design-brief.md).
+
 #### Planner
 
 - Expands your one-line prompt into a full spec (features, design language, stack, AI integration).
@@ -297,6 +316,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 | `review-personas/*.md` | Security, frontend, reliability checklists |
 | `docs/runtime-contract.md` | File ownership and phase boundaries |
 | `docs/templates/sprint-contract.md` | Sprint contract template |
+| `design/` | Optional user design brief and reference assets |
+| `docs/templates/design-brief.md` | Copy to `design/brief.md` before a run |
 
 ## Environment variables
 
@@ -305,7 +326,7 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 | `HARNESS_MODEL` | `claude-opus-4-6` / `composer-2.5` | Model override |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
 | `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |
-| `HARNESS_PAUSE` | `off` | `sprint` = confirm before each sprint; `phase` = confirm before every agent |
+| `HARNESS_PAUSE` | `off` | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout |
 | `HARNESS_YES` | `0` | Set to `1` to skip pause prompts (fully autonomous) |
 | `HARNESS_MAX_SPRINTS_PER_RUN` | unlimited | Stop after N sprints; re-run same prompt to resume |
 | `HARNESS_USAGE_CHECK` | `0` | Run `scripts/usage-check.sh` at sprint boundaries |

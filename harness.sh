@@ -42,7 +42,7 @@ echo "============================================"
 
 # ─── Phase 1: Planning ───────────────────────────────────────────────
 
-if [ -f docs/spec.md ] && [ -f docs/sprint-status.md ]; then
+if harness_is_planning_complete; then
   echo ""
   echo "▶ RESUMING: Found existing spec and sprint status"
   CURRENT=$(get_current_sprint)
@@ -51,9 +51,13 @@ if [ -f docs/spec.md ] && [ -f docs/sprint-status.md ]; then
     exit 0
   fi
   echo "  Resuming from sprint $CURRENT"
+elif harness_is_design_scout_complete && ! harness_has_selected_direction; then
+  harness_handle_design_scout_complete
 else
   echo ""
   echo "▶ PHASE 1: PLANNER"
+  PLANNER_MODE="$(harness_get_planner_mode)"
+  echo "  Planner mode: $PLANNER_MODE"
   echo "  Expanding prompt into product spec..."
   echo ""
 
@@ -61,31 +65,28 @@ else
 
   claude --dangerously-skip-permissions \
     --model "$HARNESS_MODEL" \
-    -p "$(cat agents/planner.md)
-
-$GUARDRAIL_CONTEXT
-Read harness/workspace-template.md for optional domain-scoped monorepo layout.
-Read all criteria files in agents/criteria/ to understand what the evaluator will grade.
-Then expand this prompt into a comprehensive product spec.
-
-Write docs/spec.md, docs/sprint-plan.md, and docs/sprint-status.md.
-Update CLAUDE.md with the product context.
-
-Prompt: $PROMPT
-$HARNESS_AUTONOMOUS_SUFFIX"
+    -p "$(harness_build_planner_prompt "$PROMPT")"
 
   validate_phase planner 1
 
-  if [ ! -f docs/spec.md ]; then
-    echo "ERROR: Planner did not produce docs/spec.md"
-    exit 1
+  if [ "$PLANNER_MODE" = "scout" ]; then
+    if [ ! -f docs/design-options.md ]; then
+      echo "ERROR: Planner did not produce docs/design-options.md"
+      exit 1
+    fi
+    harness_handle_design_scout_complete
+  else
+    if [ ! -f docs/spec.md ]; then
+      echo "ERROR: Planner did not produce docs/spec.md"
+      exit 1
+    fi
+
+    write_handoff planner 1 1 run-generator \
+      "docs/spec.md,docs/sprint-plan.md,docs/sprint-status.md,CLAUDE.md"
+
+    echo ""
+    echo "✓ Spec written to docs/spec.md"
   fi
-
-  write_handoff planner 1 1 run-generator \
-    "docs/spec.md,docs/sprint-plan.md,docs/sprint-status.md,CLAUDE.md"
-
-  echo ""
-  echo "✓ Spec written to docs/spec.md"
 fi
 
 # ─── Phase 2: Sprint Loop ───────────────────────────────────────────

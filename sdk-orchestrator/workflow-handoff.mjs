@@ -8,6 +8,7 @@ const NEXT_ACTIONS = new Set([
   "run-planner",
   "run-generator",
   "run-evaluator",
+  "await-design-selection",
   "done",
   "manual-review",
 ]);

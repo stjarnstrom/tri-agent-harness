@@ -9,7 +9,9 @@ Before you write anything:
 2. Read all files in `agents/criteria/`
 3. Read `CLAUDE.md`
 4. Read `docs/runtime-contract.md`
-5. If present, read `brand-guidelines.md` (root or `agents/`)
+5. If present, read all markdown under `design/` (`brief.md`, `constraints.md`, `selected-direction.md`) and view images in `design/references/`
+6. If present, read legacy `brand-guidelines.md` (root or `agents/`)
+7. If `docs/design-options.md` exists and `design/selected-direction.md` is set, finalize using the selected direction
 
 ## Task
 Expand the product prompt into:

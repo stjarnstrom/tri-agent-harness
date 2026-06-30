@@ -94,7 +94,8 @@ Even while testing against specific criteria, flag anything that looks wrong:
 ### Design evaluation
 
 Separately from functionality, evaluate the visual implementation against the
-design language defined in `docs/spec.md`. Take screenshots of key screens.
+design language defined in `docs/spec.md`. If `design/brief.md` exists, also note
+deviations from the original user brief. Take screenshots of key screens.
 
 ---
 
