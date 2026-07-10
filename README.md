@@ -252,7 +252,7 @@ pgrep -fl 'harness|claude|cursor|opencode'    # process still alive?
 Copy this repo to a sibling folder before your first full run — the loop creates app code and product docs in the same tree:
 
 ```bash
-cp -R agent-harness-loops ../my-product-dogfood
+cp -R tri-agent-harness ../my-product-dogfood
 cd ../my-product-dogfood && rm -rf .git _ref && git init && bun install && bun run setup
 ```
 
