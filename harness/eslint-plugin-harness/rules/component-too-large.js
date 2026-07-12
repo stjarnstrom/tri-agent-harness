@@ -32,7 +32,7 @@ module.exports = {
       Program(node) {
         if (!node.body.length) return;
 
-        const sourceCode = context.getSourceCode();
+        const sourceCode = context.sourceCode ?? context.getSourceCode();
         const text = sourceCode.getText();
         const lineCount = text.split('\n').length;
         const hasJsx = /<(?:[A-Z][a-z]+|[a-z][\w-]+)/.test(text);

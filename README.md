@@ -4,7 +4,7 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
 
-> **Claude Code only?** See the [`examples/claude-only`](examples/claude-only) branch for a stripped-down teaching example without Cursor, OpenCode, or SDK paths.
+> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are supported as optional alternatives — see [Usage modes](#usage-modes). Want a minimal Claude-only tree with those extras removed entirely? See the [`examples/claude-only`](examples/claude-only) branch.
 
 ## Architecture
 
@@ -22,9 +22,9 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 |-------------|-------|
 | **Git repo** | `git init` before setup — hooks install into `.git/hooks/` |
 | **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback |
-| **Claude Code CLI** (`claude`) | For `./harness.sh` autonomous mode |
-| **Cursor CLI** | For `./cursor-harness.sh` autonomous mode |
-| **OpenCode CLI** (`opencode`) | For `./opencode-harness.sh` autonomous mode |
+| **Claude Code CLI** (`claude`) | Primary runner — for `./harness.sh` autonomous mode |
+| **Cursor CLI** | Optional — only for the `./cursor-harness.sh` alternative |
+| **OpenCode CLI** (`opencode`) | Optional — only for the `./opencode-harness.sh` alternative |
 | **`.env.local`** | Copy from `.env.example`; never commit real secrets |
 
 Optional:
@@ -39,11 +39,11 @@ git init
 bun install && bun run setup
 cp .env.example .env.local   # fill in values locally
 
-# 2. Run autonomous build (pick one CLI)
+# 2. Run autonomous build (Claude Code — the default runner)
 ./harness.sh "Build a project management tool with kanban boards"
-# or
+
+# Optional alternative runners — same artifacts, same state machine:
 ./cursor-harness.sh "Build a project management tool with kanban boards"
-# or
 ./opencode-harness.sh "Build a project management tool with kanban boards"
 
 # 3. Resume after interruption — re-run the same command
@@ -58,12 +58,12 @@ Pick the mode that matches how much control you want. All modes share the same a
 
 ### 1. Autonomous (recommended for hands-off builds)
 
-Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`):
+Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives that share the same artifacts and state machine.**
 
 ```bash
-./harness.sh "your product prompt"              # Claude Code
-./cursor-harness.sh "your product prompt"       # Cursor CLI
-./opencode-harness.sh "your product prompt"     # OpenCode CLI
+./harness.sh "your product prompt"              # Claude Code (default)
+./cursor-harness.sh "your product prompt"       # Cursor CLI (optional)
+./opencode-harness.sh "your product prompt"     # OpenCode CLI (optional)
 ./harness.sh "your product prompt" 5            # max 5 QA rounds per sprint
 ```
 

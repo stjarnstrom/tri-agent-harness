@@ -155,16 +155,21 @@ npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 
 ## Commands
 
-**Autonomous mode:**
+**Autonomous mode** (`./harness.sh` / Claude Code is the default runner):
 
 ```bash
-./harness.sh "product prompt"              # Claude Code loop
-./cursor-harness.sh "product prompt"       # Cursor CLI loop
-./opencode-harness.sh "product prompt"     # OpenCode CLI loop
+./harness.sh "product prompt"              # Claude Code loop (default)
 ./harness.sh "product prompt" 5            # max 5 QA rounds per sprint
 HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failure
 HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..."  # one sprint per run
+```
+
+Optional alternative runners (same artifacts and state machine):
+
+```bash
+./cursor-harness.sh "product prompt"       # Cursor CLI loop
+./opencode-harness.sh "product prompt"     # OpenCode CLI loop
 ```
 
 **Interactive mode (Claude Code slash commands):**

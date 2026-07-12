@@ -50,7 +50,7 @@ module.exports = {
 
         if (!isConsole) return;
 
-        const filePath = context.getFilename();
+        const filePath = context.filename ?? context.getFilename();
         if (isAllowed(filePath)) return;
 
         context.report({ node, messageId: 'noConsole' });
