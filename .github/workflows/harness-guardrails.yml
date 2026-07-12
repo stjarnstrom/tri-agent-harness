@@ -19,7 +19,7 @@ jobs:
       - name: Run harness orchestrator tests
         run: npm run test:harness
       - name: Run harness lint rules
-        run: npx eslint --config .eslintrc.harness.cjs --format compact harness/eslint-plugin-harness/ scripts/
+        run: npx eslint --config .eslintrc.harness.cjs harness/eslint-plugin-harness/ scripts/
 
   component-size-check:
     name: "Component size audit"
@@ -53,6 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
