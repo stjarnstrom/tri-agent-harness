@@ -54,11 +54,11 @@ The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from th
 
 ## Usage modes
 
-Pick the mode that matches how much control you want. All modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md) for file ownership and mode switching.
+Pick the mode that matches how much control you want. Claude Code is the default runner throughout; modes 3–4 cover the optional Cursor, OpenCode, and SDK paths. All modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md) for file ownership and mode switching.
 
 ### 1. Autonomous (recommended for hands-off builds)
 
-Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives that share the same artifacts and state machine.**
+Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives.**
 
 ```bash
 ./harness.sh "your product prompt"              # Claude Code (default)
@@ -81,7 +81,7 @@ Typical flow: `/plan "Build a kanban app"` → `/build` → `/qa` → repeat `/b
 
 Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions. Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
 
-### 3. Interactive — Cursor Agent Manager
+### 3. Interactive — Cursor Agent Manager (optional)
 
 Generate a handoff prompt, then paste it into Cursor Agent Manager:
 
@@ -101,7 +101,7 @@ Each script writes [`docs/cursor-handoff.md`](docs/cursor-handoff.md) listing re
 
 To switch from Claude CLI to Cursor mid-run: stop after any completed phase, ensure `docs/sprint-status.md` is up to date, then run the matching `scripts/cursor-*.sh`. Details in [`docs/runtime-contract.md`](docs/runtime-contract.md#mode-switching-rules).
 
-### 4. SDK orchestrator (bash-free option)
+### 4. SDK orchestrator (optional, bash-free)
 
 Alternative to shell loops; same artifacts, resumable state in `docs/workflow-handoff.json`:
 
