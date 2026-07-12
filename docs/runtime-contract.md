@@ -146,9 +146,6 @@ Rules:
 2. Autonomous runs use `./opencode-harness.sh` with `--agent planner|generator|evaluator` (via `run_opencode_agent`).
 3. Switch mid-run the same way as Claude/Cursor: stop after a completed phase, ensure canonical files are updated, re-run `./opencode-harness.sh "<same prompt>"`.
 
-### Claude-only teaching branch
-For a stripped-down harness with only Claude Code (no Cursor, OpenCode, or SDK), see the `examples/claude-only` branch.
-
 ## Conflict Resolution
 
 If mode outputs disagree, trust these in order:

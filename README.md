@@ -4,7 +4,7 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
 
-> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are supported as optional alternatives — see [Usage modes](#usage-modes). Want a minimal Claude-only tree with those extras removed entirely? See the [`examples/claude-only`](examples/claude-only) branch.
+> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are supported as optional alternatives — see [Usage modes](#usage-modes).
 
 ## Architecture
 
