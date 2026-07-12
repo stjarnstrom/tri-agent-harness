@@ -36,7 +36,7 @@ module.exports = {
     const options = context.options[0] || {};
     const maxLines = options.maxLines ?? 350;
     const excludePatterns = options.excludePatterns || [];
-    const filename = context.getFilename();
+    const filename = context.filename ?? context.getFilename();
 
     if (isGeneratedPath(filename) || isTestPath(filename)) return {};
     if (excludePatterns.some((pattern) => filename.includes(pattern))) return {};
@@ -45,7 +45,7 @@ module.exports = {
       Program(node) {
         if (!node.body.length) return;
 
-        const sourceCode = context.getSourceCode();
+        const sourceCode = context.sourceCode ?? context.getSourceCode();
         const text = sourceCode.getText();
         const lineCount = text.split('\n').length;
         const hasJsx = /<(?:[A-Z][a-z]+|[a-z][\w-]+)/.test(text);
