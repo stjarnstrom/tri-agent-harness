@@ -79,6 +79,18 @@ Run one phase at a time using slash commands defined in [`.claude/commands/`](.c
 
 Typical flow: `/plan "Build a kanban app"` → `/build` → `/qa` → repeat `/build` until all sprints pass.
 
+Each command dispatches its phase to a dedicated **subagent** defined in
+[`.claude/agents/`](.claude/agents/) (`planner`, `generator`, `evaluator`)
+rather than role-playing the agent in your current chat. Each subagent runs in
+its **own isolated context** and hands off only through files in `docs/` — so
+running `/plan`, `/build`, and `/qa` back-to-back in a single session (or in the
+Claude mobile app) does **not** let one phase's context bleed into the next.
+This reproduces, in interactive mode, the clean-context isolation that
+`./harness.sh` gets by launching each phase as a separate `claude -p` process,
+and it keeps the Evaluator's judgment independent of the Generator's. The
+`evaluator` subagent is granted the Playwright MCP tools so it can drive the
+live app.
+
 Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions. Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
 
 ### 3. Interactive — Cursor Agent Manager (optional)
@@ -311,7 +323,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 | `sdk-orchestrator/` | SDK-based orchestrator (alternative to bash loops) |
 | `scripts/pre-qa-gate.sh` | Mechanical gate between Generator and Evaluator |
 | `scripts/cursor-*.sh` | Cursor Agent Manager handoff generators |
-| `.claude/commands/` | Claude Code slash commands (`/plan`, `/build`, `/qa`) |
+| `.claude/commands/` | Claude Code slash commands (`/plan`, `/build`, `/qa`) that dispatch to isolated subagents |
+| `.claude/agents/` | Claude Code subagents (`planner`, `generator`, `evaluator`) — clean context per phase |
 | `cursor/prompts/` | Cursor phase prompt templates |
 | `harness/AGENT-INSTRUCTIONS.md` | Universal agent rules |
 | `agents/*.md` | Planner, Generator, Evaluator personas |

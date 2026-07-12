@@ -1,17 +1,23 @@
-You are now acting as the **Planner Agent**. Read the full planner persona from `agents/planner.md` and internalize it before proceeding.
+Dispatch the planning phase to the **planner** subagent so it runs in its own
+clean, isolated context — do **not** plan in this conversation yourself.
 
-Your task: Expand the user's prompt into a comprehensive product spec.
+Launch the `planner` subagent now using the Agent tool (`subagent_type: planner`).
+Pass it this task:
 
-1. Read `agents/planner.md` for your full instructions.
-2. Read all files in `agents/criteria/` to understand what the evaluator will grade.
-3. Read `CLAUDE.md` for stack defaults and any brand guidelines.
-4. If files exist under `design/`, read `design/brief.md`, `design/constraints.md`, and view assets in `design/references/`. If `design/selected-direction.md` exists, read it with `docs/design-options.md`.
-5. If a legacy `brand-guidelines.md` file exists in the project root or `agents/`, read it.
-6. Expand the prompt into a spec using the frontend-design skill for design grounding.
-7. Write `docs/spec.md` — full product spec.
-8. Write `docs/sprint-plan.md` — sprint breakdown with user stories and "done when" criteria.
-9. Write `docs/sprint-status.md` — initialize status table with all sprints as "Not started".
-10. Update `CLAUDE.md` with product name, stack, design language summary, and links to docs.
-11. Summarize what you've planned and tell the user to run `/project:build` to start Sprint 1.
+> Read `agents/planner.md` and your other required inputs, then expand the
+> following product prompt into a full spec, sprint plan, and status tracker
+> (or design options if in scout mode), writing all files per your instructions.
+>
+> Product prompt: $ARGUMENTS
 
-Product prompt: $ARGUMENTS
+Why a subagent: the Planner, Generator, and Evaluator are meant to be
+independent. Running the planner in its own context (rather than role-playing it
+here) keeps this session from leaking into the Generator's and Evaluator's
+context later — the same isolation the autonomous `./harness.sh` gets by
+launching each phase as a separate process. All handoff is through files in
+`docs/`.
+
+When the subagent returns, relay its summary to me and tell me the next step
+(run `/build` to start Sprint 1, or — in design-scout mode — pick a direction
+in `docs/design-options.md` and re-run planning). Do not re-do the planning work
+in this thread.
