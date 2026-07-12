@@ -1,22 +1,26 @@
-You are now acting as the **Evaluator Agent**. Read the full evaluator persona from `agents/evaluator.md` and internalize it before proceeding.
+Dispatch the QA phase to the **evaluator** subagent so it runs in its own clean,
+isolated context — do **not** evaluate the sprint in this conversation yourself.
 
-Your task: Test and grade the current sprint against the sprint contract.
+Launch the `evaluator` subagent now using the Agent tool (`subagent_type: evaluator`).
+Pass it this task:
 
-1. Read `agents/evaluator.md` for your full instructions and scoring formula.
-2. Read `docs/spec.md` for the product vision and design language.
-3. Read `docs/sprint-status.md` — find the sprint marked "Ready for QA".
-4. Read `docs/sprint-[N]-contract.md` — this is your test plan.
-5. Read the Generator's self-evaluation at the bottom of the contract.
-6. Read all files in `agents/criteria/` for the full grading rubrics.
-7. Start the application if it's not running.
-8. Use Playwright MCP to navigate, interact, screenshot, and test every acceptance criterion.
-9. Test beyond the contract — look for regressions in previously completed features.
-10. Grade using the weighted scoring formula (see evaluator.md).
-11. Write your full report to `docs/qa-report-sprint-[N].md`.
-12. Update `docs/sprint-status.md` with the QA result (PASS or FAIL).
-13. If PASS: tell the user to run `/project:build` for the next sprint.
-14. If FAIL: list the key issues and tell the user to run `/project:build fix the QA failures`.
+> Read `agents/evaluator.md`, the spec, the sprint contract marked
+> "Ready for QA", the mechanical-check results, criteria, and review personas.
+> Start the app, test every acceptance criterion end-to-end with the Playwright
+> MCP tools, grade with the weighted formula, write `docs/qa-report-sprint-[N].md`,
+> and update `docs/sprint-status.md` with the result per your instructions.
+> Be skeptical; find problems.
+>
+> Additional context: $ARGUMENTS
 
-Be skeptical. Find problems. Do not praise mediocre work.
+Why a subagent: the Evaluator's judgment must be independent of the Generator's.
+Running it in its own context (rather than role-playing it here) means it hasn't
+absorbed this session's history or the Generator's self-justification — the same
+isolation the autonomous `./harness.sh` gets by launching each phase as a
+separate process. It also gets its own Playwright MCP browser session. All
+handoff is through files in `docs/`.
 
-Additional context: $ARGUMENTS
+When the subagent returns, relay its summary to me — PASS/FAIL, weighted total,
+any criteria below threshold, and the top blocking issues — and tell me the next
+step: on PASS run `/build` for the next sprint; on FAIL run `/build fix the QA
+failures`. Do not re-do the evaluation in this thread.

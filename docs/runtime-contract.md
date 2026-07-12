@@ -6,8 +6,16 @@ harness** (orchestration + guardrails):
 - `harness.sh` autonomous execution (Claude Code)
 - `cursor-harness.sh` autonomous execution (Cursor CLI)
 - `opencode-harness.sh` autonomous execution (OpenCode CLI)
+- Claude Code interactive execution (`.claude/commands/*` → `.claude/agents/*` subagents)
 - Cursor human-in-the-loop execution (`scripts/cursor-*.sh` + Agent Manager)
 - SDK orchestrator (`npm run harness:sdk`)
+
+The interactive Claude Code path dispatches each phase to a dedicated subagent
+(`planner`, `generator`, `evaluator`) via the `/plan`, `/build`, and `/qa`
+slash commands. Each subagent runs in its own isolated context and communicates
+only through the canonical files below — the same isolation `harness.sh` gets
+from separate `claude -p` processes. Subagents cannot pause mid-run, so
+`/build` writes the sprint contract and implements in a single pass.
 
 If all modes follow this contract, you can switch between them at any time.
 
