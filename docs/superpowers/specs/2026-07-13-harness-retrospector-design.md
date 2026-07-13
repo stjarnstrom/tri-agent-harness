@@ -92,6 +92,7 @@ Also exposed interactively as `/project:retro`, mirroring `/plan`, `/build`, `/q
 | `scripts/anti-slop.mjs` | Also reads `harness/lessons.jsonl` so weekly GC and the retro share one data source |
 | `.eslintrc.harness.cjs` / `package.json` | `validate-lessons.mjs` wired into `lint:harness` (as a script step); `lessons:sync` script added |
 | `CLAUDE.md`, `docs/runtime-contract.md` | Document the fourth phase, file ownership (Retrospector owns `harness/LESSONS.md`, `harness/lessons.jsonl`, `docs/proposals/`) |
+| `README.md` | Document the learning loop: Retrospector phase, LESSONS.md, two-strike guardrail proposals, `lessons:sync`, `HARNESS_RETRO=off` |
 
 ## Data formats
 
