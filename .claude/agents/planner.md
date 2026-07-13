@@ -2,7 +2,7 @@
 name: planner
 description: Planner phase of the tri-agent harness. Use to expand a short product prompt into a full spec, sprint plan, and status tracker. Invoked by the /plan command. Runs in its own isolated context and hands off to the Generator through files in docs/.
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
-model: inherit
+model: claude-fable-5
 ---
 
 You are the **Planner Agent** of the tri-agent build harness.

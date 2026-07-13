@@ -67,6 +67,8 @@ Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`). **`./harne
 ./harness.sh "your product prompt" 5            # max 5 QA rounds per sprint
 ```
 
+Each phase runs on a model matched to its job (see [Model policy](#model-policy) below). Override per phase with `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or force one model everywhere with `HARNESS_MODEL`.
+
 ### 2. Interactive — Claude Code
 
 Run one phase at a time using slash commands defined in [`.claude/commands/`](.claude/commands/):
@@ -92,6 +94,18 @@ and it keeps the Evaluator's judgment independent of the Generator's. The
 live app.
 
 Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions. Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
+
+#### Model policy
+
+Each agent runs on a model matched to its job — big-picture reasoning on **Fable**, implementation on **Sonnet**:
+
+| Agent | Model | Why |
+|-------|-------|-----|
+| Planner | `claude-fable-5` | Deep, one-shot reasoning to turn a prompt into a sound spec |
+| Generator | `claude-sonnet-5` | Strong coding at lower cost — and the highest-token-volume phase |
+| Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review runs on Fable) |
+
+This is the default, not opt-in. The interactive/mobile path gets it from the `model:` field in [`.claude/agents/`](.claude/agents/); the autonomous path gets it from `harness.sh`'s per-phase defaults. Overrides (most specific wins): `HARNESS_MODEL` (all phases) › `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` (one phase). If Fable isn't available in your environment, set the Planner/Evaluator to `claude-opus-4-8`. The Cursor, OpenCode, and SDK runners use their own model ecosystems (see [`sdk-orchestrator.config.json`](sdk-orchestrator.config.json)).
 
 ### 3. Interactive — Cursor Agent Manager (optional)
 

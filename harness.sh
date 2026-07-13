@@ -26,10 +26,31 @@ HARNESS_SOURCE="harness.sh"
 cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
 
-claude_model_args=()
-if [ -n "${HARNESS_MODEL:-}" ]; then
-  claude_model_args+=(--model "$HARNESS_MODEL")
-fi
+# ─── Per-agent model policy ──────────────────────────────────────────
+# Default: Fable for big-picture reasoning (Planner + Evaluator/QA review),
+# Sonnet for implementation (Generator). Rationale: reasoning-heavy, low-volume
+# phases get the strongest model; the highest-token-volume phase (Generator)
+# gets the cheaper coding-tuned model.
+#
+# Overrides (most specific wins):
+#   HARNESS_MODEL              — force ONE model for ALL phases (global escape hatch)
+#   HARNESS_PLANNER_MODEL      — Planner only
+#   HARNESS_GENERATOR_MODEL    — Generator only
+#   HARNESS_EVALUATOR_MODEL    — Evaluator only
+# If Fable is unavailable in this environment, set the planner/evaluator vars
+# to claude-opus-4-8 (the natural big-picture/analysis fallback).
+HARNESS_PLANNER_MODEL="${HARNESS_PLANNER_MODEL:-claude-fable-5}"
+HARNESS_GENERATOR_MODEL="${HARNESS_GENERATOR_MODEL:-claude-sonnet-5}"
+HARNESS_EVALUATOR_MODEL="${HARNESS_EVALUATOR_MODEL:-claude-fable-5}"
+
+# A global HARNESS_MODEL, if set, overrides every phase.
+PLANNER_MODEL="${HARNESS_MODEL:-$HARNESS_PLANNER_MODEL}"
+GENERATOR_MODEL="${HARNESS_MODEL:-$HARNESS_GENERATOR_MODEL}"
+EVALUATOR_MODEL="${HARNESS_MODEL:-$HARNESS_EVALUATOR_MODEL}"
+
+planner_model_args=(--model "$PLANNER_MODEL")
+generator_model_args=(--model "$GENERATOR_MODEL")
+evaluator_model_args=(--model "$EVALUATOR_MODEL")
 
 # Ensure guardrails are installed
 if [ ! -f ".git/hooks/pre-commit" ] && [ -d ".git" ]; then
@@ -43,9 +64,9 @@ echo "  Prompt: $PROMPT"
 echo "  Max QA rounds per sprint: $MAX_QA_ROUNDS"
 echo "  On max rounds: $HARNESS_ON_MAX_ROUNDS"
 if [ -n "${HARNESS_MODEL:-}" ]; then
-  echo "  Model: $HARNESS_MODEL"
+  echo "  Model (all phases): $HARNESS_MODEL"
 else
-  echo "  Model: (Claude Code default)"
+  echo "  Models: planner=$PLANNER_MODEL  generator=$GENERATOR_MODEL  evaluator=$EVALUATOR_MODEL"
 fi
 harness_print_pause_config
 echo "============================================"
@@ -74,7 +95,7 @@ else
   harness_maybe_pause_phase "planner"
 
   claude --dangerously-skip-permissions \
-    "${claude_model_args[@]}" \
+    "${planner_model_args[@]}" \
     -p "$(harness_build_planner_prompt "$PROMPT")"
 
   validate_phase planner 1
@@ -152,7 +173,7 @@ IMPORTANT: Pre-QA mechanical checks failed. Read docs/mechanical-checks-sprint-$
     fi
 
     claude --dangerously-skip-permissions \
-      "${claude_model_args[@]}" \
+      "${generator_model_args[@]}" \
       -p "$(cat agents/generator.md)
 
 $GUARDRAIL_CONTEXT
@@ -193,7 +214,7 @@ $HARNESS_AUTONOMOUS_SUFFIX"
     harness_maybe_pause_phase "evaluator" "$CURRENT" "$qa_round"
 
     claude --dangerously-skip-permissions \
-      "${claude_model_args[@]}" \
+      "${evaluator_model_args[@]}" \
       -p "$(cat agents/evaluator.md)
 
 $GUARDRAIL_CONTEXT

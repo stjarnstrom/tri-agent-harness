@@ -28,12 +28,31 @@
 This project uses a **combined harness** with two layers:
 
 ### Orchestration (who runs when)
-- **Planner**: Expands a short prompt into spec, sprint plan, and status tracker.
-- **Generator**: Builds sprint-by-sprint; commits pass pre-commit hooks.
+- **Planner** (Fable): Expands a short prompt into spec, sprint plan, and status tracker.
+- **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
 - **Pre-QA Gate**: Mechanical checks (lints, artifacts) before Evaluator runs.
-- **Evaluator**: Playwright testing + rubric grading + review persona checklists.
+- **Evaluator** (Fable): Playwright testing + rubric grading + review persona checklists.
 
 Agents communicate through files in `docs/`. Personas in `agents/`. Criteria in `agents/criteria/`.
+
+### Model policy (Claude Code paths)
+
+Each agent runs on a model matched to its job — big-picture reasoning on Fable,
+implementation on Sonnet:
+
+| Agent | Model | Why |
+|-------|-------|-----|
+| Planner | `claude-fable-5` | Deep, one-shot reasoning to expand a prompt into a sound spec |
+| Generator | `claude-sonnet-5` | Strong coding at lower cost; the highest-token-volume phase |
+| Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review is Fable) |
+
+This is the **default**. Interactive/mobile runs get it from the `model:` field
+in `.claude/agents/*.md`; autonomous runs (`harness.sh`) get it from the
+per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
+`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or `HARNESS_MODEL` to
+force one model for all phases. If Fable is unavailable, fall back to
+`claude-opus-4-8` for the Planner/Evaluator. (The Cursor/OpenCode/SDK runners
+use their own model ecosystems — see `sdk-orchestrator.config.json`.)
 
 ### Environment (always on)
 - Git pre-commit hook: sandbox, lints, secret scan (`bun run setup`)
@@ -163,6 +182,10 @@ npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failure
 HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..."  # one sprint per run
+
+# Model overrides (defaults: planner=Fable, generator=Sonnet, evaluator=Fable)
+HARNESS_MODEL=claude-opus-4-8 ./harness.sh "..."           # force one model for all phases
+HARNESS_GENERATOR_MODEL=claude-opus-4-8 ./harness.sh "..." # override a single phase
 ```
 
 Optional alternative runners (same artifacts and state machine):

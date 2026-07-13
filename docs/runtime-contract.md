@@ -17,6 +17,15 @@ only through the canonical files below — the same isolation `harness.sh` gets
 from separate `claude -p` processes. Subagents cannot pause mid-run, so
 `/build` writes the sprint contract and implements in a single pass.
 
+On the Claude Code paths, each phase runs on a model matched to its job:
+Planner and Evaluator on `claude-fable-5` (big-picture reasoning and code
+review), Generator on `claude-sonnet-5` (implementation). Interactive/mobile
+runs read this from the `model:` field in `.claude/agents/*`; `harness.sh` reads
+it from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
+`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or `HARNESS_MODEL` for all
+phases. The Cursor/OpenCode/SDK runners use their own model ecosystems
+(`sdk-orchestrator.config.json`).
+
 If all modes follow this contract, you can switch between them at any time.
 
 Both autonomous runners write `docs/workflow-handoff.json` at phase boundaries
