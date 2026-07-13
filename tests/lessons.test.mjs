@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import test from "node:test";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import {
   CATEGORIES,
   MAX_ACTIVE_LESSONS,
@@ -125,4 +131,59 @@ test("serializeLedger round-trips through parseLedger", () => {
 
 test("CATEGORIES matches the spec", () => {
   assert.deepEqual(CATEGORIES, ["a11y", "correctness", "design", "performance", "process", "lint"]);
+});
+
+// ─── CLI smoke tests ─────────────────────────────────────────────────
+
+const execFileAsync = promisify(execFile);
+const scriptsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "scripts");
+
+async function makeRepo(ledgerText) {
+  const root = await mkdtemp(path.join(tmpdir(), "lessons-"));
+  await mkdir(path.join(root, "harness"), { recursive: true });
+  await writeFile(path.join(root, "harness", "lessons.jsonl"), ledgerText);
+  return root;
+}
+
+test("render + validate CLIs round-trip on a valid ledger", async () => {
+  const root = await makeRepo(JSON.stringify(entry()) + "\n");
+  await execFileAsync("node", [path.join(scriptsDir, "render-lessons.mjs"), root]);
+  const md = await readFile(path.join(root, "harness", "LESSONS.md"), "utf-8");
+  assert.match(md, /Verify WCAG AA contrast/);
+  await execFileAsync("node", [path.join(scriptsDir, "validate-lessons.mjs"), root]); // exit 0
+});
+
+test("validate CLI fails when LESSONS.md is out of sync", async () => {
+  const root = await makeRepo(JSON.stringify(entry()) + "\n");
+  await writeFile(path.join(root, "harness", "LESSONS.md"), "# stale\n");
+  await assert.rejects(
+    execFileAsync("node", [path.join(scriptsDir, "validate-lessons.mjs"), root]),
+    (err) => err.code === 1 && /out of sync/.test(err.stderr),
+  );
+});
+
+test("validate CLI fails on malformed ledger lines", async () => {
+  const root = await makeRepo("not json\n");
+  await execFileAsync("node", [path.join(scriptsDir, "render-lessons.mjs"), root]);
+  await assert.rejects(
+    execFileAsync("node", [path.join(scriptsDir, "validate-lessons.mjs"), root]),
+    (err) => err.code === 1 && /invalid JSON/.test(err.stderr),
+  );
+});
+
+test("sync CLI merges a clone ledger into the template", async () => {
+  const template = await makeRepo(JSON.stringify(entry()) + "\n");
+  const clone = await makeRepo(
+    JSON.stringify(entry({ sources: [{ project: "other-app", sprint: 1, date: "2026-07-20" }] })) +
+      "\n" +
+      JSON.stringify(entry({ id: "brand-new-lesson", category: "design" })) +
+      "\n",
+  );
+  await execFileAsync("node", [path.join(scriptsDir, "sync-lessons.mjs"), template, "--from", clone]);
+  const merged = await readFile(path.join(template, "harness", "lessons.jsonl"), "utf-8");
+  const { entries } = parseLedger(merged);
+  assert.equal(entries.length, 2);
+  assert.equal(entries.find((e) => e.id === "a11y-button-contrast").strikes, 2);
+  const md = await readFile(path.join(template, "harness", "LESSONS.md"), "utf-8");
+  assert.match(md, /brand-new-lesson|design/);
 });
