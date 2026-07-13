@@ -9,7 +9,36 @@
       "Glob",
       "Grep"
     ],
-    "deny": []
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.*.local)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/credentials.json)",
+      "Read(**/secrets.json)",
+      "Read(**/node_modules/**)",
+      "Read(**/dist/**)",
+      "Read(**/build/**)",
+      "Read(**/.next/**)",
+      "Read(**/out/**)",
+      "Read(**/.turbo/**)",
+      "Read(**/coverage/**)",
+      "Read(**/.nyc_output/**)",
+      "Read(**/playwright-report/**)",
+      "Read(**/test-results/**)",
+      "Read(**/blob-report/**)",
+      "Read(**/__pycache__/**)",
+      "Read(**/.venv/**)",
+      "Read(**/venv/**)",
+      "Read(package-lock.json)",
+      "Read(bun.lock)",
+      "Read(yarn.lock)",
+      "Read(pnpm-lock.yaml)",
+      "Read(**/*.min.js)",
+      "Read(**/*.min.css)",
+      "Read(**/*.map)"
+    ]
   },
   "sandbox": {
     "enabled": true,

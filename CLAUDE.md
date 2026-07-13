@@ -56,6 +56,7 @@ use their own model ecosystems — see `sdk-orchestrator.config.json`.)
 
 ### Environment (always on)
 - Git pre-commit hook: sandbox, lints, secret scan (`bun run setup`)
+- Context-hygiene deny rules: secrets + junk context (deps, build output, lockfiles) are read-denied per tool — `.claude/settings.json` for Claude Code (there is no `.claudeignore`; `Read(...)` deny rules are the native mechanism), `.cursorignore` for Cursor, `opencode.jsonc` for OpenCode. See "Context Hygiene" in `harness/AGENT-INSTRUCTIONS.md`.
 - ESLint harness plugin: lints are agent instructions (`bun lint:harness`)
 - Review personas: `review-personas/` for focused code review
 - Anti-slop loop: recurring QA failures → new guardrails (`bun gc:weekly`)

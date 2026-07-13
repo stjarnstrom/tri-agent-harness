@@ -95,7 +95,7 @@ and it keeps the Evaluator's judgment independent of the Generator's. The
 `evaluator` subagent is granted the Playwright MCP tools so it can drive the
 live app.
 
-Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions. Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
+Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions and **context-hygiene deny rules**: `Read(...)` deny patterns block secrets (`.env`, keys, credentials) and junk context (`node_modules/`, `dist/`, lockfiles, coverage, minified output) from being read into agent context. Claude Code has no `.claudeignore` — deny rules are the native equivalent, and they take precedence over allow rules. The same list is enforced for Cursor via [`.cursorignore`](.cursorignore) and for OpenCode via `permission.read` in [`opencode.jsonc`](opencode.jsonc); see the "Context Hygiene" section of [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md). Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
 
 #### Model policy
 

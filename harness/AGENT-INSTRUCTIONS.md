@@ -49,3 +49,36 @@ If you correct yourself for the same mistake twice in a session:
 - Stop and flag it explicitly.
 - Run `bun lint:harness` to check if a rule exists.
 - If no rule catches it, propose adding one. Recurring mistakes belong in the harness.
+
+## Context Hygiene — Denied Paths
+
+Junk context is deny-listed, not just gitignored. Dependencies, build output,
+lockfiles, coverage reports, and minified/generated artifacts are never source
+of truth — reading them burns tokens and degrades retrieval. Each tool enforces
+the same list its own way:
+
+- **Claude Code**: `permissions.deny` `Read(...)` rules in `.claude/settings.json`.
+  There is no `.claudeignore` — deny rules are the native mechanism, they take
+  precedence over allow rules, and they also apply to Grep/Glob and recognized
+  file commands in Bash.
+- **Cursor**: `.cursorignore` (installed by `bun run setup`).
+- **OpenCode**: `permission.read` denies in `opencode.jsonc`.
+
+The denied set: `node_modules/`, `dist/`, `build/`, `.next/`, `out/`,
+`.turbo/`, `coverage/`, `.nyc_output/`, `playwright-report/`, `test-results/`,
+`blob-report/`, `__pycache__/`, `.venv/`, `venv/`, lockfiles
+(`package-lock.json`, `bun.lock`, `yarn.lock`, `pnpm-lock.yaml`), and
+minified/map files — plus the secrets listed under Rule 1.
+
+If a read is denied, that is intentional. Do not work around it by shelling
+out or copying the file. Get the information a supported way instead:
+
+- Dependency versions → read `package.json`, or run `npm ls <pkg>` / `bun pm ls`.
+- Library API shapes → read the package's published types via your editor
+  tooling, or its docs — not `node_modules` source.
+- Build problems → re-run the build and read its *output log*, not `dist/`.
+- Test failures → read the test source and runner output, not `test-results/`.
+
+If a denied path is genuinely required (e.g. debugging a suspected bug inside
+a dependency), stop and ask the user to lift the rule for that session rather
+than bypassing it.
