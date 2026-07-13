@@ -240,10 +240,11 @@ log_qa_failure() {
   local cache_file="$cache_dir/weekly-report.jsonl"
   mkdir -p "$cache_dir"
 
-  printf '{"ts":"%s","category":"qa-failure","sprint":%s,"round":%s,"description":"Sprint %s failed QA round %s"}\n' \
+  printf '{"ts":"%s","category":"qa-failure","sprint":%s,"round":%s,"report":"docs/qa-report-sprint-%s.md","description":"Sprint %s failed QA round %s"}\n' \
     "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
     "$sprint" \
     "$qa_round" \
+    "$sprint" \
     "$sprint" \
     "$qa_round" \
     >> "$cache_file"
