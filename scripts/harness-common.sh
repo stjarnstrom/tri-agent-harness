@@ -657,6 +657,7 @@ harness_build_planner_prompt() {
 
   printf '%s\n\n' "$persona"
   printf '%s\n' "$GUARDRAIL_CONTEXT"
+  printf '%s\n' "$LESSONS_CONTEXT"
   printf '%s\n' "Read harness/workspace-template.md for optional domain-scoped monorepo layout."
   printf '%s\n' "Read all criteria files in agents/criteria/ to understand what the evaluator will grade."
   printf '%s\n' "Read docs/templates/design-options.md when in design-scout mode."
@@ -700,6 +701,9 @@ harness_maybe_pause_after_design_scout() {
 # ─── Shared agent context blocks ─────────────────────────────────────
 GUARDRAIL_CONTEXT="
 Read harness/AGENT-INSTRUCTIONS.md before acting. Follow sandbox, lint, and commit rules."
+
+LESSONS_CONTEXT="
+Read harness/LESSONS.md — distilled lessons from previous runs' QA failures. Treat the entries in your phase's section as binding instructions, not suggestions."
 
 GENERATOR_LINT_CONTEXT="
 Before marking Ready for QA:

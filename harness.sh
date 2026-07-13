@@ -220,6 +220,7 @@ IMPORTANT: Pre-QA mechanical checks failed. Read docs/mechanical-checks-sprint-$
 
 $GUARDRAIL_CONTEXT
 $GENERATOR_LINT_CONTEXT
+$LESSONS_CONTEXT
 Read docs/spec.md for the full spec.
 Read docs/sprint-plan.md for the sprint breakdown.
 Read docs/sprint-status.md to find the current sprint.
@@ -260,6 +261,7 @@ $HARNESS_AUTONOMOUS_SUFFIX"
       -p "$(cat agents/evaluator.md)
 
 $GUARDRAIL_CONTEXT
+$LESSONS_CONTEXT
 Read docs/spec.md for the product context and design language.
 Read docs/sprint-${CURRENT}-contract.md for the acceptance criteria.
 Read docs/mechanical-checks-sprint-${CURRENT}.md for automated check results.

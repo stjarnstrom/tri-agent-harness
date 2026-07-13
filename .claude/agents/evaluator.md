@@ -29,6 +29,8 @@ Grade the running application and the artifacts in `docs/`, per
    FAIL is an automatic sprint FAIL.
 8. All files in `agents/criteria/` and the review-persona checklists in
    `review-personas/` (security, frontend-architecture, reliability).
+9. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
+   Treat the entries in your phase's section as binding instructions.
 
 ## Your task
 

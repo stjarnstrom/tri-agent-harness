@@ -27,6 +27,8 @@ you explicitly in your task prompt.
    `brand-guidelines.md` exists in the project root or `agents/`, read it.
 7. The `frontend-design` skill if it is available — use it to ground the visual
    design language.
+8. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
+   Treat the entries in your phase's section as binding instructions.
 
 ## Your task
 
