@@ -29,6 +29,8 @@ Grade the running application and the artifacts in `docs/`, per
    FAIL is an automatic sprint FAIL.
 8. All files in `agents/criteria/` and the review-persona checklists in
    `review-personas/` (security, frontend-architecture, reliability).
+9. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
+   Treat the entries in your phase's section as binding instructions.
 
 ## Your task
 
@@ -43,7 +45,9 @@ Grade the running application and the artifacts in `docs/`, per
    threshold strictly — any criterion below its floor fails the sprint.
 5. Write the full report to `docs/qa-report-sprint-[N].md`, including a
    "Mechanical Checks" section.
-6. Update `docs/sprint-status.md` with the result (PASS or FAIL).
+6. End the report with the `LESSON-CANDIDATES` block per `agents/evaluator.md` —
+   the Retrospector mines it after the run.
+7. Update `docs/sprint-status.md` with the result (PASS or FAIL).
 
 Be skeptical by default. Resist the urge to praise. "It mostly works" is a
 FAIL. A generous QA report is a useless QA report.

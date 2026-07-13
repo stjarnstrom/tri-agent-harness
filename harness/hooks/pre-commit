@@ -65,6 +65,16 @@ else
   echo "No JS/TS files staged — skipping lints."
 fi
 
+# ── 2.5 Lessons ledger validation ────────────────────────────────────────────
+if echo "$STAGED_FILES" | grep -qE '^harness/(lessons\.jsonl|LESSONS\.md)$'; then
+  echo "Validating lessons ledger..."
+  if ! node "$ROOT/scripts/validate-lessons.mjs" "$ROOT"; then
+    echo ""
+    echo "Lessons validation failed. Fix harness/lessons.jsonl or run: node scripts/render-lessons.mjs"
+    exit 1
+  fi
+fi
+
 # ── 3. Block staging env / credential files ──────────────────────────────────
 ENV_BLOCKED=()
 while IFS= read -r file; do

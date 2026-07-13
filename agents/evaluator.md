@@ -37,6 +37,9 @@ clicks, browser resize, unexpected input.
 - **Screenshot everything you test.** Your report should include visual evidence.
 - **Grade against the contract, not your impression.** Each acceptance criterion
 is binary: it either passes or it doesn't.
+- **End every report with the LESSON-CANDIDATES block.** Generalize each root
+cause into a rule a future project can apply; an empty block is valid on a
+clean pass.
 
 ---
 
@@ -275,6 +278,19 @@ Address non-blocking issues at the start of the next sprint.
 the blocking issues and return for re-evaluation. Key issues to resolve:
 1. [Most important fix]
 2. [Second most important fix]
+
+## Lesson candidates
+
+[REQUIRED, machine-read by the Retrospector. One item per distinct failure
+root cause found this round; leave the list empty on a clean PASS. Keep each
+rule generalized — a future project should benefit, not just this one.]
+
+<!-- LESSON-CANDIDATES
+- category: a11y | correctness | design | performance | process | lint
+  phase: planner | generator | evaluator
+  root_cause: "One sentence: why this failure happened."
+  rule: "Imperative, generalized, max 240 chars: what to do differently next time."
+-->
 ```
 
 Update `docs/sprint-status.md` with the QA result.

@@ -11,19 +11,22 @@ harness** (orchestration + guardrails):
 - SDK orchestrator (`npm run harness:sdk`)
 
 The interactive Claude Code path dispatches each phase to a dedicated subagent
-(`planner`, `generator`, `evaluator`) via the `/plan`, `/build`, and `/qa`
-slash commands. Each subagent runs in its own isolated context and communicates
+(`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`,
+`/build`, `/qa`, and `/retro` slash commands. Each subagent runs in its own isolated context and communicates
 only through the canonical files below — the same isolation `harness.sh` gets
 from separate `claude -p` processes. Subagents cannot pause mid-run, so
 `/build` writes the sprint contract and implements in a single pass.
 
 On the Claude Code paths, each phase runs on a model matched to its job:
 Planner and Evaluator on `claude-fable-5` (big-picture reasoning and code
-review), Generator on `claude-sonnet-5` (implementation). Interactive/mobile
+review), Generator on `claude-sonnet-5` (implementation), Retrospector on
+`claude-fable-5` (generalizing failures into lessons). Interactive/mobile
 runs read this from the `model:` field in `.claude/agents/*`; `harness.sh` reads
 it from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
-`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or `HARNESS_MODEL` for all
-phases. The Cursor/OpenCode/SDK runners use their own model ecosystems
+`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
+or `HARNESS_MODEL` for all phases. `HARNESS_RETRO=off` disables the
+Retrospector phase on `harness.sh` (the Cursor/OpenCode runners do not run it
+yet). The Cursor/OpenCode/SDK runners use their own model ecosystems
 (`sdk-orchestrator.config.json`).
 
 If all modes follow this contract, you can switch between them at any time.
@@ -35,7 +38,8 @@ via `sdk-orchestrator/cli.mjs`.
 
 1. **Environment (always on):** `harness/AGENT-INSTRUCTIONS.md`, git hooks,
    ESLint plugin, sandbox settings. Every agent invocation follows these rules.
-2. **Orchestration:** Planner → Generator → **Pre-QA Gate** → Evaluator loop.
+2. **Orchestration:** Planner → Generator → **Pre-QA Gate** → Evaluator loop,
+   then **Retrospector** at end of run.
 3. **Phase gates (programmatic):** `scripts/pre-qa-gate.sh` runs mechanical
    checks before Evaluator. Failures return to Generator without consuming a QA round.
 
@@ -64,9 +68,15 @@ via `sdk-orchestrator/cli.mjs`.
 - `review-personas/*.md`: security, frontend, reliability review checklists.
 - `.gc-cache/weekly-report.jsonl`: QA failure log for anti-slop loop (gitignored).
 
+### Learning artifacts (owned by the Retrospector)
+- `harness/lessons.jsonl`: cross-run lessons ledger (source of truth; append/update entries, never hand-edit LESSONS.md).
+- `harness/LESSONS.md`: rendered from the ledger by `scripts/render-lessons.mjs`; required reading for Planner, Generator, and Evaluator.
+- `docs/proposals/guardrail-[id].md`: draft guardrails for lessons at 2+ strikes; humans review, commit, then mark the ledger entry `graduated`.
+- `docs/qa-report-sprint-[N].md` gains a required `LESSON-CANDIDATES` block (written by the Evaluator, consumed by the Retrospector).
+
 ### Shared context
 - `CLAUDE.md`: project-level context, stack defaults, design defaults, and links.
-- `agents/*.md`: planner/generator/evaluator role instructions.
+- `agents/*.md`: planner/generator/evaluator/retrospector role instructions.
 - `agents/criteria/*.md`: QA scoring and quality rubrics.
 
 ## Ownership And Read/Write Rules
@@ -126,8 +136,21 @@ via `sdk-orchestrator/cli.mjs`.
   - `agents/criteria/*.md`
   - `review-personas/*.md`
 - Writes:
-  - `docs/qa-report-sprint-[N].md`
+  - `docs/qa-report-sprint-[N].md` (including the `LESSON-CANDIDATES` block)
   - `docs/sprint-status.md` (set QA result for target sprint)
+
+### Retrospector phase (end of run, best-effort)
+- Reads:
+  - `docs/qa-report-sprint-*.md` (all — the `LESSON-CANDIDATES` blocks)
+  - `docs/sprint-*-contract.md`
+  - `harness/lessons.jsonl`
+  - `agents/retrospector.md`, `harness/AGENT-INSTRUCTIONS.md`
+- Writes:
+  - `harness/lessons.jsonl` (update entries; never delete lines — retire instead)
+  - `harness/LESSONS.md` (via `node scripts/render-lessons.mjs` only)
+  - `docs/proposals/guardrail-[id].md` (for active lessons at 2+ strikes)
+- Never modifies: application code, agent personas, lint rules, review personas.
+- Failure is non-fatal: the harness run's result stands regardless.
 
 ## Sprint State Machine (`docs/sprint-status.md`)
 

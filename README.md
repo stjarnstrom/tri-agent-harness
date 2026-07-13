@@ -286,6 +286,36 @@ cd ../my-product-dogfood && rm -rf .git _ref && git init && bun install && bun r
 
 Re-run the same harness command to resume; state lives in `docs/sprint-status.md`.
 
+## Learning loop (Retrospector)
+
+The harness learns across runs. At the end of every `./harness.sh` run
+(including halts), a fourth phase — the **Retrospector** (Fable) — mines the
+`LESSON-CANDIDATES` blocks the Evaluator writes into each QA report:
+
+1. **Ledger** — patterns land in `harness/lessons.jsonl` (checked in), with a
+   stable id, strike count, and sources.
+2. **Lessons** — `node scripts/render-lessons.mjs` regenerates
+   `harness/LESSONS.md` from the ledger: max 25 active lessons, grouped by
+   phase. All three agents read it as required reading on every run.
+3. **Guardrail proposals** — a lesson at 2+ strikes gets a draft guardrail in
+   `docs/proposals/guardrail-<id>.md` (a real lint rule, persona checklist
+   item, or gate check). A human reviews and commits it; the lesson then
+   graduates out of LESSONS.md — enforced beats remembered.
+
+Commands:
+
+```bash
+HARNESS_RETRO=off ./harness.sh "..."   # skip the retro phase
+bun lessons:validate                    # ledger + LESSONS.md consistency check
+bun lessons:render                      # regenerate LESSONS.md from the ledger
+bun lessons:sync <template-repo-path>   # merge a product clone's ledger home
+```
+
+Interactive equivalent: `/project:retro` dispatches the `retrospector`
+subagent on demand. When dogfooding in a sibling copy (see above), run
+`bun lessons:sync ../tri-agent-harness` afterwards so the template inherits
+what the run learned.
+
 ## Documentation map
 
 | If you want to… | Read |
@@ -293,7 +323,8 @@ Re-run the same harness command to resume; state lives in `docs/sprint-status.md
 | Understand what each phase does and how long it takes | [What happens during a run](#what-happens-during-a-run) (this README) |
 | Understand phase boundaries and file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | See agent sandbox, lint, and anti-slop rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
-| Customize Planner / Generator / Evaluator behavior | [`agents/planner.md`](agents/planner.md), [`agents/generator.md`](agents/generator.md), [`agents/evaluator.md`](agents/evaluator.md) |
+| Customize Planner / Generator / Evaluator / Retrospector behavior | [`agents/planner.md`](agents/planner.md), [`agents/generator.md`](agents/generator.md), [`agents/evaluator.md`](agents/evaluator.md), [`agents/retrospector.md`](agents/retrospector.md) |
+| Understand cross-run learning (lessons, guardrail proposals) | [Learning loop](#learning-loop-retrospector) (this README), [`harness/LESSONS.md`](harness/LESSONS.md) |
 | Change QA grading rubrics | [`agents/criteria/`](agents/criteria/) |
 | Add security / frontend / reliability review checks | [`review-personas/`](review-personas/) |
 | Adopt domain-scoped monorepo layout | [`harness/workspace-template.md`](harness/workspace-template.md) |
@@ -365,6 +396,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 | `HARNESS_USAGE_CHECK` | `0` | Run `scripts/usage-check.sh` at sprint boundaries |
 | `HARNESS_USAGE_CMD` | — | Custom probe; exit 1 when budget is low |
 | `HARNESS_SANDBOX` | git root | Pre-commit filesystem boundary |
+| `HARNESS_RETRO` | `on` | `off` to skip the end-of-run Retrospector phase |
+| `HARNESS_RETRO_MODEL` | `claude-fable-5` | Retrospector model (overridden by `HARNESS_MODEL`) |
 
 ### Token / cost control
 

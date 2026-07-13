@@ -32,6 +32,7 @@ This project uses a **combined harness** with two layers:
 - **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
 - **Pre-QA Gate**: Mechanical checks (lints, artifacts) before Evaluator runs.
 - **Evaluator** (Fable): Playwright testing + rubric grading + review persona checklists.
+- **Retrospector** (Fable): End-of-run learning — distills QA failures into `harness/LESSONS.md` and drafts guardrail proposals at 2 strikes.
 
 Agents communicate through files in `docs/`. Personas in `agents/`. Criteria in `agents/criteria/`.
 
@@ -45,12 +46,13 @@ implementation on Sonnet:
 | Planner | `claude-fable-5` | Deep, one-shot reasoning to expand a prompt into a sound spec |
 | Generator | `claude-sonnet-5` | Strong coding at lower cost; the highest-token-volume phase |
 | Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review is Fable) |
+| Retrospector | `claude-fable-5` | Judgment call: generalizing failures into durable lessons |
 
 This is the **default**. Interactive/mobile runs get it from the `model:` field
 in `.claude/agents/*.md`; autonomous runs (`harness.sh`) get it from the
 per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
-`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or `HARNESS_MODEL` to
-force one model for all phases. If Fable is unavailable, fall back to
+`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
+or `HARNESS_MODEL` to force one model for all phases. If Fable is unavailable, fall back to
 `claude-opus-4-8` for the Planner/Evaluator. (The Cursor/OpenCode/SDK runners
 use their own model ecosystems — see `sdk-orchestrator.config.json`.)
 
@@ -170,6 +172,8 @@ npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 - Sprint contracts: `docs/sprint-[N]-contract.md`
 - Mechanical checks: `docs/mechanical-checks-sprint-[N].md`
 - QA reports: `docs/qa-report-sprint-[N].md`
+- Lessons: `harness/LESSONS.md` (rendered) / `harness/lessons.jsonl` (ledger)
+- Guardrail proposals: `docs/proposals/guardrail-[id].md`
 
 ---
 
@@ -183,6 +187,7 @@ npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failure
 HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..."  # one sprint per run
+HARNESS_RETRO=off ./harness.sh "..."       # skip end-of-run learning
 
 # Model overrides (defaults: planner=Fable, generator=Sonnet, evaluator=Fable)
 HARNESS_MODEL=claude-opus-4-8 ./harness.sh "..."           # force one model for all phases
@@ -201,6 +206,7 @@ Optional alternative runners (same artifacts and state machine):
 - `/project:plan [description]` — Expand idea into full spec
 - `/project:build` — Implement the current sprint
 - `/project:qa` — Run QA against the current sprint
+- `/project:retro` — Distill QA failures into lessons and guardrail proposals
 
 **Utilities:**
 
@@ -211,6 +217,7 @@ Optional alternative runners (same artifacts and state machine):
 - `bun run setup` — Install git hooks and `.cursorignore`
 - `bun lint:harness` — Run agent-prompt lint rules
 - `bun gc:weekly` — Anti-slop review of recurring failures
+- `bun lessons:validate` / `bun lessons:render` / `bun lessons:sync` — lessons ledger tools (see README "Learning loop")
 
 ---
 
