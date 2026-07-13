@@ -467,6 +467,10 @@ handle_max_rounds() {
     return 0
   fi
 
+  if declare -F harness_run_retro_hook >/dev/null; then
+    harness_run_retro_hook
+  fi
+
   echo ""
   echo "⛔ HALTED: Max QA rounds reached for Sprint $sprint."
   echo "  Review docs/qa-report-sprint-${sprint}.md"

@@ -42,15 +42,57 @@ source "$PROJECT_DIR/scripts/harness-common.sh"
 HARNESS_PLANNER_MODEL="${HARNESS_PLANNER_MODEL:-claude-fable-5}"
 HARNESS_GENERATOR_MODEL="${HARNESS_GENERATOR_MODEL:-claude-sonnet-5}"
 HARNESS_EVALUATOR_MODEL="${HARNESS_EVALUATOR_MODEL:-claude-fable-5}"
+HARNESS_RETRO_MODEL="${HARNESS_RETRO_MODEL:-claude-fable-5}"
 
 # A global HARNESS_MODEL, if set, overrides every phase.
 PLANNER_MODEL="${HARNESS_MODEL:-$HARNESS_PLANNER_MODEL}"
 GENERATOR_MODEL="${HARNESS_MODEL:-$HARNESS_GENERATOR_MODEL}"
 EVALUATOR_MODEL="${HARNESS_MODEL:-$HARNESS_EVALUATOR_MODEL}"
+RETRO_MODEL="${HARNESS_MODEL:-$HARNESS_RETRO_MODEL}"
 
 planner_model_args=(--model "$PLANNER_MODEL")
 generator_model_args=(--model "$GENERATOR_MODEL")
 evaluator_model_args=(--model "$EVALUATOR_MODEL")
+retro_model_args=(--model "$RETRO_MODEL")
+
+# ─── Retrospector (cross-run learning, best-effort) ─────────────────
+# Runs at the end of every run — including halts — unless HARNESS_RETRO=off.
+# Failure here never fails the run: learning is best-effort.
+harness_run_retrospector() {
+  if [ "${HARNESS_RETRO:-on}" = "off" ]; then
+    echo ""
+    echo "▶ RETROSPECTOR skipped (HARNESS_RETRO=off)"
+    return 0
+  fi
+  if ! ls docs/qa-report-sprint-*.md >/dev/null 2>&1; then
+    echo ""
+    echo "▶ RETROSPECTOR skipped (no QA reports to learn from)"
+    return 0
+  fi
+
+  echo ""
+  echo "▶ PHASE 3: RETROSPECTOR"
+  echo "  Distilling lessons from this run's QA reports..."
+  echo ""
+
+  if ! claude --dangerously-skip-permissions \
+    "${retro_model_args[@]}" \
+    -p "$(cat agents/retrospector.md)
+
+$GUARDRAIL_CONTEXT
+Read every docs/qa-report-sprint-*.md (the LESSON-CANDIDATES blocks) and every docs/sprint-*-contract.md.
+Read harness/lessons.jsonl — the existing ledger.
+
+Update the ledger per your instructions. Then run 'node scripts/render-lessons.mjs', then 'node scripts/validate-lessons.mjs' and fix any problems. Draft docs/proposals/guardrail-<id>.md for active lessons at 2+ strikes. Commit with message 'chore(retro): distill lessons from this run'.
+$HARNESS_AUTONOMOUS_SUFFIX"; then
+    echo "⚠ Retrospector failed — continuing (learning is best-effort)."
+  fi
+}
+
+# Hook consumed by handle_max_rounds (harness-common.sh) on the halt path.
+harness_run_retro_hook() {
+  harness_run_retrospector
+}
 
 # Ensure guardrails are installed
 if [ ! -f ".git/hooks/pre-commit" ] && [ -d ".git" ]; then
@@ -66,7 +108,7 @@ echo "  On max rounds: $HARNESS_ON_MAX_ROUNDS"
 if [ -n "${HARNESS_MODEL:-}" ]; then
   echo "  Model (all phases): $HARNESS_MODEL"
 else
-  echo "  Models: planner=$PLANNER_MODEL  generator=$GENERATOR_MODEL  evaluator=$EVALUATOR_MODEL"
+  echo "  Models: planner=$PLANNER_MODEL  generator=$GENERATOR_MODEL  evaluator=$EVALUATOR_MODEL  retro=$RETRO_MODEL"
 fi
 harness_print_pause_config
 echo "============================================"
@@ -260,6 +302,9 @@ Be skeptical. Find problems. Do not praise mediocre work."
     fi
   done
 done
+
+# ─── Phase 3: Retrospector ──────────────────────────────────────────
+harness_run_retrospector
 
 # ─── Summary ─────────────────────────────────────────────────────────
 echo ""
