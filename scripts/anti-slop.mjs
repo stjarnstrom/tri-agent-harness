@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { parseLedger } from './lib/lessons-core.mjs';
 
 const __dirname = import.meta.dirname;
 const ROOT = join(__dirname, '..');
@@ -40,8 +41,27 @@ function getWeekStart() {
   return monday.toISOString().split('T')[0];
 }
 
+function printLessonsSummary() {
+  const ledgerFile = join(ROOT, 'harness', 'lessons.jsonl');
+  if (!existsSync(ledgerFile)) return;
+  const { entries, errors } = parseLedger(readFileSync(ledgerFile, 'utf-8'));
+  for (const error of errors) console.warn(`WARN (lessons ledger): ${error}`);
+  const active = entries.filter((e) => e.status === 'active');
+  const escalatable = active.filter((e) => e.strikes >= 2);
+  console.log('=== Lessons ledger (harness/lessons.jsonl) ===');
+  console.log(`  Active: ${active.length}  Graduated: ${entries.filter((e) => e.status === 'graduated').length}  Retired: ${entries.filter((e) => e.status === 'retired').length}`);
+  if (escalatable.length > 0) {
+    console.log('  At 2+ strikes (check docs/proposals/ for pending guardrail proposals):');
+    for (const e of escalatable) {
+      console.log(`    - [${e.phase}][${e.category}] ${e.id} (${e.strikes} strikes)`);
+    }
+  }
+  console.log('');
+}
+
 console.log('=== Harness Anti-Slop Weekly GC ===\n');
 console.log(`Week starting: ${getWeekStart()}\n`);
+printLessonsSummary();
 
 // Load previous entries to find recurring patterns.
 const allEntries = loadReport();
