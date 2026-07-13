@@ -201,6 +201,10 @@ Optional alternative runners (same artifacts and state machine):
 - `/project:build` — Implement the current sprint
 - `/project:qa` — Run QA against the current sprint
 
+**Utilities:**
+
+- `/optimize-claude-md [path] [apply]` — Trim a CLAUDE.md to only what Claude can't infer from the code. Cuts anything inferable from the codebase (or findable by a senior dev in ~20 min); keeps non-obvious decisions, conventions, and gotchas. Dispatches to the `claude-md-optimizer` subagent (Fable). Default writes `CLAUDE.optimized.md` for review; `apply` rewrites in place.
+
 **Guardrails:**
 
 - `bun run setup` — Install git hooks and `.cursorignore`

@@ -81,6 +81,8 @@ Run one phase at a time using slash commands defined in [`.claude/commands/`](.c
 
 Typical flow: `/plan "Build a kanban app"` → `/build` → `/qa` → repeat `/build` until all sprints pass.
 
+**Utility:** `/optimize-claude-md [path] [apply]` trims a `CLAUDE.md` down to only what Claude *can't* infer from the codebase — cutting anything inferable from the code (or discoverable by a senior dev in ~20 minutes) while keeping the non-obvious decisions, conventions, and gotchas. It dispatches to the `claude-md-optimizer` subagent (on Fable), which reads the surrounding code to judge inferability. By default it writes a `CLAUDE.optimized.md` for you to diff and never touches the original; pass `apply` to rewrite in place (the git diff is your review).
+
 Each command dispatches its phase to a dedicated **subagent** defined in
 [`.claude/agents/`](.claude/agents/) (`planner`, `generator`, `evaluator`)
 rather than role-playing the agent in your current chat. Each subagent runs in
