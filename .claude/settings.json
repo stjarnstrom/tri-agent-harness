@@ -42,8 +42,22 @@
   },
   "sandbox": {
     "enabled": true,
-    "readWritePaths": ["."],
-    "readOnlyPaths": [],
-    "blockNetwork": false
+    "network": {
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "cdn.playwright.dev",
+        "playwright.download.prss.microsoft.com",
+        "api.anthropic.com",
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "objects.githubusercontent.com",
+        "fonts.googleapis.com",
+        "fonts.gstatic.com",
+        "localhost",
+        "127.0.0.1"
+      ],
+      "allowLocalBinding": true
+    }
   }
 }

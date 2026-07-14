@@ -18,6 +18,8 @@ When working inside a domain package (e.g. `packages/billing/`), read that packa
 Never read, write, or modify files outside the project root without explicit user permission.
 The pre-commit hook (`harness/hooks/pre-commit`) enforces this at git level — but don't rely on it as your only guardrail. If you're about to `cat /etc/passwd` or `rm -rf ~/Downloads`, stop and ask first.
 
+**Network:** In Claude Code, sandboxed Bash commands can only reach the domains allowlisted in `.claude/settings.json` (`sandbox.network.allowedDomains`) — npm registry, Playwright CDN, Anthropic API, GitHub, Google Fonts, and localhost. If a build step fails on a blocked domain, don't work around the sandbox — surface it so the domain can be added to the allowlist deliberately.
+
 **Secrets:** Never read, paste, or hardcode real credentials. The workflow:
 
 1. Read `.env.example` for variable **names** and placeholder shapes — that file is safe to commit.

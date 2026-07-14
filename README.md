@@ -97,6 +97,8 @@ live app.
 
 Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions and **context-hygiene deny rules**: `Read(...)` deny patterns block secrets (`.env`, keys, credentials) and junk context (`node_modules/`, `dist/`, lockfiles, coverage, minified output) from being read into agent context. Claude Code has no `.claudeignore` — deny rules are the native equivalent, and they take precedence over allow rules. The same list is enforced for Cursor via [`.cursorignore`](.cursorignore) and for OpenCode via `permission.read` in [`opencode.jsonc`](opencode.jsonc); see the "Context Hygiene" section of [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md). Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
 
+The same settings file locks down **network egress** for sandboxed Bash commands: `sandbox.network.allowedDomains` allowlists only what the workflow needs (npm registry, Playwright browser CDN, Anthropic API, GitHub, Google Fonts, localhost) and everything else is blocked. This is the OS-level backstop against prompt-injection exfiltration — a compromised command can't `curl` secrets to an arbitrary host. If a legitimate build step needs a new domain, add it to the allowlist deliberately rather than disabling the sandbox.
+
 #### Model policy
 
 Each agent runs on a model matched to its job — big-picture reasoning on **Fable**, implementation on **Sonnet**:
