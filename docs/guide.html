@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tri-agent harness — field guide</title>
+<style>
+  :root {
+    --paper: #faf7f2;
+    --ink: #1c2420;
+    --muted: #5c6660;
+    --panel: #f0ebe1;
+    --panel-deep: #e3dccd;
+    --judge: #2d6a4f;
+    --learn: #b4540a;
+    --console: #1c2420;
+    --console-ink: #e8e4d8;
+    --console-dim: #8a9088;
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+  a { color: var(--judge); text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--learn); outline-offset: 2px; }
+
+  .wrap { max-width: 740px; margin: 0 auto; padding: 0 1.5rem; }
+  .wrap-wide { max-width: 1020px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---------- header ---------- */
+  header { border-bottom: 1px solid var(--panel-deep); padding: 1rem 0; }
+  .masthead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .wordmark {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    letter-spacing: 0.01em;
+  }
+  .wordmark .dim { color: var(--muted); font-weight: 400; font-style: italic; }
+  nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+  nav a {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  nav a:hover { color: var(--ink); text-decoration: none; }
+
+  /* ---------- hero ---------- */
+  .hero { padding-top: 4.5rem; padding-bottom: 3rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--judge); display: block;
+    margin-bottom: 1rem;
+  }
+  .eyebrow.learn-eb { color: var(--learn); }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.1;
+    letter-spacing: -0.01em; max-width: 16em;
+  }
+  .thesis {
+    margin-top: 1.5rem; font-size: clamp(1.05rem, 2vw, 1.25rem);
+    color: var(--muted); max-width: 36em; line-height: 1.6;
+  }
+  .thesis strong { color: var(--ink); font-weight: 600; }
+  .doc-meta {
+    margin-top: 1.75rem; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  }
+  .doc-meta span { white-space: nowrap; }
+  .doc-meta span + span::before { content: "·"; margin: 0 0.6em; }
+
+  /* ---------- sections ---------- */
+  section { padding: 3.5rem 0 0.5rem; }
+  section h2 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 1.9rem); letter-spacing: -0.005em;
+    margin-bottom: 1.1rem;
+  }
+  section p { margin-bottom: 1.05rem; max-width: 44em; }
+  section p:last-child { margin-bottom: 0; }
+  .lead-in { color: var(--muted); }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel); padding: 0.1em 0.35em; border-radius: 3px;
+  }
+
+  /* ---------- diagram plates ---------- */
+  .plate {
+    background: var(--panel); border-radius: 10px;
+    padding: 1.75rem 1.5rem 1.25rem; margin: 2rem 0;
+    overflow-x: auto; position: relative;
+  }
+  .plate svg { display: block; width: 100%; height: auto; min-width: 620px; }
+  .plate-caption {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em;
+    color: var(--muted); margin-top: 1rem; text-transform: uppercase;
+  }
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .legend span {
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 0.45em;
+  }
+  .swatch { width: 1.4em; height: 3px; border-radius: 2px; display: inline-block; }
+  .swatch.build { background: var(--ink); }
+  .swatch.judge { background: var(--judge); }
+  .swatch.learn { background: var(--learn); }
+
+  /* signature: signal lights along the QA circuit (opacity-only, compositor-safe) */
+  .signal { opacity: 0.18; animation: blink 6s linear infinite; }
+  @keyframes blink {
+    0%, 18%, 100% { opacity: 0.18; }
+    7% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .signal { animation: none; }
+  }
+
+  /* ---------- agent cards ---------- */
+  .cards {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem; margin: 2rem 0;
+  }
+  .card { background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem; }
+  .card h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    margin-bottom: 0.1rem;
+  }
+  .card .tech {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em;
+    color: var(--judge); text-transform: uppercase; display: block;
+    margin-bottom: 0.5rem;
+  }
+  .card.learn-card .tech { color: var(--learn); }
+  .card p { font-size: 0.92rem; line-height: 1.5; color: var(--muted); margin: 0; }
+
+  /* ---------- run timeline ---------- */
+  .timeline { position: relative; margin: 2.5rem 0 1rem; padding-left: 8rem; }
+  .rail {
+    position: absolute; left: 6.4rem; top: 0.5rem; bottom: 0.5rem; width: 2px;
+    background: var(--panel-deep); border-radius: 1px;
+  }
+  .event { position: relative; padding: 0 0 2.3rem 1.6rem; }
+  .event:last-child { padding-bottom: 0.5rem; }
+  .event::before {
+    content: ""; position: absolute; left: -1.5rem; top: 0.42em;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--paper); border: 2px solid var(--muted);
+    transform: translateX(-4px);
+  }
+  .event.judge-dot::before { border-color: var(--judge); background: var(--judge); }
+  .event.learn-dot::before { border-color: var(--learn); background: var(--learn); }
+  .tplus {
+    position: absolute; left: -8rem; top: 0.18em; width: 5.6rem;
+    text-align: right; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.04em; color: var(--judge);
+  }
+  .event h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.08rem;
+    margin-bottom: 0.35rem;
+  }
+  .event p { font-size: 0.95rem; color: var(--ink); max-width: 36em; margin-bottom: 0.4rem; }
+  .event .wire {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .verdict {
+    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em;
+    padding: 0.15em 0.5em; border-radius: 3px; text-transform: uppercase;
+    border: 1px solid currentColor;
+  }
+  .verdict.pass { color: var(--judge); }
+  .verdict.fail { color: var(--learn); }
+  @media (max-width: 640px) {
+    .timeline { padding-left: 1.6rem; }
+    .rail { left: 0; }
+    .tplus { position: static; display: block; width: auto; text-align: left; margin-bottom: 0.2rem; }
+    .event { padding-left: 1.1rem; }
+    .event::before { left: -1.1rem; }
+  }
+
+  /* ---------- two-up panels ---------- */
+  .duo {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.9rem; margin: 1.8rem 0;
+  }
+  .duo .card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+  .duo .card p { margin-bottom: 0.6rem; }
+  .duo .card p:last-child { margin-bottom: 0; }
+  .duo .card code { background: var(--panel-deep); }
+
+  /* ---------- console (code) ---------- */
+  .console {
+    background: var(--console); color: var(--console-ink);
+    border-radius: 10px; padding: 1.4rem 1.5rem; margin: 1.8rem 0;
+    overflow-x: auto;
+  }
+  .console pre { font-family: var(--mono); font-size: 0.84rem; line-height: 1.65; }
+  .console .c { color: var(--console-dim); }
+  .console .k { color: #d9a066; }
+  .console .f { color: #93c7a4; }
+
+  /* ---------- tables ---------- */
+  .tbl-scroll { overflow-x: auto; margin: 1.8rem 0; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 560px; }
+  .tbl th {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); text-align: left;
+    padding: 0.5rem 1rem 0.5rem 0; border-bottom: 1px solid var(--panel-deep);
+  }
+  .tbl td {
+    padding: 0.55rem 1rem 0.55rem 0; border-bottom: 1px solid var(--panel-deep);
+    vertical-align: top;
+  }
+  .tbl td:first-child { white-space: nowrap; }
+  .tbl .who { font-family: var(--mono); font-size: 0.74rem; color: var(--judge); }
+  .tbl .who.learn-w { color: var(--learn); }
+
+  /* ---------- learning section tint ---------- */
+  .learn-band {
+    border-top: 3px solid var(--learn);
+    margin-top: 3.5rem; padding-top: 3rem;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 5rem; border-top: 1px solid var(--panel-deep);
+    padding: 2rem 0 3rem;
+  }
+  footer p {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  footer a { color: var(--muted); text-decoration: underline; }
+  footer a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap-wide masthead">
+    <span class="wordmark">tri-agent harness <span class="dim">— field guide</span></span>
+    <nav aria-label="Sections">
+      <a href="#loop">The loop</a>
+      <a href="#agents">Agents</a>
+      <a href="#quickstart">Quick start</a>
+      <a href="#run">A run</a>
+      <a href="#modes">Modes</a>
+      <a href="#artifacts">Artifacts</a>
+      <a href="#learning">Learning</a>
+      <a href="#controls">Controls</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow">Field guide</span>
+    <h1>One prompt in. A tested, graded product out.</h1>
+    <p class="thesis">
+      The harness turns a short product prompt into a working app by
+      <strong>separating creation from judgment</strong>: one agent plans, one
+      builds, one grades the running app with a skeptical eye — and a fourth
+      distills every failure into lessons, so <strong>each run starts smarter
+      than the last</strong>.
+    </p>
+    <p class="doc-meta">
+      <span>docs/guide.html</span>
+      <span>updated 2026-07-14</span>
+      <span>zero dependencies</span>
+    </p>
+  </div>
+
+  <!-- ================= THE LOOP ================= -->
+  <section id="loop">
+    <div class="wrap">
+      <span class="eyebrow">The machine</span>
+      <h2>Four agents, one circuit</h2>
+      <p class="lead-in">
+        Every sprint travels the same circuit. The Generator never has final
+        say on its own work: a mechanical gate checks lints and artifacts, then
+        the Evaluator tests the live app and grades it against rubrics. Fail,
+        and the work goes back — up to three rounds per sprint.
+      </p>
+    </div>
+    <div class="wrap-wide">
+      <div class="plate">
+        <svg viewBox="0 0 960 250" role="img" aria-label="Diagram: Planner feeds Generator, then Pre-QA Gate, then Evaluator. A fail wire returns to the Generator. After the run, the Retrospector writes lessons that feed the next run.">
+          <defs>
+            <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#1c2420"/>
+            </marker>
+            <marker id="arr-j" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#2d6a4f"/>
+            </marker>
+            <marker id="arr-l" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#b4540a"/>
+            </marker>
+          </defs>
+
+          <!-- nodes -->
+          <g font-family="ui-monospace, Menlo, monospace" font-size="13">
+            <rect x="20" y="55" width="140" height="46" rx="8" fill="#faf7f2" stroke="#1c2420" stroke-width="1.5"/>
+            <text x="90" y="83" text-anchor="middle" fill="#1c2420">Planner</text>
+
+            <rect x="285" y="55" width="140" height="46" rx="8" fill="#faf7f2" stroke="#1c2420" stroke-width="1.5"/>
+            <text x="355" y="83" text-anchor="middle" fill="#1c2420">Generator</text>
+
+            <rect x="440" y="55" width="130" height="46" rx="23" fill="#e3dccd" stroke="#5c6660" stroke-width="1.2"/>
+            <text x="505" y="83" text-anchor="middle" fill="#1c2420">Pre-QA gate</text>
+
+            <rect x="610" y="55" width="140" height="46" rx="8" fill="#2d6a4f" stroke="#2d6a4f"/>
+            <text x="680" y="83" text-anchor="middle" fill="#faf7f2">Evaluator</text>
+
+            <rect x="800" y="55" width="140" height="46" rx="8" fill="#faf7f2" stroke="#b4540a" stroke-width="1.5"/>
+            <text x="870" y="83" text-anchor="middle" fill="#b4540a">Retrospector</text>
+          </g>
+
+          <!-- forward wires -->
+          <line x1="160" y1="78" x2="278" y2="78" stroke="#1c2420" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="425" y1="78" x2="433" y2="78" stroke="#1c2420" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="570" y1="78" x2="603" y2="78" stroke="#1c2420" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="750" y1="78" x2="793" y2="78" stroke="#1c2420" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arr)"/>
+
+          <!-- fail wire: evaluator back to generator -->
+          <path d="M 680 101 C 680 165, 420 165, 358 106" fill="none" stroke="#2d6a4f" stroke-width="1.5" marker-end="url(#arr-j)"/>
+          <text x="520" y="172" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2d6a4f">FAIL — fix and retest (max 3 rounds/sprint)</text>
+
+          <!-- pass wire: next sprint -->
+          <path d="M 715 55 C 715 18, 420 18, 360 50" fill="none" stroke="#5c6660" stroke-width="1.2" stroke-dasharray="3 4" marker-end="url(#arr)"/>
+          <text x="537" y="14" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#5c6660">PASS — next sprint</text>
+
+          <!-- learn wire: retrospector back to the start -->
+          <path d="M 870 101 C 870 225, 120 225, 92 106" fill="none" stroke="#b4540a" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-l)"/>
+          <text x="480" y="232" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#b4540a">harness/LESSONS.md — required reading for every agent, every run</text>
+
+          <!-- signature: signal lights travelling the circuit, then the fail wire home -->
+          <g aria-hidden="true">
+            <circle class="signal" cx="200" cy="78" r="3.5" fill="#2d6a4f" style="animation-delay: 0s"/>
+            <circle class="signal" cx="240" cy="78" r="3.5" fill="#2d6a4f" style="animation-delay: 0.6s"/>
+            <circle class="signal" cx="600" cy="78" r="3.5" fill="#2d6a4f" style="animation-delay: 1.2s"/>
+            <circle class="signal" cx="672" cy="122" r="3.5" fill="#2d6a4f" style="animation-delay: 1.8s"/>
+            <circle class="signal" cx="590" cy="153" r="3.5" fill="#2d6a4f" style="animation-delay: 2.4s"/>
+            <circle class="signal" cx="470" cy="157" r="3.5" fill="#2d6a4f" style="animation-delay: 3.0s"/>
+            <circle class="signal" cx="385" cy="128" r="3.5" fill="#2d6a4f" style="animation-delay: 3.6s"/>
+          </g>
+        </svg>
+        <p class="plate-caption">Fig. 1 — the build circuit and the learning return wire</p>
+        <div class="legend">
+          <span><i class="swatch build"></i> build</span>
+          <span><i class="swatch judge"></i> judge</span>
+          <span><i class="swatch learn"></i> learn</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= AGENTS ================= -->
+  <section id="agents">
+    <div class="wrap">
+      <span class="eyebrow">The crew</span>
+      <h2>Who does what</h2>
+      <p class="lead-in">
+        Each agent runs in its own isolated context and communicates only
+        through files in <code>docs/</code> — the Evaluator never sees the
+        Generator's self-justification, only what landed on disk. Models are
+        matched to the job: big-picture reasoning on Fable, implementation
+        volume on Sonnet.
+      </p>
+    </div>
+    <div class="wrap-wide">
+      <div class="cards">
+        <div class="card">
+          <h3>Planner</h3>
+          <span class="tech">claude-fable-5</span>
+          <p>Expands your one-line prompt into a full spec, sprint plan, and
+          status tracker. With no design brief, it first proposes three design
+          directions and waits for your pick.</p>
+        </div>
+        <div class="card">
+          <h3>Generator</h3>
+          <span class="tech">claude-sonnet-5</span>
+          <p>Builds one sprint at a time against a written contract. Every
+          commit must pass the pre-commit hook: sandbox, lints, secret scan.</p>
+        </div>
+        <div class="card">
+          <h3>Evaluator</h3>
+          <span class="tech">claude-fable-5</span>
+          <p>Starts the app and tests every acceptance criterion with
+          Playwright, then grades six weighted criteria. Skeptical by
+          instruction: “it mostly works” is a fail.</p>
+        </div>
+        <div class="card learn-card">
+          <h3>Retrospector</h3>
+          <span class="tech">claude-fable-5</span>
+          <p>Runs once at the end of every run. Distills QA failures into
+          generalized lessons and drafts guardrail proposals when a pattern
+          strikes twice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= QUICK START ================= -->
+  <section id="quickstart">
+    <div class="wrap">
+      <span class="eyebrow">Phase 00</span>
+      <h2>Quick start</h2>
+      <p class="lead-in">
+        Two commands to install the guardrails, one to start a build. State
+        lives in <code>docs/sprint-status.md</code>, so resuming after any
+        interruption is just re-running the same command.
+      </p>
+      <div class="console">
+<pre><span class="c"># one-time setup: git hooks, lints, sandbox</span>
+<span class="k">bun install</span> &amp;&amp; <span class="k">bun run setup</span>
+
+<span class="c"># start (or resume) an autonomous build</span>
+<span class="k">./harness.sh</span> <span class="f">"Build a kanban app for film production crews"</span>
+
+<span class="c"># optional: allow up to 5 QA rounds per sprint</span>
+<span class="k">./harness.sh</span> <span class="f">"..."</span> 5</pre>
+      </div>
+      <p>
+        No design brief? The Planner pauses after writing three design
+        directions to <code>docs/design-options.md</code>. Put your pick in
+        <code>design/selected-direction.md</code> and re-run the same command.
+        To skip the pause entirely, provide <code>design/brief.md</code> up
+        front or run with <code>HARNESS_YES=1</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= ANATOMY OF A RUN ================= -->
+  <section id="run">
+    <div class="wrap">
+      <span class="eyebrow">Phase 01 → 03</span>
+      <h2>Anatomy of a run</h2>
+      <p class="lead-in">
+        A first sprint typically takes 30–90 minutes wall-clock. The Evaluator
+        is the slow part by design — it exercises real user flows in a real
+        browser, not just element presence.
+      </p>
+      <div class="timeline">
+        <div class="rail"></div>
+        <div class="event">
+          <span class="tplus">5–15 min</span>
+          <h3>Planning</h3>
+          <p>The Planner writes the spec, sprint plan, and status tracker, and
+          fills CLAUDE.md with the design language.</p>
+          <span class="wire">docs/spec.md · docs/sprint-plan.md · docs/sprint-status.md</span>
+        </div>
+        <div class="event">
+          <span class="tplus">10–30 min</span>
+          <h3>Build (sprint N)</h3>
+          <p>The Generator writes the sprint contract, implements it, commits
+          through the pre-commit hook, and marks the sprint “Ready for QA”.</p>
+          <span class="wire">docs/sprint-N-contract.md · app code</span>
+        </div>
+        <div class="event">
+          <span class="tplus">1–5 min</span>
+          <h3>Pre-QA gate</h3>
+          <p>Deterministic checks — lints, required artifacts — before any
+          expensive judgment. A gate failure returns to the Generator without
+          consuming a QA round.</p>
+          <span class="wire">docs/mechanical-checks-sprint-N.md</span>
+        </div>
+        <div class="event judge-dot">
+          <span class="tplus">15–45 min</span>
+          <h3>Evaluation <span class="verdict pass">pass</span> <span class="verdict fail">fail</span></h3>
+          <p>Playwright testing of every acceptance criterion, six weighted
+          scores with hard thresholds, and a written verdict. Fail sends the
+          work back with an actionable bug list; pass advances to the next
+          sprint.</p>
+          <span class="wire">docs/qa-report-sprint-N.md · sprint status updated</span>
+        </div>
+        <div class="event learn-dot">
+          <span class="tplus">end of run</span>
+          <h3>Retrospective</h3>
+          <p>Whether the run completed or halted, the Retrospector mines every
+          QA report for lesson candidates, updates the ledger, and regenerates
+          LESSONS.md. Best-effort: it can never fail your run.</p>
+          <span class="wire">harness/lessons.jsonl · harness/LESSONS.md · docs/proposals/</span>
+        </div>
+      </div>
+      <p>
+        On persistent failure the harness <strong>halts by default</strong>
+        after the max QA rounds so you can review the report. Set
+        <code>HARNESS_ON_MAX_ROUNDS=advance</code> to mark the sprint skipped
+        and press on.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= MODES ================= -->
+  <section id="modes">
+    <div class="wrap">
+      <span class="eyebrow">Two ways in</span>
+      <h2>Autonomous or interactive</h2>
+    </div>
+    <div class="wrap-wide">
+      <div class="duo">
+        <div class="card">
+          <h3>Autonomous — <code>./harness.sh</code></h3>
+          <p>The default. Each phase runs as a separate <code>claude -p</code>
+          process, fully hands-off until pass, halt, or a pause you configured
+          (<code>HARNESS_PAUSE=sprint</code> asks before each sprint).</p>
+          <p>Same loop, other runners: <code>./cursor-harness.sh</code> and
+          <code>./opencode-harness.sh</code> drive Cursor and OpenCode against
+          the identical file contract.</p>
+        </div>
+        <div class="card">
+          <h3>Interactive — slash commands</h3>
+          <p>Drive each phase yourself from a Claude Code session. Each command
+          dispatches an isolated subagent, so the phases stay independent.</p>
+          <p><code>/project:plan</code> expand the idea ·
+          <code>/project:build</code> implement the sprint ·
+          <code>/project:qa</code> grade it ·
+          <code>/project:retro</code> distill the lessons.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ARTIFACTS ================= -->
+  <section id="artifacts">
+    <div class="wrap">
+      <span class="eyebrow">Paper trail</span>
+      <h2>Artifacts: how to read a run from disk</h2>
+      <p class="lead-in">
+        Agents hand off through files, never through conversation. That means
+        the whole run is inspectable — and resumable — from these paths.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>File</th><th>Written by</th><th>What it tells you</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>docs/spec.md</code></td><td class="who">Planner</td><td>Product vision, features, design language</td></tr>
+            <tr><td><code>docs/sprint-status.md</code></td><td class="who">all phases</td><td>Source of truth for progress and resume</td></tr>
+            <tr><td><code>docs/sprint-N-contract.md</code></td><td class="who">Generator</td><td>Sprint scope, acceptance criteria, self-eval</td></tr>
+            <tr><td><code>docs/mechanical-checks-sprint-N.md</code></td><td class="who">Pre-QA gate</td><td>Lint/artifact results; FAIL blocks evaluation</td></tr>
+            <tr><td><code>docs/qa-report-sprint-N.md</code></td><td class="who">Evaluator</td><td>Verdict, scores, bugs — ends with lesson candidates</td></tr>
+            <tr><td><code>harness/LESSONS.md</code></td><td class="who learn-w">Retrospector</td><td>Distilled cross-run lessons (max 25, phase-grouped)</td></tr>
+            <tr><td><code>docs/proposals/guardrail-*.md</code></td><td class="who learn-w">Retrospector</td><td>Draft guardrails awaiting your review</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Watch a run live with <code>ls -lt docs/</code> — the newest file tells
+        you which phase just finished.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= LEARNING ================= -->
+  <section id="learning">
+    <div class="wrap learn-band">
+      <span class="eyebrow learn-eb">The return wire</span>
+      <h2>How the harness learns</h2>
+      <p class="lead-in">
+        Every QA report ends with structured lesson candidates. The
+        Retrospector merges them into a checked-in ledger, and a deterministic
+        script renders the agent-facing <code>harness/LESSONS.md</code> —
+        capped at 25 active lessons, so the prompt never bloats.
+      </p>
+    </div>
+    <div class="wrap-wide">
+      <div class="plate">
+        <svg viewBox="0 0 960 150" role="img" aria-label="Diagram: lesson candidates flow from QA reports into the ledger, render into LESSONS.md, and at two strikes become guardrail proposals which graduate into enforced guardrails.">
+          <defs>
+            <marker id="arr-l2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#b4540a"/>
+            </marker>
+          </defs>
+          <g font-family="ui-monospace, Menlo, monospace" font-size="12">
+            <rect x="15" y="45" width="165" height="46" rx="8" fill="#faf7f2" stroke="#5c6660" stroke-width="1.2"/>
+            <text x="97" y="66" text-anchor="middle" fill="#1c2420">QA reports</text>
+            <text x="97" y="82" text-anchor="middle" fill="#5c6660" font-size="10">LESSON-CANDIDATES</text>
+
+            <rect x="235" y="45" width="160" height="46" rx="8" fill="#faf7f2" stroke="#b4540a" stroke-width="1.5"/>
+            <text x="315" y="66" text-anchor="middle" fill="#1c2420">ledger</text>
+            <text x="315" y="82" text-anchor="middle" fill="#5c6660" font-size="10">lessons.jsonl · strikes</text>
+
+            <rect x="450" y="45" width="160" height="46" rx="8" fill="#b4540a"/>
+            <text x="530" y="66" text-anchor="middle" fill="#faf7f2">LESSONS.md</text>
+            <text x="530" y="82" text-anchor="middle" fill="#f0dcc8" font-size="10">≤ 25 active · rendered</text>
+
+            <rect x="665" y="45" width="160" height="46" rx="8" fill="#faf7f2" stroke="#b4540a" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <text x="745" y="66" text-anchor="middle" fill="#1c2420">proposals</text>
+            <text x="745" y="82" text-anchor="middle" fill="#5c6660" font-size="10">at 2 strikes · you review</text>
+
+            <rect x="855" y="45" width="90" height="46" rx="8" fill="#e3dccd"/>
+            <text x="900" y="66" text-anchor="middle" fill="#1c2420">guardrail</text>
+            <text x="900" y="82" text-anchor="middle" fill="#5c6660" font-size="10">lint · gate</text>
+          </g>
+          <line x1="180" y1="68" x2="228" y2="68" stroke="#b4540a" stroke-width="1.5" marker-end="url(#arr-l2)"/>
+          <line x1="395" y1="68" x2="443" y2="68" stroke="#b4540a" stroke-width="1.5" marker-end="url(#arr-l2)"/>
+          <line x1="610" y1="68" x2="658" y2="68" stroke="#b4540a" stroke-width="1.5" marker-end="url(#arr-l2)"/>
+          <line x1="825" y1="68" x2="848" y2="68" stroke="#b4540a" stroke-width="1.5" marker-end="url(#arr-l2)"/>
+          <text x="480" y="130" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#5c6660">committed guardrails graduate the lesson OUT of LESSONS.md — enforced beats remembered</text>
+        </svg>
+        <p class="plate-caption">Fig. 2 — capture → distill → inject → escalate → graduate</p>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="console">
+<pre><span class="c"># learning-loop toolbox</span>
+<span class="k">bun lessons:validate</span>   <span class="c"># ledger + LESSONS.md consistency (also runs in pre-commit)</span>
+<span class="k">bun lessons:render</span>     <span class="c"># regenerate LESSONS.md from the ledger</span>
+<span class="k">bun lessons:sync</span> <span class="f">~/path/to/template-repo</span>   <span class="c"># merge a product clone's learning home</span>
+
+HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</span>       <span class="c"># skip the retro phase</span></pre>
+      </div>
+      <p>
+        Guardrail proposals are the only human gate: review the draft in
+        <code>docs/proposals/</code>, commit the rule if you agree, and mark the
+        ledger entry <code>graduated</code>. The lesson leaves the prompt; the
+        machine enforces it forever.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= CONTROLS ================= -->
+  <section id="controls">
+    <div class="wrap">
+      <span class="eyebrow">Dials</span>
+      <h2>Controls</h2>
+      <p class="lead-in">
+        Everything is an environment variable on the harness command. The
+        defaults are tuned for hands-off runs; these are the dials you'll
+        actually reach for.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code></td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent; <code>design</code> after design-scout</td></tr>
+            <tr><td><code>HARNESS_MAX_SPRINTS_PER_RUN</code></td><td>unlimited</td><td>Stop cleanly after N sprints; re-run to resume</td></tr>
+            <tr><td><code>HARNESS_ON_MAX_ROUNDS</code></td><td><code>halt</code></td><td><code>advance</code> marks a stuck sprint Skipped and moves on</td></tr>
+            <tr><td><code>HARNESS_MODEL</code></td><td>per-phase</td><td>Force one model for every phase</td></tr>
+            <tr><td><code>HARNESS_*_MODEL</code></td><td>Fable / Sonnet</td><td>Per-phase override: <code>PLANNER</code>, <code>GENERATOR</code>, <code>EVALUATOR</code>, <code>RETRO</code></td></tr>
+            <tr><td><code>HARNESS_RETRO</code></td><td><code>on</code></td><td><code>off</code> skips end-of-run learning</td></tr>
+            <tr><td><code>HARNESS_YES</code></td><td><code>0</code></td><td><code>1</code> skips all pause prompts (fully autonomous)</td></tr>
+            <tr><td><code>HARNESS_USAGE_CHECK</code></td><td><code>0</code></td><td>Run a budget probe at sprint boundaries</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p>
+        Deeper reading: <a href="../README.md">README</a> ·
+        <a href="runtime-contract.md">runtime contract</a> ·
+        <a href="../harness/AGENT-INSTRUCTIONS.md">agent instructions</a> ·
+        <a href="../harness/LESSONS.md">current lessons</a>
+      </p>
+    </div>
+  </footer>
+</main>
+
+</body>
+</html>

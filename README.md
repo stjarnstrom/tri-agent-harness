@@ -320,6 +320,7 @@ what the run learned.
 
 | If you want to… | Read |
 |-----------------|------|
+| A visual introduction — the loop, the agents, quick start | [`docs/guide.html`](docs/guide.html) (open in a browser) |
 | Understand what each phase does and how long it takes | [What happens during a run](#what-happens-during-a-run) (this README) |
 | Understand phase boundaries and file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | See agent sandbox, lint, and anti-slop rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
