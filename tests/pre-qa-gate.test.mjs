@@ -33,7 +33,7 @@ const CONTRACT_WITHOUT_CHECKLIST = [
   "",
 ].join("\n");
 
-async function makeGateProject({ contract, gitleaksExit } = {}) {
+async function makeGateProject({ contract, gitleaksExit, sprint = 1 } = {}) {
   const dir = await mkdtemp(path.join(tmpdir(), "pre-qa-gate-"));
   await mkdir(path.join(dir, "scripts"), { recursive: true });
   await mkdir(path.join(dir, "docs"), { recursive: true });
@@ -41,6 +41,10 @@ async function makeGateProject({ contract, gitleaksExit } = {}) {
     path.join(ROOT, "scripts", "pre-qa-gate.sh"),
     path.join(dir, "scripts", "pre-qa-gate.sh"),
   );
+  const rows = [];
+  for (let i = 1; i <= sprint; i += 1) {
+    rows.push(`| ${i} | Sprint ${i} | ${i === sprint ? "Ready for QA" : "Pass"} | |`);
+  }
   await writeFile(
     path.join(dir, "docs", "sprint-status.md"),
     [
@@ -48,12 +52,12 @@ async function makeGateProject({ contract, gitleaksExit } = {}) {
       "",
       "| Sprint | Title | Status | Notes |",
       "| --- | --- | --- | --- |",
-      "| 1 | Foundation | Ready for QA | |",
+      ...rows,
       "",
     ].join("\n"),
   );
   if (contract !== undefined) {
-    await writeFile(path.join(dir, "docs", "sprint-1-contract.md"), contract);
+    await writeFile(path.join(dir, "docs", `sprint-${sprint}-contract.md`), contract);
   }
 
   let env = process.env;
@@ -70,11 +74,11 @@ async function makeGateProject({ contract, gitleaksExit } = {}) {
   return { dir, env };
 }
 
-async function runGate({ dir, env }) {
+async function runGate({ dir, env }, sprint = 1) {
   try {
     const { stdout } = await execFileAsync(
       "bash",
-      [path.join(dir, "scripts", "pre-qa-gate.sh"), "1"],
+      [path.join(dir, "scripts", "pre-qa-gate.sh"), String(sprint)],
       { cwd: dir, env },
     );
     return { code: 0, stdout };
@@ -116,4 +120,23 @@ test("gate passes when gitleaks finds nothing", async () => {
   });
   const result = await runGate(project);
   assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
+});
+
+test("gate warns but passes when no app source is found on sprint 1", async () => {
+  const project = await makeGateProject({ contract: CONTRACT_WITH_CHECKLIST });
+  const result = await runGate(project);
+  assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
+  assert.match(result.stdout, /No application source detected/);
+  assert.match(result.stdout, /sprint 2/i);
+});
+
+test("gate fails from sprint 2 on when no app source is found", async () => {
+  const project = await makeGateProject({
+    contract: CONTRACT_WITH_CHECKLIST,
+    sprint: 2,
+  });
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 1, `expected app-source failure:\n${result.stdout}`);
+  assert.match(result.stdout, /No application source/);
+  assert.match(result.stdout, /src\/|app\//);
 });

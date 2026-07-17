@@ -20,16 +20,18 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 
 | Requirement | Notes |
 |-------------|-------|
-| **Git repo** | `git init` before setup — hooks install into `.git/hooks/` |
-| **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback |
-| **Claude Code CLI** (`claude`) | Primary runner — for `./harness.sh` autonomous mode |
+| **Git repo** | `git init` before setup — hooks install into `.git/hooks/`. Without one the harness runs but **warns that guardrails are OFF** (no pre-commit hook, no secret scan, no lint gate) |
+| **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback. `node` must be on PATH — validation, handoffs, and state helpers need it |
+| **Claude Code CLI** (`claude`) | Primary runner — for `./harness.sh` autonomous mode. Must be **logged in** (run `claude` once interactively) |
 | **Cursor CLI** | Optional — only for the `./cursor-harness.sh` alternative |
 | **OpenCode CLI** (`opencode`) | Optional — only for the `./opencode-harness.sh` alternative |
 | **`.env.local`** | Copy from `.env.example`; never commit real secrets |
 
+Each runner verifies its required CLIs at startup and exits with install instructions if one is missing. `./harness.sh` additionally pings each configured model once before planning, so a model your account can't use fails in seconds instead of mid-run (skip with `HARNESS_PREFLIGHT=off`).
+
 Optional:
-- **gitleaks** — `brew install gitleaks` for full secret scan in pre-commit (regex fallback without it)
-- **Playwright** — installed by the Generator when it scaffolds your app; required for Evaluator E2E testing
+- **gitleaks** — `brew install gitleaks` for full secret scan in pre-commit. Without it the scan **silently degrades** to a 3-pattern regex (AWS/GitHub/sk- tokens only)
+- **Playwright** — installed by the Generator when it scaffolds your app; required for Evaluator E2E testing. Browsers are a separate download (`npx playwright install`) — expect the first QA round to spend time on this or fail if the download is blocked
 
 ## Quick start
 
@@ -52,13 +54,35 @@ cp .env.example .env.local   # fill in values locally
 
 The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from the first sprint not in terminal `Pass` or `Skipped` state.
 
+## Before your first run
+
+Things that most commonly trip up a fresh clone, and how the harness behaves around them:
+
+**First runs pause by default.** On a fresh project (no `docs/sprint-status.md` yet) the harness sets `HARNESS_PAUSE=sprint` automatically: it stops before each sprint so you can watch the plan — and the cost — unfold before granting full autonomy. Answer `a` at the first checkpoint, or set `HARNESS_PAUSE=off` / `HARNESS_YES=1`, for fully unattended runs.
+
+**Cost is real.** An autonomous run is N sprints × up to 3 QA rounds, each a full agent session on Fable/Sonnet. A vague prompt makes the Planner ambitious — 8–10 sprints is normal for "build me a SaaS". Scope the prompt tightly, or cap the blast radius with `HARNESS_MAX_SPRINTS_PER_RUN=1` and re-run to continue. See [Token / cost control](#token--cost-control).
+
+**Model access.** Planner/Evaluator default to `claude-fable-5` and the Generator to `claude-sonnet-5`. If your account doesn't have Fable, the startup model ping tells you immediately — override with `HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8` (or `HARNESS_MODEL` for all phases).
+
+**Where the app must live.** The pre-QA gate looks for `package.json` at the repo root plus app code in `src/`, `app/`, `packages/`, `frontend/`, or `backend/`. An app scaffolded anywhere else (e.g. a nested `my-app/`) would skip every build/test/lint check — so from sprint 2 onward the gate **fails** if it can't find app source, instead of passing vacuously.
+
+**QA needs a runnable app.** The Evaluator starts the dev server itself and drives it with Playwright. First-run failures here are usually environmental — missing Playwright browsers (`npx playwright install`) or a port already in use — and they burn a QA round just like a real bug would.
+
+**`docs/sprint-status.md` is the state machine.** It's a markdown table maintained by the agents; you can hand-edit it to re-run or skip work, but only these statuses are recognized: `Not started`, `In progress`, `Ready for QA`, `Pass`, `Fail`, `Skipped`. Anything else (including casing variants like `PASS`) makes the harness stop on that sprint with a warning rather than guess.
+
+**One clone = one product.** The generated app lives in this repo, next to the harness. That's by design (the learning loop feeds on it), but it means pulling harness updates from upstream later will conflict with your product history. Start each product from a fresh clone, and push lessons back to your template with `bun lessons:sync`.
+
+**Pick a runner and stay with it.** State is shared through `docs/`, so switching between `./harness.sh`, `./cursor-harness.sh`, and `./opencode-harness.sh` mid-project mostly works — but QA-round counting restarts on every resume, so a stubborn sprint can consume more total rounds than `MAX_QA_ROUNDS` suggests.
+
+**Autonomy means real permissions.** Agents run with `--dangerously-skip-permissions`; the "sandbox" rules in `harness/AGENT-INSTRUCTIONS.md` are instructions, not enforcement. The git hooks catch bad commits, not bad commands. Run the harness on machines and in directories where that's acceptable.
+
 ## Usage modes
 
 Pick the mode that matches how much control you want. Claude Code is the default runner throughout; modes 3–4 cover the optional Cursor, OpenCode, and SDK paths. All modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md) for file ownership and mode switching.
 
 ### 1. Autonomous (recommended for hands-off builds)
 
-Full loop with no human checkpoints (unless you set `HARNESS_PAUSE`). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives.**
+Full loop with no human checkpoints — except on a **fresh project**, where the harness pauses before each sprint until you opt into full autonomy (see [Before your first run](#before-your-first-run)). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives.**
 
 ```bash
 ./harness.sh "your product prompt"              # Claude Code (default)
@@ -393,7 +417,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 | `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (avoids MCP cold start) |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
 | `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |
-| `HARNESS_PAUSE` | `off` | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout |
+| `HARNESS_PAUSE` | `off` (`sprint` on a fresh project) | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout. Defaults to `sprint` when `docs/sprint-status.md` doesn't exist yet |
+| `HARNESS_PREFLIGHT` | `on` | `off` skips the startup model ping (`./harness.sh` only) |
 | `HARNESS_YES` | `0` | Set to `1` to skip pause prompts (fully autonomous) |
 | `HARNESS_MAX_SPRINTS_PER_RUN` | unlimited | Stop after N sprints; re-run same prompt to resume |
 | `HARNESS_USAGE_CHECK` | `0` | Run `scripts/usage-check.sh` at sprint boundaries |

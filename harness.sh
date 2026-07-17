@@ -52,6 +52,10 @@ GENERATOR_MODEL="${HARNESS_MODEL:-$HARNESS_GENERATOR_MODEL}"
 EVALUATOR_MODEL="${HARNESS_MODEL:-$HARNESS_EVALUATOR_MODEL}"
 RETRO_MODEL="${HARNESS_MODEL:-$HARNESS_RETRO_MODEL}"
 
+# ─── Preflight ───────────────────────────────────────────────────────
+harness_preflight claude node || exit 1
+harness_preflight_model_ping "$PLANNER_MODEL" "$GENERATOR_MODEL" "$EVALUATOR_MODEL" || exit 1
+
 # ─── Phase runner (contract consumed by harness-common.sh) ──────────
 run_phase_agent() {
   local phase="${1:?phase required (planner|generator|evaluator)}"

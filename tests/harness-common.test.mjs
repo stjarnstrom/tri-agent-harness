@@ -4,7 +4,7 @@ import test from "node:test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { mkdtemp, mkdir, writeFile, stat } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, writeFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -262,3 +262,132 @@ test("evaluator prompt includes lessons, mechanical context, and autonomous suff
   assert.match(stdout, /Be skeptical/);
   assert.match(stdout, /AUTONOMOUS MODE/); // drift fix (c)
 });
+
+// ─── first-run safety ─────────────────────────────────────────────────
+
+// Like runCommon, but with a preamble before sourcing and optional env.
+async function runWithPreamble(cwd, preamble, snippet, env = {}) {
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      "bash",
+      ["-c", `${preamble} source "${COMMON}"; ${snippet}`],
+      { cwd, env: { ...process.env, ...env } },
+    );
+    return { code: 0, stdout, stderr };
+  } catch (error) {
+    if (typeof error.code !== "number") throw error;
+    return { code: error.code, stdout: error.stdout ?? "", stderr: error.stderr ?? "" };
+  }
+}
+
+test("harness_ensure_guardrails warns loudly outside a git repo", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "no-git-"));
+  const { code, stderr } = await runCommon(dir, "harness_ensure_guardrails");
+  assert.equal(code, 0);
+  assert.match(stderr, /guardrails are OFF/i);
+  assert.match(stderr, /git init/);
+});
+
+test("HARNESS_PAUSE defaults to sprint on a fresh project", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "fresh-project-"));
+  const { stdout } = await runWithPreamble(dir, "unset HARNESS_PAUSE;", 'echo "$HARNESS_PAUSE"');
+  assert.equal(stdout.trim(), "sprint");
+});
+
+test("HARNESS_PAUSE stays off when sprint-status.md already exists", async () => {
+  const dir = await makeProject([[1, "Foundation", "Not started"]]);
+  const { stdout } = await runWithPreamble(dir, "unset HARNESS_PAUSE;", 'echo "$HARNESS_PAUSE"');
+  assert.equal(stdout.trim(), "off");
+});
+
+test("explicit HARNESS_PAUSE=off wins on a fresh project", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "fresh-project-"));
+  const { stdout } = await runWithPreamble(
+    dir,
+    "export HARNESS_PAUSE=off;",
+    'echo "$HARNESS_PAUSE"',
+  );
+  assert.equal(stdout.trim(), "off");
+});
+
+test("pause config banner explains the first-run default", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "fresh-project-"));
+  const { stdout } = await runWithPreamble(
+    dir,
+    "unset HARNESS_PAUSE;",
+    "harness_print_pause_config",
+  );
+  assert.match(stdout, /First run/i);
+  assert.match(stdout, /HARNESS_PAUSE=off/);
+});
+
+// ─── preflight ────────────────────────────────────────────────────────
+
+test("harness_preflight fails with instructions when a required CLI is missing", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "preflight-"));
+  const { code, stderr } = await runCommon(dir, "harness_preflight definitely-not-a-real-cli-xyz");
+  assert.notEqual(code, 0);
+  assert.match(stderr, /definitely-not-a-real-cli-xyz/);
+});
+
+test("harness_preflight passes when required tools exist", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "preflight-"));
+  const { code } = await runCommon(dir, "harness_preflight bash node");
+  assert.equal(code, 0);
+});
+
+async function makeClaudeStub(dir, exitCode) {
+  const bin = path.join(dir, "stub-bin");
+  await mkdir(bin, { recursive: true });
+  const stub = path.join(bin, "claude");
+  await writeFile(stub, `#!/bin/sh\necho "$@" >> "${dir}/claude-calls.log"\nexit ${exitCode}\n`);
+  await chmod(stub, 0o755);
+  return `${bin}:${process.env.PATH}`;
+}
+
+test("model ping succeeds and dedupes repeated models", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "preflight-ping-"));
+  const PATH = await makeClaudeStub(dir, 0);
+  const { code } = await runWithPreamble(
+    dir,
+    "",
+    "harness_preflight_model_ping model-a model-a model-a",
+    { PATH },
+  );
+  assert.equal(code, 0);
+  const calls = (await readFileText(path.join(dir, "claude-calls.log"))).split("\n").filter(Boolean);
+  assert.equal(calls.length, 1);
+});
+
+test("model ping fails with override guidance when the model is unavailable", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "preflight-ping-"));
+  const PATH = await makeClaudeStub(dir, 1);
+  const { code, stderr } = await runWithPreamble(
+    dir,
+    "",
+    "harness_preflight_model_ping some-model",
+    { PATH },
+  );
+  assert.notEqual(code, 0);
+  assert.match(stderr, /some-model/);
+  assert.match(stderr, /HARNESS_(PLANNER_)?MODEL/);
+  assert.match(stderr, /HARNESS_PREFLIGHT=off/);
+});
+
+test("HARNESS_PREFLIGHT=off skips the model ping entirely", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "preflight-ping-"));
+  const PATH = await makeClaudeStub(dir, 1);
+  const { code } = await runWithPreamble(
+    dir,
+    "",
+    "harness_preflight_model_ping some-model",
+    { PATH, HARNESS_PREFLIGHT: "off" },
+  );
+  assert.equal(code, 0);
+  assert.equal(existsSync(path.join(dir, "claude-calls.log")), false);
+});
+
+async function readFileText(filePath) {
+  const { readFile } = await import("node:fs/promises");
+  return readFile(filePath, "utf8");
+}

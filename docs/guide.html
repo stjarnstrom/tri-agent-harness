@@ -268,6 +268,7 @@
       <a href="#modes">Modes</a>
       <a href="#artifacts">Artifacts</a>
       <a href="#learning">Learning</a>
+      <a href="#fieldnotes">Field notes</a>
       <a href="#controls">Controls</a>
     </nav>
   </div>
@@ -286,7 +287,7 @@
     </p>
     <p class="doc-meta">
       <span>docs/guide.html</span>
-      <span>updated 2026-07-14</span>
+      <span>updated 2026-07-17</span>
       <span>zero dependencies</span>
     </p>
   </div>
@@ -432,8 +433,8 @@
         interruption is just re-running the same command.
       </p>
       <div class="console">
-<pre><span class="c"># one-time setup: git hooks, lints, sandbox</span>
-<span class="k">bun install</span> &amp;&amp; <span class="k">bun run setup</span>
+<pre><span class="c"># one-time setup: git repo, hooks, lints, sandbox</span>
+<span class="k">git init</span> &amp;&amp; <span class="k">bun install</span> &amp;&amp; <span class="k">bun run setup</span>
 
 <span class="c"># start (or resume) an autonomous build</span>
 <span class="k">./harness.sh</span> <span class="f">"Build a kanban app for film production crews"</span>
@@ -441,6 +442,15 @@
 <span class="c"># optional: allow up to 5 QA rounds per sprint</span>
 <span class="k">./harness.sh</span> <span class="f">"..."</span> 5</pre>
       </div>
+      <p>
+        Startup runs a preflight: required CLIs are checked, and each
+        configured model gets one tiny ping — so a model your account can't
+        use fails in seconds, not after a full planning run. On a fresh
+        project the harness also <strong>pauses before each sprint</strong> so
+        you can watch the plan and cost unfold; answer <code>a</code> at the
+        first checkpoint (or set <code>HARNESS_PAUSE=off</code>) for full
+        autonomy.
+      </p>
       <p>
         No design brief? The Planner pauses after writing three design
         directions to <code>docs/design-options.md</code>. Put your pick in
@@ -643,6 +653,71 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
   </section>
 
   <!-- ================= CONTROLS ================= -->
+  <section id="fieldnotes">
+    <div class="wrap">
+      <span class="eyebrow">When it goes sideways</span>
+      <h2>Field notes: first-run failure modes</h2>
+      <p class="lead-in">
+        The harness now fails fast and loud on all of these — but knowing the
+        symptom saves you a debugging detour. Every one of them is cheap to
+        fix.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>"WARNING: guardrails are OFF" at startup</td>
+              <td>Not a git repository — hooks, secret scan, and lint gate can't install</td>
+              <td><code>git init &amp;&amp; bun install &amp;&amp; bun run setup</code></td>
+            </tr>
+            <tr>
+              <td>Preflight: "model … did not respond"</td>
+              <td>Account lacks the default model (Fable), or <code>claude</code> isn't logged in</td>
+              <td>Log in, or override: <code>HARNESS_MODEL=claude-opus-4-8</code> (or per-phase <code>HARNESS_*_MODEL</code>)</td>
+            </tr>
+            <tr>
+              <td>Gate fails: "No application source found by sprint 2"</td>
+              <td>The Generator scaffolded the app outside <code>src/</code>, <code>app/</code>, <code>packages/</code>, <code>frontend/</code>, <code>backend/</code></td>
+              <td>Move the app into a recognized directory with <code>package.json</code> at the repo root</td>
+            </tr>
+            <tr>
+              <td>QA round 1 fails on setup, not bugs</td>
+              <td>Playwright browsers missing, or the dev-server port is taken</td>
+              <td><code>npx playwright install</code>; free the port before re-running</td>
+            </tr>
+            <tr>
+              <td>Loop stops: "unrecognized status" in a sprint row</td>
+              <td>A hand-edited (or agent-mangled) <code>docs/sprint-status.md</code> status cell</td>
+              <td>Use exactly: <code>Not started</code>, <code>In progress</code>, <code>Ready for QA</code>, <code>Pass</code>, <code>Fail</code>, <code>Skipped</code></td>
+            </tr>
+            <tr>
+              <td>Secret scan feels thin</td>
+              <td>gitleaks not installed — fallback is a 3-pattern regex</td>
+              <td><code>brew install gitleaks</code></td>
+            </tr>
+            <tr>
+              <td>Run costs more than expected</td>
+              <td>Fully autonomous default after the first run; ambitious plans mean many sprints × QA rounds</td>
+              <td>Scope the prompt; <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code> or <code>HARNESS_PAUSE=sprint</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Two structural facts worth internalizing: the generated app lives
+        <em>in this repo</em> next to the harness (start each product from a
+        fresh clone; push lessons back with <code>bun lessons:sync</code>), and
+        agents run with <code>--dangerously-skip-permissions</code> — the
+        sandbox rules are instructions to the agents, not OS-level enforcement.
+        The hooks catch bad commits, not bad commands.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= CONTROLS ================= -->
   <section id="controls">
     <div class="wrap">
       <span class="eyebrow">Dials</span>
@@ -658,7 +733,8 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code></td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent; <code>design</code> after design-scout</td></tr>
+            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code> · <code>sprint</code> on a fresh project</td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent; <code>design</code> after design-scout</td></tr>
+            <tr><td><code>HARNESS_PREFLIGHT</code></td><td><code>on</code></td><td><code>off</code> skips the startup model ping</td></tr>
             <tr><td><code>HARNESS_MAX_SPRINTS_PER_RUN</code></td><td>unlimited</td><td>Stop cleanly after N sprints; re-run to resume</td></tr>
             <tr><td><code>HARNESS_ON_MAX_ROUNDS</code></td><td><code>halt</code></td><td><code>advance</code> marks a stuck sprint Skipped and moves on</td></tr>
             <tr><td><code>HARNESS_MODEL</code></td><td>per-phase</td><td>Force one model for every phase</td></tr>

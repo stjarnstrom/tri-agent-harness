@@ -72,7 +72,15 @@ is_harness_test_script() {
 
 check_app_build_and_tests() {
   if [ ! -f package.json ] || ! has_app_source; then
-    echo "No application source detected — skipping build/test/typecheck checks."
+    # An app scaffolded outside the recognized directories would make every
+    # build/test/lint check skip silently while the gate reports green.
+    # Sprint 1 may legitimately be docs-only; from sprint 2 this is a failure.
+    if [ "$SPRINT" -ge 2 ]; then
+      FAILURES+=("No application source found by sprint $SPRINT. The gate needs package.json at the repo root plus app code in one of: src/, app/, packages/, frontend/, backend/. If the app was scaffolded elsewhere (e.g. a nested my-app/ directory), move it into a recognized directory — otherwise every build/test/lint check is silently skipped.")
+    else
+      echo "⚠ No application source detected — build/test/typecheck checks SKIPPED."
+      echo "  Sprint 1 may be docs-only, but from sprint 2 the gate requires app code in src/, app/, packages/, frontend/, or backend/ (plus package.json at the repo root)."
+    fi
     return 0
   fi
 

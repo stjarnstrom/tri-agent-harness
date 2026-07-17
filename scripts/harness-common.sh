@@ -17,6 +17,15 @@ HARNESS_ON_MAX_ROUNDS="${HARNESS_ON_MAX_ROUNDS:-halt}"
 # HARNESS_MAX_SPRINTS_PER_RUN=N — stop after N sprints in this invocation (resume later)
 # HARNESS_USAGE_CHECK=1 — run scripts/usage-check.sh at sprint boundaries
 # HARNESS_USAGE_CMD='...' — custom command; exit 1 when budget is low
+# First-run safety: on a fresh project (no docs/sprint-status.md yet) with no
+# explicit HARNESS_PAUSE, pause before each sprint so the user sees the plan
+# and cost trajectory before granting full autonomy. HARNESS_PAUSE=off or
+# HARNESS_YES=1 restores unattended behavior.
+HARNESS_FIRST_RUN_PAUSE=0
+if [ -z "${HARNESS_PAUSE:-}" ] && [ ! -f docs/sprint-status.md ]; then
+  HARNESS_PAUSE="sprint"
+  HARNESS_FIRST_RUN_PAUSE=1
+fi
 HARNESS_PAUSE="${HARNESS_PAUSE:-off}"
 HARNESS_YES="${HARNESS_YES:-0}"
 HARNESS_USAGE_CHECK="${HARNESS_USAGE_CHECK:-0}"
@@ -144,6 +153,10 @@ harness_track_sprint_finished() {
 
 harness_print_pause_config() {
   if [ "$HARNESS_PAUSE" != "off" ] || [ -n "$HARNESS_MAX_SPRINTS_PER_RUN" ] || [ "$HARNESS_USAGE_CHECK" = "1" ]; then
+    if [ "$HARNESS_FIRST_RUN_PAUSE" = "1" ]; then
+      echo "  First run detected: pausing before each sprint so you can review the plan and cost."
+      echo "  Set HARNESS_PAUSE=off (or HARNESS_YES=1) for fully autonomous runs."
+    fi
     echo "  Pause mode: $HARNESS_PAUSE"
     if [ -n "$HARNESS_MAX_SPRINTS_PER_RUN" ]; then
       echo "  Max sprints this run: $HARNESS_MAX_SPRINTS_PER_RUN"
@@ -902,12 +915,77 @@ EOF
 # so it also works from a git worktree, where .git is a file.
 harness_ensure_guardrails() {
   local hooks_dir
-  git rev-parse --git-dir >/dev/null 2>&1 || return 0
+  if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    {
+      echo "⚠ WARNING: this is not a git repository — guardrails are OFF."
+      echo "  No pre-commit hook, secret scan, or lint gate will run on agent commits."
+      echo "  Fix: git init && bun install && bun run setup, then re-run the harness."
+    } >&2
+    return 0
+  fi
   hooks_dir="$(git rev-parse --git-path hooks)"
   if [ ! -f "$hooks_dir/pre-commit" ]; then
     echo "▶ Installing harness guardrails (git hooks)..."
     bash "$PROJECT_DIR/scripts/install-harness.sh"
   fi
+}
+
+# ─── Preflight: fail fast on missing tools instead of mid-run ─────────
+# Usage: harness_preflight <required-cli...>
+harness_preflight() {
+  local missing=() cli
+  for cli in "$@"; do
+    command -v "$cli" >/dev/null 2>&1 || missing+=("$cli")
+  done
+  if [ "${#missing[@]}" -gt 0 ]; then
+    {
+      echo "ERROR: required tool(s) not on PATH: ${missing[*]}"
+      for cli in "${missing[@]}"; do
+        case "$cli" in
+          claude)   echo "  claude   → npm install -g @anthropic-ai/claude-code, then run 'claude' once to log in" ;;
+          node)     echo "  node     → install Node.js 20+ (validation, handoffs, and state helpers all need it)" ;;
+          cursor)   echo "  cursor   → install the Cursor CLI (https://cursor.com)" ;;
+          opencode) echo "  opencode → install the OpenCode CLI (https://opencode.ai)" ;;
+        esac
+      done
+    } >&2
+    return 1
+  fi
+  if ! command -v gitleaks >/dev/null 2>&1; then
+    {
+      echo "⚠ gitleaks not installed — the secret scan falls back to a basic 3-pattern regex."
+      echo "  Recommended: brew install gitleaks"
+    } >&2
+  fi
+  return 0
+}
+
+# Verify each model actually responds before burning a full planning run on a
+# model this account can't use (one tiny prompt per unique model).
+# Skip with HARNESS_PREFLIGHT=off.
+harness_preflight_model_ping() {
+  if [ "${HARNESS_PREFLIGHT:-on}" = "off" ]; then
+    return 0
+  fi
+  local seen=" " m
+  for m in "$@"; do
+    case "$seen" in
+      *" $m "*) continue ;;
+    esac
+    seen="$seen$m "
+    echo "▶ Preflight: checking model $m..."
+    if ! claude --dangerously-skip-permissions --model "$m" -p "Reply with the single word: ok" >/dev/null 2>&1; then
+      {
+        echo "ERROR: model '$m' did not respond — it may be unavailable to this account, or claude is not logged in."
+        echo "  See the real error with: claude --model $m -p 'hi'"
+        echo "  Override models via HARNESS_PLANNER_MODEL / HARNESS_GENERATOR_MODEL / HARNESS_EVALUATOR_MODEL,"
+        echo "  or HARNESS_MODEL for all phases (claude-opus-4-8 is the suggested fallback)."
+        echo "  Skip this check with HARNESS_PREFLIGHT=off."
+      } >&2
+      return 1
+    fi
+  done
+  return 0
 }
 
 # Post-QA handoff manifest (all runners).

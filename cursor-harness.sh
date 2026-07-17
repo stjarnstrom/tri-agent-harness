@@ -30,6 +30,7 @@ cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
 
 harness_validate_run_config "$MAX_QA_ROUNDS"
+harness_preflight cursor node || exit 1
 
 # ─── Phase runner (contract consumed by harness-common.sh) ──────────
 # run_cursor_agent wraps run_agent_with_watchdog.
