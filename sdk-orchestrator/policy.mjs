@@ -18,7 +18,6 @@ const DEFAULT_POLICY = {
   },
   budgets: {
     maxPhasesPerRun: null,
-    wallClockTimeoutPerPhaseMs: null,
   },
 };
 
@@ -35,13 +34,19 @@ function mergePolicy(base, override) {
 export async function loadPolicy(configPath = DEFAULT_CONFIG_PATH) {
   let filePolicy = {};
 
+  let raw = null;
   try {
-    const raw = await readFile(configPath, "utf8");
-    filePolicy = JSON.parse(raw);
+    raw = await readFile(configPath, "utf8");
   } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code !== "ENOENT") {
+    // Only a missing config file falls back to defaults.
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) {
       throw error;
     }
+  }
+
+  if (raw !== null) {
+    // A malformed config must fail loudly, not silently use DEFAULT_POLICY.
+    filePolicy = JSON.parse(raw);
   }
 
   const policy = mergePolicy(DEFAULT_POLICY, filePolicy);

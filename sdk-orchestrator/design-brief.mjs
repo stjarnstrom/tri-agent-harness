@@ -1,18 +1,10 @@
-import { access, readFile, readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { fileExists } from "./fs-utils.mjs";
 
 const REFERENCE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".svg"]);
 const BRIEF_MARKDOWN_FILES = ["brief.md", "constraints.md"];
 const LEGACY_BRAND_PATHS = ["brand-guidelines.md", path.join("agents", "brand-guidelines.md")];
-
-async function fileExists(filePath) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function readTextIfExists(filePath) {
   if (!(await fileExists(filePath))) {

@@ -1,7 +1,6 @@
-import { access } from "node:fs/promises";
-import path from "node:path";
 import { logEvent } from "./event-log.mjs";
-import { isDesignScoutComplete, isPlanningComplete, getPlanningState } from "./design-brief.mjs";
+import { getPlanningState, needsPlanning } from "./design-brief.mjs";
+import { fileExists } from "./fs-utils.mjs";
 import {
   buildEvaluatorPrompt,
   buildGeneratorPrompt,
@@ -19,23 +18,22 @@ import {
   readOrchestratorState,
   resolveQaRound,
   updateOrchestratorState,
+  writeOrchestratorState,
 } from "./state-store.mjs";
 import { assertPhaseOutputs, sprintPassed } from "./validate.mjs";
 import { readWorkflowHandoff, writeWorkflowHandoff, HANDOFF_FILE } from "./workflow-handoff.mjs";
 
 const SOURCE = "sdk-orchestrator";
 
-async function fileExists(filePath) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Resolve the QA round from bookkeeping (state + handoff) cross-checked
+// against the canonical docs, so a lost handoff/state write after an
+// evaluator run cannot undercount the round.
+async function resolveQaRoundFromDocs({ state, handoff, sprint, action }) {
+  const rows = await readSprintRows(SPRINT_STATUS_FILE).catch(() => []);
+  const sprintStatus = rows.find((row) => row.sprint === sprint)?.status ?? null;
+  const qaReportExists = await fileExists(`docs/qa-report-sprint-${sprint}.md`);
 
-export async function needsPlanning() {
-  return (await getPlanningState()) !== "complete";
+  return resolveQaRound({ state, handoff, sprint, action, sprintStatus, qaReportExists });
 }
 
 export async function getNextDecision() {
@@ -80,16 +78,6 @@ async function writePhaseHandoff({
   };
 
   await writeWorkflowHandoff(payload, HANDOFF_FILE);
-}
-
-async function writePostQaHandoff({ sprint, qaRound, nextAction }) {
-  await writePhaseHandoff({
-    phase: "evaluator",
-    sprint,
-    qaRound,
-    next: nextAction,
-    artifacts: ["docs/sprint-status.md", `docs/qa-report-sprint-${sprint}.md`],
-  });
 }
 
 export async function runSinglePhase({
@@ -153,6 +141,17 @@ export async function runSinglePhase({
     artifacts = ["docs/design-options.md"];
   }
 
+  // For the evaluator, resolve the real next action from the canonical docs
+  // before writing the handoff, so a single write carries both the decision
+  // and the runtime block (agentId/runId) — no placeholder + overwrite.
+  let postQa = null;
+  if (phase === "evaluator") {
+    const passed = await sprintPassed(sprint);
+    const decision = await getNextDecision();
+    handoffNext = decision.action;
+    postQa = { passed, nextAction: decision.action };
+  }
+
   await writePhaseHandoff({
     phase,
     sprint,
@@ -204,23 +203,30 @@ export async function runSinglePhase({
     runner: runResult.runner,
   });
 
-  let postQa = null;
-  if (phase === "evaluator") {
-    const passed = await sprintPassed(sprint);
-    const decision = await getNextDecision();
-    await writePostQaHandoff({
+  if (postQa) {
+    const roundsPolicy = await evaluateMaxRoundsPolicy({
       sprint,
       qaRound,
-      nextAction: decision.action,
+      passed: postQa.passed,
+      policy,
     });
+    postQa.roundsPolicy = roundsPolicy;
 
-    postQa = { passed, nextAction: decision.action };
+    // Single-phase invocations (resume/build/qa) are human-driven, so a
+    // spent QA budget warns loudly instead of exiting hard — the operator
+    // decides whether to keep iterating, skip the sprint, or intervene.
+    if (!postQa.passed && qaRound >= policy.maxQaRounds) {
+      console.warn(
+        `WARNING: sprint ${sprint} failed QA on round ${qaRound}, which meets or exceeds the maxQaRounds budget (${policy.maxQaRounds}). ${roundsPolicy.reason}`,
+      );
+    }
+
     await logEvent({
       event: "sprint.result",
       sprint,
       qaRound,
-      passed,
-      nextAction: decision.action,
+      passed: postQa.passed,
+      nextAction: postQa.nextAction,
     });
   }
 
@@ -263,9 +269,7 @@ export async function evaluateMaxRoundsPolicy({
   };
 }
 
-export async function dryRunSequence({ productPrompt, policy, maxSteps = 20 }) {
-  const steps = [];
-
+export async function dryRunSequence({ productPrompt, maxSteps = 20 } = {}) {
   if (await needsPlanning()) {
     return [
       {
@@ -280,25 +284,41 @@ export async function dryRunSequence({ productPrompt, policy, maxSteps = 20 }) {
     ];
   }
 
+  // Read the on-disk rows once, then simulate each phase's transition in
+  // memory (generator → Ready for QA, evaluator → Pass) so the sequence
+  // walks the whole plan instead of re-reading unchanged files and emitting
+  // the same decision maxSteps times. Steps after the first are marked
+  // `simulated` with the assumption they rest on — nothing is written.
+  const rows = (await readSprintRows(SPRINT_STATUS_FILE)).map((row) => ({ ...row }));
+  const steps = [];
+
   for (let step = 0; step < maxSteps; step += 1) {
-    const rows = await readSprintRows(SPRINT_STATUS_FILE);
     const decision = computeNextActionFromRows(rows);
+    const annotated = step === 0 ? decision : { ...decision, simulated: true };
 
-    if (decision.action === "done") {
-      steps.push(decision);
+    if (decision.action === "done" || decision.action === "manual-review") {
+      steps.push(annotated);
       break;
     }
 
-    if (decision.action === "manual-review") {
-      steps.push(decision);
+    const row = rows.find((entry) => entry.sprint === decision.sprint);
+    if (!row) {
+      steps.push(annotated);
       break;
     }
 
-    steps.push(decision);
-
-    if (decision.action === "run-evaluator") {
+    if (decision.action === "run-generator") {
+      annotated.assumes = "generator succeeds and marks the sprint 'Ready for QA'";
+      row.status = "Ready for QA";
+    } else if (decision.action === "run-evaluator") {
+      annotated.assumes = "evaluator passes the sprint";
+      row.status = "Pass";
+    } else {
+      steps.push(annotated);
       break;
     }
+
+    steps.push(annotated);
   }
 
   return steps;
@@ -329,7 +349,7 @@ export async function resume({
   const state = await readOrchestratorState();
 
   const sprint = decision.sprint ?? 1;
-  const qaRound = resolveQaRound({
+  const qaRound = await resolveQaRoundFromDocs({
     state,
     handoff,
     sprint,
@@ -340,7 +360,9 @@ export async function resume({
     action: decision.action,
     sprint,
     qaRound,
-    productPrompt,
+    // A resumed run can omit --prompt; fall back to the prompt persisted
+    // when the run started.
+    productPrompt: productPrompt ?? state?.productPrompt ?? undefined,
     policy,
     cwd,
     dryRun,
@@ -354,8 +376,19 @@ export async function runLoop({
   dryRun = false,
   continueOnly = false,
 }) {
+  // A dry run must not enter the live loop: runSinglePhase would return
+  // without touching any files, so getNextDecision would yield the same
+  // action forever. Delegate to the simulation instead.
+  if (dryRun) {
+    const steps = await dryRunSequence({ productPrompt });
+    console.log(JSON.stringify(steps, null, 2));
+    return { action: "dry-run", steps, phasesRun: 0 };
+  }
+
   if (!continueOnly && productPrompt) {
-    await updateOrchestratorState(createInitialState({ productPrompt }));
+    // Full replace, not a merge: a fresh run-loop must not inherit stale
+    // qaRounds/phaseHistory from a previous run.
+    await writeOrchestratorState(createInitialState({ productPrompt }));
   }
 
   let phasesRun = 0;
@@ -394,7 +427,7 @@ export async function runLoop({
     const handoff = await readWorkflowHandoff(HANDOFF_FILE);
     const state = await readOrchestratorState();
     const sprint = decision.sprint ?? 1;
-    const qaRound = resolveQaRound({
+    const qaRound = await resolveQaRoundFromDocs({
       state,
       handoff,
       sprint,
@@ -402,7 +435,11 @@ export async function runLoop({
     });
 
     if (decision.action === "run-planner" && !productPrompt) {
-      throw new Error("productPrompt is required to start a new run-loop.");
+      // Fall back to the prompt persisted when the run originally started.
+      productPrompt = state?.productPrompt ?? undefined;
+      if (!productPrompt) {
+        throw new Error("productPrompt is required to start a new run-loop.");
+      }
     }
 
     const rows = await readSprintRows(SPRINT_STATUS_FILE).catch(() => []);
@@ -428,12 +465,14 @@ export async function runLoop({
     phasesRun += 1;
 
     if (result.postQa) {
-      const policyResult = await evaluateMaxRoundsPolicy({
-        sprint,
-        qaRound,
-        passed: result.postQa.passed,
-        policy,
-      });
+      const policyResult =
+        result.postQa.roundsPolicy ??
+        (await evaluateMaxRoundsPolicy({
+          sprint,
+          qaRound,
+          passed: result.postQa.passed,
+          policy,
+        }));
 
       if (result.postQa.passed) {
         console.log(`✅ Sprint ${sprint} PASSED on round ${qaRound}`);
@@ -488,7 +527,7 @@ export async function runBuild({ sprint, policy, cwd, dryRun }) {
   const targetSprint = sprint ?? decision.sprint ?? 1;
   const handoff = await readWorkflowHandoff(HANDOFF_FILE);
   const state = await readOrchestratorState();
-  const qaRound = resolveQaRound({
+  const qaRound = await resolveQaRoundFromDocs({
     state,
     handoff,
     sprint: targetSprint,
@@ -510,7 +549,7 @@ export async function runQa({ sprint, policy, cwd, dryRun }) {
   const targetSprint = sprint ?? decision.sprint ?? 1;
   const handoff = await readWorkflowHandoff(HANDOFF_FILE);
   const state = await readOrchestratorState();
-  const qaRound = resolveQaRound({
+  const qaRound = await resolveQaRoundFromDocs({
     state,
     handoff,
     sprint: targetSprint,

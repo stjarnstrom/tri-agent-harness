@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { writeFileAtomic } from "./fs-utils.mjs";
 
 export const HANDOFF_FILE = path.join("docs", "workflow-handoff.json");
 
@@ -72,21 +73,31 @@ export function validateHandoff(data) {
 }
 
 export async function readWorkflowHandoff(filePath = HANDOFF_FILE) {
+  let raw;
   try {
-    const raw = await readFile(filePath, "utf8");
-    const parsed = JSON.parse(raw);
-    validateHandoff(parsed);
-    return parsed;
+    raw = await readFile(filePath, "utf8");
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return null;
     }
     throw error;
   }
+
+  // The handoff manifest is advisory — docs/sprint-status.md is canonical.
+  // Corrupt or schema-invalid content is treated as "no handoff".
+  try {
+    const parsed = JSON.parse(raw);
+    validateHandoff(parsed);
+    return parsed;
+  } catch (error) {
+    console.warn(
+      `WARNING: ignoring invalid ${filePath} (${error.message}); treating as no handoff. docs/sprint-status.md remains canonical.`,
+    );
+    return null;
+  }
 }
 
 export async function writeWorkflowHandoff(data, filePath = HANDOFF_FILE) {
   validateHandoff(data);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(`${filePath}`, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await writeFileAtomic(filePath, `${JSON.stringify(data, null, 2)}\n`);
 }

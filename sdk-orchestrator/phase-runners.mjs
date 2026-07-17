@@ -110,6 +110,33 @@ async function runSdkAgent({ prompt, model, cwd, mcpServers }) {
   }
 }
 
+/**
+ * Try each runner in order until one succeeds. A runner "fails" both when it
+ * throws AND when it soft-fails by resolving with status "error" — either way
+ * the next runner gets a chance. When every runner fails, the thrown error
+ * aggregates each runner's message so the primary failure isn't lost.
+ */
+export async function runWithFallback({ runners, attempt, phase, warn = console.warn }) {
+  const failures = [];
+
+  for (const runner of runners) {
+    try {
+      const outcome = await attempt(runner);
+      if (outcome?.status === "error") {
+        throw new Error(`runner returned status 'error'`);
+      }
+      return outcome;
+    } catch (error) {
+      failures.push(`${runner}: ${error.message}`);
+      if (runner !== runners[runners.length - 1]) {
+        warn(`Runner '${runner}' failed, trying fallback: ${error.message}`);
+      }
+    }
+  }
+
+  throw new Error(`All runners failed for ${phase} — ${failures.join("; ")}`);
+}
+
 export async function runPhase({ phase, prompt, policy, cwd = process.cwd() }) {
   const model = getModelForPhase(policy, phase);
   const mcpServers = await loadMcpConfig(cwd);
@@ -117,38 +144,21 @@ export async function runPhase({ phase, prompt, policy, cwd = process.cwd() }) {
 
   console.log(`▶ Running ${phase} (model: ${model}, runner: ${policy.runtime.runner})`);
 
-  let outcome;
   const runners = policy.runtime.runner === "cli" ? ["cli", "sdk"] : ["sdk", "cli"];
 
-  let lastError = null;
-  for (const runner of runners) {
-    try {
-      if (runner === "sdk") {
-        outcome = await runSdkAgent({ prompt, model, cwd, mcpServers });
-      } else {
-        outcome = await runCliAgent({
-          prompt,
-          model,
-          cwd,
-          approveMcps: policy.runtime.approveMcps,
-        });
-      }
-      break;
-    } catch (error) {
-      lastError = error;
-      if (runners.indexOf(runner) < runners.length - 1) {
-        console.warn(`Runner '${runner}' failed, trying fallback: ${error.message}`);
-      }
-    }
-  }
-
-  if (!outcome) {
-    throw lastError ?? new Error(`Failed to run ${phase}.`);
-  }
-
-  if (outcome.status === "error") {
-    throw new Error(`${phase} run failed with status 'error'.`);
-  }
+  const outcome = await runWithFallback({
+    runners,
+    phase,
+    attempt: (runner) =>
+      runner === "sdk"
+        ? runSdkAgent({ prompt, model, cwd, mcpServers })
+        : runCliAgent({
+            prompt,
+            model,
+            cwd,
+            approveMcps: policy.runtime.approveMcps,
+          }),
+  });
 
   return {
     ...outcome,

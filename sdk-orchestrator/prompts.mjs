@@ -1,24 +1,48 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import {
   buildPlannerModeInstructions,
   collectDesignBriefContext,
   getPlannerMode,
 } from "./design-brief.mjs";
+import { getSprintStatus } from "./validate.mjs";
 
-export const AUTONOMOUS_SUFFIX = `
-AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing.`;
+// Per-phase autonomous suffixes. The generator's "implement it immediately"
+// instruction must not leak to the planner (it contradicts design-scout
+// mode's explicit stop) or the evaluator.
+const AUTONOMOUS_PREAMBLE =
+  "AUTONOMOUS MODE: Do not ask for confirmation or pause for human review.";
+
+export const PHASE_AUTONOMOUS_SUFFIX = {
+  planner: `
+${AUTONOMOUS_PREAMBLE} Follow the mode instructions above exactly — including any instruction to stop after a specific artifact. Complete every artifact your mode requires before finishing.`,
+  generator: `
+${AUTONOMOUS_PREAMBLE} After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing.`,
+  evaluator: `
+${AUTONOMOUS_PREAMBLE} Run the tests, write the QA report, and update docs/sprint-status.md before finishing.`,
+};
 
 async function readAgentPersona(phase) {
   return readFile(`agents/${phase}.md`, "utf8");
 }
 
-async function qaReportExists(sprint) {
+// Matches the failing header phrasings used by QA reports, e.g.
+// "Result: FAIL — 12 of 15 criteria passed". A PASS report never matches.
+const QA_REPORT_FAIL_PATTERN = /Result[^a-z0-9]*FAIL/i;
+
+async function lastQaFailed(sprint) {
+  let report;
   try {
-    await access(`docs/qa-report-sprint-${sprint}.md`);
-    return true;
+    report = await readFile(`docs/qa-report-sprint-${sprint}.md`, "utf8");
   } catch {
-    return false;
+    return false; // No report — nothing to fix.
   }
+
+  if (QA_REPORT_FAIL_PATTERN.test(report)) {
+    return true;
+  }
+
+  const status = await getSprintStatus(sprint).catch(() => null);
+  return status === "Fail";
 }
 
 export async function buildPlannerPrompt({ productPrompt, harnessYes = false, cwd = process.cwd() }) {
@@ -38,14 +62,14 @@ ${modeInstructions}
 ${briefContext}
 
 Prompt: ${productPrompt}
-${AUTONOMOUS_SUFFIX}`;
+${PHASE_AUTONOMOUS_SUFFIX.planner}`;
 }
 
 export async function buildGeneratorPrompt({ sprint }) {
   const persona = await readAgentPersona("generator");
   let qaContext = "";
 
-  if (await qaReportExists(sprint)) {
+  if (await lastQaFailed(sprint)) {
     qaContext = `
 
 IMPORTANT: The evaluator found issues in the last round. Read docs/qa-report-sprint-${sprint}.md and fix ALL failures before proceeding to new features.`;
@@ -64,7 +88,7 @@ ${qaContext}
 You are building Sprint ${sprint}. Write the sprint contract to docs/sprint-${sprint}-contract.md if it doesn't exist, then implement it. Commit to git after each meaningful unit of work.
 
 After building, write your self-evaluation to the end of docs/sprint-${sprint}-contract.md and update docs/sprint-status.md to 'Ready for QA'.
-${AUTONOMOUS_SUFFIX}`;
+${PHASE_AUTONOMOUS_SUFFIX.generator}`;
 }
 
 export async function buildEvaluatorPrompt({ sprint }) {
@@ -82,7 +106,7 @@ Write your full report to docs/qa-report-sprint-${sprint}.md.
 Update docs/sprint-status.md with the result.
 
 Be skeptical. Find problems. Do not praise mediocre work.
-${AUTONOMOUS_SUFFIX}`;
+${PHASE_AUTONOMOUS_SUFFIX.evaluator}`;
 }
 
 export { getPlannerMode, getPlanningState, collectDesignBriefContext, isDesignScoutComplete, isPlanningComplete, needsPlanning } from "./design-brief.mjs";

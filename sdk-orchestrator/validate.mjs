@@ -1,6 +1,7 @@
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { isDesignScoutComplete } from "./design-brief.mjs";
+import { fileExists } from "./fs-utils.mjs";
 import { readSprintRows, SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 
 const PHASES = new Set(["planner", "generator", "evaluator"]);
@@ -20,15 +21,6 @@ const PHASE_REQUIRED_FILES = {
     "docs/sprint-status.md",
   ],
 };
-
-async function fileExists(filePath) {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // The sprint-status row is the source of truth (a loose grep on the QA
 // report matches failing phrasings like "Result: FAIL — 12 of 15 criteria

@@ -57,7 +57,8 @@ async function hasSprintStatus() {
 function usage() {
   console.log(`Usage:
   node sdk-orchestrator/cli.mjs run-loop --prompt "..." [--continue] [--dry-run]
-  node sdk-orchestrator/cli.mjs resume [--continue] [--dry-run] [--json]
+  node sdk-orchestrator/cli.mjs resume [--continue] [--dry-run] [--json] [--prompt "..."]
+                                       (--json without --continue prints status JSON only, never runs a phase)
   node sdk-orchestrator/cli.mjs plan --prompt "..." [--dry-run]
   node sdk-orchestrator/cli.mjs build [--sprint N] [--dry-run]
   node sdk-orchestrator/cli.mjs qa [--sprint N] [--dry-run]
@@ -120,14 +121,18 @@ async function runResumeCommand(flags) {
   const policy = await loadPolicy();
   const dryRun = Boolean(flags["dry-run"]);
   const continueLoop = Boolean(flags.continue);
+  const asJson = Boolean(flags.json);
 
-  if (dryRun || flags.json) {
+  if (dryRun || asJson) {
     const decision = await getNextDecision();
     const handoff = await readWorkflowHandoff(HANDOFF_FILE);
-    printDecision(decision, handoff, Boolean(flags.json));
-    if (dryRun && !continueLoop) {
-      return;
-    }
+    printDecision(decision, handoff, asJson);
+  }
+
+  // --json is an inspection flag: without --continue it prints status only
+  // and never executes a phase.
+  if (asJson && !continueLoop) {
+    return;
   }
 
   if (continueLoop) {
@@ -144,7 +149,7 @@ async function runResumeCommand(flags) {
     return;
   }
 
-  await resume({ policy, continueLoop: false });
+  await resume({ policy, continueLoop: false, productPrompt: flags.prompt });
 }
 
 async function runHandoffWrite(flags) {
@@ -353,7 +358,7 @@ async function main() {
     console.log("============================================");
 
     if (dryRun) {
-      const steps = await dryRunSequence({ productPrompt, policy });
+      const steps = await dryRunSequence({ productPrompt });
       console.log(JSON.stringify(steps, null, 2));
       return;
     }
@@ -394,7 +399,6 @@ async function main() {
   if (command === "dry-run") {
     const steps = await dryRunSequence({
       productPrompt: flags.prompt,
-      policy,
       maxSteps: flags["max-steps"] ? Number.parseInt(flags["max-steps"], 10) : 20,
     });
     console.log(JSON.stringify(steps, null, 2));
