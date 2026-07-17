@@ -1,16 +1,16 @@
-# Three Agent Harness
+# Tri-Agent Harness (Claude Code)
 
-Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA Gate → Evaluator**, with hooks, lints, sandbox, and an anti-slop improvement loop.
+Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA Gate → Evaluator → Retrospector**, with hooks, lints, sandbox, and an anti-slop improvement loop.
 
-This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
+This repo is a **Claude Code harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code under `app/` sprint by sprint.
 
-> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are optional adapters under [`runners/`](runners/README.md) — partial parity; see that doc before using them.
+> **Claude Code only.** For Cursor, see [tri-agent-harness-cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor). For OpenCode, see [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode). Those siblings share the same loop idea but do **not** include the Retrospector in v1.
 
 ## Architecture
 
 ```
 Layer 3: Phase gates     pre-qa-gate.sh (lints, artifacts, secrets)
-Layer 2: Orchestration   Planner → Generator ↔ Evaluator (sprint loop)
+Layer 2: Orchestration   Planner → Generator ↔ Evaluator (sprint loop) → Retrospector
 Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 ```
 
@@ -20,395 +20,123 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 
 | Requirement | Notes |
 |-------------|-------|
-| **Git repo** | `git init` before setup — hooks install into `.git/hooks/`. Without one the harness runs but **warns that guardrails are OFF** (no pre-commit hook, no secret scan, no lint gate) |
-| **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback. `node` must be on PATH — validation, handoffs, and state helpers need it |
+| **Git repo** | `git init` before setup — hooks install into `.git/hooks/`. Without one the harness runs but **warns that guardrails are OFF** |
+| **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback. `node` must be on PATH |
 | **Claude Code CLI** (`claude`) | Required for `./harness.sh`. Must be **logged in** (run `claude` once interactively) |
 | **`.env.local`** | Copy from `.env.example`; never commit real secrets |
 
-`./harness.sh` verifies the Claude CLI at startup and exits with install instructions if missing. It also pings each configured model once before planning, so a model your account can't use fails in seconds instead of mid-run (skip with `HARNESS_PREFLIGHT=off`). Optional runners (Cursor, OpenCode) have their own CLI requirements — see [`runners/README.md`](runners/README.md).
+`./harness.sh` verifies the Claude CLI at startup and pings each configured model once before planning (skip with `HARNESS_PREFLIGHT=off`).
 
 Optional:
-- **gitleaks** — `brew install gitleaks` for full secret scan in pre-commit. Without it the scan **silently degrades** to a 3-pattern regex (AWS/GitHub/sk- tokens only)
-- **Playwright** — installed by the Generator when it scaffolds your app; required for Evaluator E2E testing. Browsers are a separate download (`npx playwright install`) — expect the first QA round to spend time on this or fail if the download is blocked
+- **gitleaks** — `brew install gitleaks` for full secret scan in pre-commit
+- **Playwright** — installed by the Generator under `app/` when it scaffolds your app
 
 ## Quick start
 
 ```bash
-# 1. Initialize repo and install harness
 git init
 bun install && bun run setup
-cp .env.example .env.local   # fill in values locally
+cp .env.example .env.local
 
-# 2. Run autonomous build (Claude Code)
-./harness.sh "Build a project management tool with kanban boards"
-
-# 3. Resume after interruption — re-run the same command
 ./harness.sh "Build a project management tool with kanban boards"
 ```
 
-The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from the first sprint not in terminal `Pass` or `Skipped` state.
+Resume after interruption by re-running the same command. State lives in `docs/sprint-status.md`.
 
-Optional adapters (Cursor / OpenCode / SDK): [`runners/README.md`](runners/README.md).
+Visual walkthrough: [`docs/guide.html`](docs/guide.html).
+
+## Product layout
+
+| Path | Purpose |
+|------|---------|
+| Repo root | Harness: `harness.sh`, `scripts/`, `harness/`, `docs/`, `agents/` |
+| `app/` | **Product root** — Generator scaffolds here (`app/package.json`, `app/src/`, etc.) |
+
+From sprint 2 onward, the pre-QA gate requires `app/package.json` and application source under `app/`. See [`app/README.md`](app/README.md).
 
 ## Before your first run
 
-Things that most commonly trip up a fresh clone, and how the harness behaves around them:
+**First runs pause by default.** On a fresh project the harness sets `HARNESS_PAUSE=sprint`. Answer `a` for the rest of the run, or set `HARNESS_PAUSE=off` / `HARNESS_YES=1`.
 
-**First runs pause by default.** On a fresh project (no `docs/sprint-status.md` yet) the harness sets `HARNESS_PAUSE=sprint` automatically: it stops before each sprint so you can watch the plan — and the cost — unfold before granting full autonomy. Answer `a` at the first checkpoint, or set `HARNESS_PAUSE=off` / `HARNESS_YES=1`, for fully unattended runs.
+**Cost is real.** Cap with `HARNESS_MAX_SPRINTS_PER_RUN=1`. Vague prompts often plan 8–10 sprints.
 
-**Cost is real.** An autonomous run is N sprints × up to 3 QA rounds, each a full agent session on Fable/Sonnet. A vague prompt makes the Planner ambitious — 8–10 sprints is normal for "build me a SaaS". Scope the prompt tightly, or cap the blast radius with `HARNESS_MAX_SPRINTS_PER_RUN=1` and re-run to continue. See [Token / cost control](#token--cost-control).
+**Model access.** Defaults: Planner/Evaluator `claude-fable-5`, Generator `claude-sonnet-5`. Without Fable: `HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8`.
 
-**Model access.** Planner/Evaluator default to `claude-fable-5` and the Generator to `claude-sonnet-5`. If your account doesn't have Fable, the startup model ping tells you immediately — override with `HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8` (or `HARNESS_MODEL` for all phases).
+**QA needs a runnable app.** Evaluator starts the dev server from `app/` and drives Playwright. First-run failures are often `cd app && npx playwright install` or a busy port.
 
-**Where the app must live.** The pre-QA gate looks for `package.json` at the repo root plus app code in `src/`, `app/`, `packages/`, `frontend/`, or `backend/`. An app scaffolded anywhere else (e.g. a nested `my-app/`) would skip every build/test/lint check — so from sprint 2 onward the gate **fails** if it can't find app source, instead of passing vacuously.
-
-**QA needs a runnable app.** The Evaluator starts the dev server itself and drives it with Playwright. First-run failures here are usually environmental — missing Playwright browsers (`npx playwright install`) or a port already in use — and they burn a QA round just like a real bug would.
-
-**`docs/sprint-status.md` is the state machine.** It's a markdown table maintained by the agents; you can hand-edit it to re-run or skip work, but only these statuses are recognized: `Not started`, `In progress`, `Ready for QA`, `Pass`, `Fail`, `Skipped`. Anything else (including casing variants like `PASS`) makes the harness stop on that sprint with a warning rather than guess.
-
-**One clone = one product.** The generated app lives in this repo, next to the harness. That's by design (the learning loop feeds on it), but it means pulling harness updates from upstream later will conflict with your product history. Start each product from a fresh clone, and push lessons back to your template with `bun lessons:sync`.
-
-**Stay on one runner.** `./harness.sh` is the supported path. Optional adapters under `runners/` share `docs/` state, but switching mid-project restarts QA-round counting — and Cursor/OpenCode lack the Retrospector. See [`runners/README.md`](runners/README.md).
-
-**Autonomy means real permissions.** Agents run with `--dangerously-skip-permissions`; the "sandbox" rules in `harness/AGENT-INSTRUCTIONS.md` are instructions, not enforcement. The git hooks catch bad commits, not bad commands. Run the harness on machines and in directories where that's acceptable.
+**Autonomy means real permissions.** Agents use `--dangerously-skip-permissions`; hooks catch bad commits, not bad commands.
 
 ## Usage modes
 
-Pick the mode that matches how much control you want. All Claude Code modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md). Optional Cursor / OpenCode / SDK adapters: [`runners/README.md`](runners/README.md).
-
-### 1. Autonomous (recommended for hands-off builds)
-
-Full loop with no human checkpoints — except on a **fresh project**, where the harness pauses before each sprint until you opt into full autonomy (see [Before your first run](#before-your-first-run)).
+### 1. Autonomous (recommended)
 
 ```bash
-./harness.sh "your product prompt"              # Claude Code
-./harness.sh "your product prompt" 5            # max 5 QA rounds per sprint
+./harness.sh "your product prompt"
+./harness.sh "your product prompt" 5    # max QA rounds per sprint
 ```
 
-Each phase runs on a model matched to its job (see [Model policy](#model-policy) below). Override per phase with `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL`, or force one model everywhere with `HARNESS_MODEL`.
+### 2. Interactive — Claude Code slash commands
 
-### 2. Interactive — Claude Code
+| Command | Phase |
+|---------|-------|
+| `/plan` | Planner |
+| `/build` | Generator |
+| `/qa` | Evaluator |
+| `/retro` | Retrospector |
 
-Run one phase at a time using slash commands defined in [`.claude/commands/`](.claude/commands/):
-
-| Command | Phase | When to use |
-|---------|-------|-------------|
-| `/plan` | Planner | Expand a prompt into spec + sprint plan |
-| `/build` | Generator | Implement the current sprint |
-| `/qa` | Evaluator | Test and grade the sprint marked `Ready for QA` |
-
-Typical flow: `/plan "Build a kanban app"` → `/build` → `/qa` → repeat `/build` until all sprints pass.
-
-**Utility:** `/optimize-claude-md [path] [apply]` trims a `CLAUDE.md` down to only what Claude *can't* infer from the codebase — cutting anything inferable from the code (or discoverable by a senior dev in ~20 minutes) while keeping the non-obvious decisions, conventions, and gotchas. It dispatches to the `claude-md-optimizer` subagent (on Fable), which reads the surrounding code to judge inferability. By default it writes a `CLAUDE.optimized.md` for you to diff and never touches the original; pass `apply` to rewrite in place (the git diff is your review).
-
-Each command dispatches its phase to a dedicated **subagent** defined in
-[`.claude/agents/`](.claude/agents/) (`planner`, `generator`, `evaluator`)
-rather than role-playing the agent in your current chat. Each subagent runs in
-its **own isolated context** and hands off only through files in `docs/` — so
-running `/plan`, `/build`, and `/qa` back-to-back in a single session (or in the
-Claude mobile app) does **not** let one phase's context bleed into the next.
-This reproduces, in interactive mode, the clean-context isolation that
-`./harness.sh` gets by launching each phase as a separate `claude -p` process,
-and it keeps the Evaluator's judgment independent of the Generator's. The
-`evaluator` subagent is granted the Playwright MCP tools so it can drive the
-live app.
-
-Claude Code loads [`.claude/settings.json`](.claude/settings.json) for sandbox permissions and **context-hygiene deny rules**: `Read(...)` deny patterns block secrets (`.env`, keys, credentials) and junk context (`node_modules/`, `dist/`, lockfiles, coverage, minified output) from being read into agent context. Claude Code has no `.claudeignore` — deny rules are the native equivalent, and they take precedence over allow rules. The same list is enforced for Cursor via [`.cursorignore`](.cursorignore) and for OpenCode via `permission.read` in [`opencode.jsonc`](opencode.jsonc); see the "Context Hygiene" section of [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md). Agents also follow [`.cursorrules`](.cursorrules) and [`.cursor/rules/`](.cursor/rules/) when run in Cursor.
-
-The same settings file locks down **network egress** for sandboxed Bash commands: `sandbox.network.allowedDomains` allowlists only what the workflow needs (npm registry, Playwright browser CDN, Anthropic API, GitHub, Google Fonts, localhost) and everything else is blocked. This is the OS-level backstop against prompt-injection exfiltration — a compromised command can't `curl` secrets to an arbitrary host. If a legitimate build step needs a new domain, add it to the allowlist deliberately rather than disabling the sandbox.
+Each command dispatches an isolated subagent in [`.claude/agents/`](.claude/agents/). Typical flow: `/plan "…"` → `/build` → `/qa` → repeat.
 
 #### Model policy
 
-Each agent runs on a model matched to its job — big-picture reasoning on **Fable**, implementation on **Sonnet**:
-
 | Agent | Model | Why |
 |-------|-------|-----|
-| Planner | `claude-fable-5` | Deep, one-shot reasoning to turn a prompt into a sound spec |
-| Generator | `claude-sonnet-5` | Strong coding at lower cost — and the highest-token-volume phase |
-| Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review runs on Fable) |
+| Planner | `claude-fable-5` | Spec and sprint design |
+| Generator | `claude-sonnet-5` | Implementation volume |
+| Evaluator | `claude-fable-5` | Skeptical grading + review personas |
+| Retrospector | `claude-fable-5` | Lessons from QA failures |
 
-This is the default, not opt-in. The interactive/mobile path gets it from the `model:` field in [`.claude/agents/`](.claude/agents/); the autonomous path gets it from `harness.sh`'s per-phase defaults. Overrides (most specific wins): `HARNESS_MODEL` (all phases) › `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` (one phase). If Fable isn't available in your environment, set the Planner/Evaluator to `claude-opus-4-8`. Optional runners use their own model ecosystems — see [`runners/README.md`](runners/README.md).
-
-### 3. Advanced runners (optional)
-
-Cursor CLI, OpenCode, Cursor Agent Manager handoffs, and the SDK orchestrator live under [`runners/`](runners/README.md). They share the runtime contract but **do not** match Claude Code parity (notably: no Retrospector on Cursor/OpenCode). Use them only if you already depend on that tool.
-
-## What happens during a run
-
-High-level flow:
-
-1. **Planner** (once) — product spec and sprint plan
-2. **Per sprint:** Generator → Pre-QA Gate → Evaluator (retry loop on failure)
-3. **Anti-slop** — QA failures logged to `.gc-cache/` for weekly guardrail review
-
-Sprint status progression: `Not started` → `In progress` → `Ready for QA` → `Pass` or `Fail` (or `Skipped` when advancing after max QA rounds).
-
-### Phase guide — what each step does
-
-| Phase | Who runs it | What it does | Key outputs |
-|-------|-------------|--------------|-------------|
-| **Planner** | AI agent (once) | Reads your prompt + criteria; defines product vision, design language, sprint breakdown | `docs/spec.md`, `docs/sprint-plan.md`, `docs/sprint-status.md`, `CLAUDE.md` |
-| **Generator** | AI agent (per sprint, per retry) | Writes sprint contract, implements features, commits, self-evaluates | `docs/sprint-[N]-contract.md`, app source, git commits, status → `Ready for QA` |
-| **Pre-QA Gate** | Shell script (not an agent) | Mechanical checks: artifacts, lints, build, `test:unit`, `test:e2e`, secrets | `docs/mechanical-checks-sprint-[N].md` (`PASS` or `FAIL`) |
-| **Evaluator** | AI agent (per sprint, per retry) | Live app testing (Playwright), rubric grading, review personas, QA report | `docs/qa-report-sprint-[N].md`, status → `Pass` or `Fail` |
-
-On **FAIL**, the Generator fixes issues and retries (default max 3 QA rounds per sprint). On **PASS**, the harness moves to the next sprint.
-
-### Design input (optional)
-
-Steer visual direction before the Planner runs:
-
-```bash
-cp docs/templates/design-brief.md design/brief.md
-# Edit brief.md; add mood images to design/references/
-./harness.sh "Build a kanban app for film editors"
-```
-
-When `design/` is empty, the Planner writes three options to `docs/design-options.md` and the harness pauses. Pick one:
-
-```bash
-echo "Option B — Momentum Dark. Prefer amber accents." > design/selected-direction.md
-./harness.sh "Build a kanban app for film editors"   # same prompt — finalize + build
-```
-
-See [`design/README.md`](design/README.md) and [`docs/templates/design-brief.md`](docs/templates/design-brief.md).
-
-#### Planner
-
-- Expands your one-line prompt into a full spec (features, design language, stack, AI integration).
-- Initializes all sprints as `Not started` in `docs/sprint-status.md`.
-- **Terminal:** prints `▶ PHASE 1: PLANNER`, then may go quiet while Claude/Cursor runs (no streaming progress).
-
-#### Generator
-
-- Writes `docs/sprint-[N]-contract.md` (acceptance criteria the Evaluator will test against).
-- In **autonomous mode**, implements immediately — no waiting for contract approval.
-- Scaffolds or extends the app (`src/`, Playwright, `test:unit`, `test:e2e` — see [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md)).
-- Runs `bun lint:harness`, commits via pre-commit hook, marks sprint `Ready for QA`.
-- **Terminal:** prints `▶ GENERATOR (Sprint N, Round M)`; quiet during agent work; file changes appear in the repo.
-
-#### Pre-QA Gate
-
-- Runs **deterministic scripts** — you get verbose output (build, typecheck, tests).
-- Blocks Evaluator if anything fails; sends work back to Generator **without consuming a QA round**.
-- Checks include: contract + status, harness lints, generator self-eval, `npm run build`, `test:unit`, `test:e2e` (never `test:harness`).
-- **Terminal:** prints `=== Pre-QA Gate (Sprint N) ===` and step-by-step results; ends with `✓ Pre-QA gate PASSED` or failure list.
-
-#### Evaluator
-
-- Reads spec, contract, mechanical checks, criteria, and review personas.
-- Starts or confirms `npm run dev`, then tests the **live app** via Playwright (navigate, click, forms, edge cases, screenshots).
-- Grades six weighted criteria; writes a detailed QA report; updates sprint status.
-- **Terminal:** prints `▶ EVALUATOR (Sprint N, Round M)`, then often **goes quiet for a long time** — this is normal (see below).
-
-### What to expect in the terminal
-
-| Phase | Output style | If it looks "stuck" |
-|-------|--------------|---------------------|
-| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` does not stream tool steps to the shell) | Watch for new files in `docs/`; optional Cursor/OpenCode runners auto-stop when phase artifacts are complete (see [`runners/README.md`](runners/README.md)) |
-| Pre-QA Gate | **Verbose** — each check prints pass/fail | Fails fast with a clear error list |
-
-**CLI hang after Evaluator (optional runners):** `cursor agent` and `opencode run`
-sometimes finish writing `docs/qa-report-sprint-[N].md` but never exit.
-`runners/cursor-harness.sh` and `runners/opencode-harness.sh` run an **artifact
-watchdog** (on by default) — see [`runners/README.md`](runners/README.md).
-
-```bash
-# Tune or disable (defaults shown) — Cursor / OpenCode runners only
-HARNESS_AGENT_WATCHDOG=1          # set 0 to wait for the CLI agent to exit on its own
-HARNESS_AGENT_POLL_SEC=15         # seconds between artifact checks
-HARNESS_AGENT_STABLE_POLLS=2      # consecutive ready polls before stopping agent
-HARNESS_PHASE_TIMEOUT=7200        # wall-clock seconds per agent run (0 = no limit)
-```
-
-### Typical duration (rough)
-
-Depends on prompt size, model, and app complexity. First sprint is usually the longest.
-
-| Phase | Ballpark | Why |
-|-------|----------|-----|
-| Planner | 5–15 min | Large spec + many sprints to plan |
-| Generator | 10–30+ min | Scaffolding app + first features + commits |
-| Pre-QA Gate | 1–5 min | Deterministic build/tests |
-| Evaluator | **15–45+ min** | Many Playwright MCP round-trips, rubric scoring, long QA report |
-
-The Evaluator is slowest because it is instructed to **exercise every acceptance criterion**, test edge cases, screenshot screens, check the console, score six criteria, and write a formal report — not because the shell script is hanging.
-
-### Artifacts to watch during a run
-
-```
-docs/spec.md                          ← Planner done
-docs/sprint-plan.md
-docs/sprint-status.md                 ← source of truth for resume
-docs/sprint-[N]-contract.md           ← Generator scoped the sprint
-docs/mechanical-checks-sprint-[N].md  ← Pre-QA gate result
-docs/qa-report-sprint-[N].md          ← Evaluator done
-docs/workflow-handoff.json            ← cross-runner resume metadata
-```
-
-Check progress without stopping the run:
-
-```bash
-ls -lt docs/
-pgrep -fl 'harness|claude|cursor|opencode'    # process still alive?
-```
-
-### Dogfood without polluting the harness template
-
-Copy this repo to a sibling folder before your first full run — the loop creates app code and product docs in the same tree:
-
-```bash
-cp -R agent-harness-loops ../my-product-dogfood
-cd ../my-product-dogfood && rm -rf .git _ref && git init && bun install && bun run setup
-```
-
-Re-run the same harness command to resume; state lives in `docs/sprint-status.md`.
+Overrides: `HARNESS_MODEL` or per-phase `HARNESS_*_MODEL`.
 
 ## Learning loop (Retrospector)
 
-The harness learns across runs. At the end of every `./harness.sh` run
-(including halts), a fourth phase — the **Retrospector** (Fable) — mines the
-`LESSON-CANDIDATES` blocks the Evaluator writes into each QA report:
-
-1. **Ledger** — patterns land in `harness/lessons.jsonl` (checked in), with a
-   stable id, strike count, and sources.
-2. **Lessons** — `node scripts/render-lessons.mjs` regenerates
-   `harness/LESSONS.md` from the ledger: max 25 active lessons, grouped by
-   phase. All three agents read it as required reading on every run.
-3. **Guardrail proposals** — a lesson at 2+ strikes gets a draft guardrail in
-   `docs/proposals/guardrail-<id>.md` (a real lint rule, persona checklist
-   item, or gate check). A human reviews and commits it; the lesson then
-   graduates out of LESSONS.md — enforced beats remembered.
-
-Commands:
+End of every `./harness.sh` run, the Retrospector mines `LESSON-CANDIDATES` from QA reports into `harness/lessons.jsonl` and regenerates `harness/LESSONS.md`. Disable with `HARNESS_RETRO=off`.
 
 ```bash
-HARNESS_RETRO=off ./harness.sh "..."   # skip the retro phase
-bun lessons:validate                    # ledger + LESSONS.md consistency check
-bun lessons:render                      # regenerate LESSONS.md from the ledger
-bun lessons:sync <template-repo-path>   # merge a product clone's ledger home
+bun lessons:validate
+bun lessons:render
+bun lessons:sync <template-repo-path>
 ```
 
-Interactive equivalent: `/project:retro` dispatches the `retrospector`
-subagent on demand. When dogfooding in a sibling copy (see above), run
-`bun lessons:sync ../agent-harness-loops` afterwards so the template inherits
-what the run learned.
+## Other tools
+
+| Repo | Entry | Notes |
+|------|-------|-------|
+| [tri-agent-harness-cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) | `./cursor-harness.sh` | No Retrospector in v1 |
+| [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode) | `./opencode-harness.sh` | No Retrospector in v1 |
 
 ## Documentation map
 
 | If you want to… | Read |
 |-----------------|------|
-| A visual introduction — start a product, the loop, agents | [`docs/guide.html`](docs/guide.html) (open in a browser) |
-| Understand what each phase does and how long it takes | [What happens during a run](#what-happens-during-a-run) (this README) |
-| Understand phase boundaries and file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
-| See agent sandbox, lint, and anti-slop rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
-| Customize Planner / Generator / Evaluator / Retrospector behavior | [`agents/planner.md`](agents/planner.md), [`agents/generator.md`](agents/generator.md), [`agents/evaluator.md`](agents/evaluator.md), [`agents/retrospector.md`](agents/retrospector.md) |
-| Understand cross-run learning (lessons, guardrail proposals) | [Learning loop](#learning-loop-retrospector) (this README), [`harness/LESSONS.md`](harness/LESSONS.md) |
-| Change QA grading rubrics | [`agents/criteria/`](agents/criteria/) |
-| Add security / frontend / reliability review checks | [`review-personas/`](review-personas/) |
-| Adopt domain-scoped monorepo layout | [`harness/workspace-template.md`](harness/workspace-template.md) |
-| Write sprint contracts | [`docs/templates/sprint-contract.md`](docs/templates/sprint-contract.md) |
-| Configure app vs harness test scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |
-| Extend lints, personas, or guardrails | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Understand SDK / Cursor / OpenCode adapters | [`runners/README.md`](runners/README.md), [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor-sdk-orchestrator-design.md) |
-| See stack defaults and project context | [`CLAUDE.md`](CLAUDE.md) |
-
-## Extending the harness
-
-The harness improves when recurring agent mistakes become permanent constraints — not repeated chat corrections.
-
-**Two-strike rule:** same mistake twice → open a harness PR instead of fixing it manually again. Full workflow in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-| Extension point | Location | Best for |
-|-----------------|----------|----------|
-| **Lint rules** | `harness/eslint-plugin-harness/rules/` | Detectable patterns (imports, APIs, file size) — runs on every commit |
-| **Review personas** | `review-personas/*.md` | Judgment-based checks (a11y, error handling, auth) — used by Evaluator |
-| **Phase personas** | `agents/*.md` | How Planner / Generator / Evaluator think and write |
-| **QA rubrics** | `agents/criteria/*.md` | Weighted grading criteria |
-| **Pre-QA gate** | `scripts/pre-qa-gate.sh` | Mechanical checks before Evaluator runs |
-| **Domain instructions** | `packages/<domain>/CLAUDE.md` | Package-specific rules in monorepo layout |
-| **Workspace layout** | `harness/workspace-template.md` | Repo structure and package boundaries |
-
-After adding guardrails:
-
-```bash
-bun lint:harness    # verify lint rules pass
-npm run test:harness # run harness unit tests (tests/*.test.mjs) — not app tests
-bun run setup       # verify hooks still install
-```
-
-Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, then run `bun gc:weekly` in a Friday review.
-
-## Key files
-
-| Path | Purpose |
-|------|---------|
-| `harness.sh` | Autonomous loop via Claude Code CLI (canonical) |
-| `runners/` | Optional Cursor / OpenCode adapters + Cursor handoffs — see [`runners/README.md`](runners/README.md) |
-| `sdk-orchestrator/` | Shared validation/handoff helpers + optional SDK loop |
-| `scripts/pre-qa-gate.sh` | Mechanical gate between Generator and Evaluator |
-| `.claude/commands/` | Claude Code slash commands (`/plan`, `/build`, `/qa`) that dispatch to isolated subagents |
-| `.claude/agents/` | Claude Code subagents (`planner`, `generator`, `evaluator`) — clean context per phase |
-| `harness/AGENT-INSTRUCTIONS.md` | Universal agent rules |
-| `agents/*.md` | Planner, Generator, Evaluator personas |
-| `agents/criteria/*.md` | QA scoring rubrics |
-| `review-personas/*.md` | Security, frontend, reliability checklists |
-| `docs/runtime-contract.md` | File ownership and phase boundaries |
-| `docs/templates/sprint-contract.md` | Sprint contract template |
-| `design/` | Optional user design brief and reference assets |
-| `docs/templates/design-brief.md` | Copy to `design/brief.md` before a run |
+| Start a product (visual) | [`docs/guide.html`](docs/guide.html) |
+| Phase file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
+| Agent sandbox rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
+| Product npm scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |
 
 ## Environment variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HARNESS_MODEL` | *(CLI default)* | Optional model override for Claude Code. Set to pin a specific model, e.g. `claude-opus-4-6` or alias `opus`. Optional runners have their own defaults — see [`runners/README.md`](runners/README.md). |
-| `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (OpenCode runner only) |
-| `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
-| `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |
-| `HARNESS_PAUSE` | `off` (`sprint` on a fresh project) | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout. Defaults to `sprint` when `docs/sprint-status.md` doesn't exist yet |
-| `HARNESS_PREFLIGHT` | `on` | `off` skips the startup model ping (`./harness.sh` only) |
-| `HARNESS_YES` | `0` | Set to `1` to skip pause prompts (fully autonomous) |
-| `HARNESS_MAX_SPRINTS_PER_RUN` | unlimited | Stop after N sprints; re-run same prompt to resume |
-| `HARNESS_USAGE_CHECK` | `0` | Run `scripts/usage-check.sh` at sprint boundaries |
-| `HARNESS_USAGE_CMD` | — | Custom probe; exit 1 when budget is low |
-| `HARNESS_SANDBOX` | git root | Pre-commit filesystem boundary |
-| `HARNESS_RETRO` | `on` | `off` to skip the end-of-run Retrospector phase |
-| `HARNESS_RETRO_MODEL` | `claude-fable-5` | Retrospector model (overridden by `HARNESS_MODEL`) |
-
-### Token / cost control
-
-Neither Claude Code nor Cursor CLI expose remaining usage in a stable shell API. Use these patterns instead:
-
-```bash
-# Ask before each sprint (recommended)
-HARNESS_PAUSE=sprint ./harness.sh "Build a kanban app"
-
-# One sprint per run, then stop cleanly
-HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "Build a kanban app"
-
-# Confirm before every Generator/Evaluator call
-HARNESS_PAUSE=phase ./harness.sh "Build a kanban app"
-
-# Custom usage probe (your script exits 1 when low)
-HARNESS_USAGE_CHECK=1 HARNESS_USAGE_CMD='./my-usage-probe.sh' ./harness.sh "..."
-```
-
-At each checkpoint you can answer:
-- `y` — continue
-- `a` — continue all remaining sprints without asking again
-- Enter / `n` — pause cleanly (state saved; re-run same command to resume)
+| `HARNESS_MODEL` | *(CLI default)* | Force one model for all phases |
+| `HARNESS_PAUSE` | `off` (`sprint` on fresh project) | Checkpoint before sprint/phase |
+| `HARNESS_MAX_SPRINTS_PER_RUN` | unlimited | Stop after N sprints |
+| `HARNESS_ON_MAX_ROUNDS` | `halt` | Or `advance` to skip stuck sprints |
+| `HARNESS_RETRO` | `on` | `off` skips Retrospector |
+| `HARNESS_YES` | `0` | `1` skips pause prompts |
 
 ## Guardrails
 
 ```bash
-bun lint:harness          # ESLint rules with agent-prompt error messages
-bun gc:weekly             # Review recurring failures → new rules
-bun run setup             # Install pre-commit hook + .cursorignore
+bun lint:harness
+bun run setup
 ```
-
-Pre-commit hook checks:
-1. Filesystem sandbox (staged paths within project)
-2. Harness lints on staged JS/TS
-3. Blocks staging `.env` / credential files
-4. Secret scan (gitleaks or regex fallback)

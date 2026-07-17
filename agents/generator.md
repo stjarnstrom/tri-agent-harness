@@ -45,6 +45,7 @@ user approval.
 
 - Implement features one at a time, in order of dependency
 - Get each piece working before moving to the next
+- **Scaffold the product only under `app/`** — see `app/README.md`. Never put application source at the repo root.
 - The design language from the spec is not optional — follow it exactly
 - If `design/references/` exists, spot-check Sprint 1 UI against reference intent during design-system work
 - Use the frontend-design skill principles for all UI work
@@ -87,7 +88,7 @@ exceptions hit the UI.
 
 ### Application test scripts (required once app source exists)
 
-Read `docs/templates/app-package-scripts.md`. When you scaffold the app, add
+Read `docs/templates/app-package-scripts.md`. When you scaffold the app under `app/`, add
 **separate** scripts — do not fold harness tests into `npm test`:
 
 - `test:unit` — application unit/integration tests only

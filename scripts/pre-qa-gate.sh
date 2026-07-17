@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pre-qa-gate.sh — Mechanical checks before Evaluator runs
 #
-# Called by harness.sh / runners/*-harness.sh after Generator completes.
+# Called by harness.sh after Generator completes.
 # Blocks the QA phase until artifacts and guardrails pass.
 #
 # Usage:
@@ -19,27 +19,38 @@ echo ""
 echo "=== Pre-QA Gate (Sprint $SPRINT) ==="
 
 FAILURES=()
+APP_DIR="app"
+
+has_app_product() {
+  [ -f "$APP_DIR/package.json" ]
+}
 
 has_app_source() {
-  for dir in src app packages frontend backend; do
+  if [ ! -d "$APP_DIR" ]; then
+    return 1
+  fi
+  for dir in "$APP_DIR/src" "$APP_DIR/app" "$APP_DIR/packages" "$APP_DIR/frontend" "$APP_DIR/backend"; do
     if [ -d "$dir" ]; then
       return 0
     fi
+  done
+  for f in "$APP_DIR"/*.{ts,tsx,js,jsx}; do
+    [ -f "$f" ] && return 0
   done
   return 1
 }
 
 has_npm_script() {
   local script="$1"
-  node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts['$script']?0:1)" 2>/dev/null
+  node -e "const p=require('./${APP_DIR}/package.json'); process.exit(p.scripts&&p.scripts['$script']?0:1)" 2>/dev/null
 }
 
 run_pm_script() {
   local script="$1"
   if command -v bun >/dev/null 2>&1; then
-    bun run "$script"
+    (cd "$APP_DIR" && bun run "$script")
   else
-    npm run "$script"
+    (cd "$APP_DIR" && npm run "$script")
   fi
 }
 
@@ -54,7 +65,6 @@ check_generator_self_eval() {
     return 0
   fi
 
-  # tolower() for case-insensitivity — the GNU-only /re/I flag breaks BSD awk
   if ! awk 'tolower($0) ~ /## generator self-evaluation/ {found=1; next} found && /^## / {exit} found {print}' "$contract" | grep -qE '\- \[[ xX]\]'; then
     FAILURES+=("Generator self-evaluation in $contract is missing checklist items")
   fi
@@ -63,7 +73,7 @@ check_generator_self_eval() {
 is_harness_test_script() {
   local script_name="${1:-test}"
   node -e "
-    const pkg = require('./package.json');
+    const pkg = require('./${APP_DIR}/package.json');
     const script = pkg.scripts?.['${script_name}'] || '';
     const harnessPattern = /test:harness|tests\/\*\.test\.mjs|sdk-orchestrator/;
     process.exit(harnessPattern.test(script) ? 0 : 1);
@@ -71,15 +81,12 @@ is_harness_test_script() {
 }
 
 check_app_build_and_tests() {
-  if [ ! -f package.json ] || ! has_app_source; then
-    # An app scaffolded outside the recognized directories would make every
-    # build/test/lint check skip silently while the gate reports green.
-    # Sprint 1 may legitimately be docs-only; from sprint 2 this is a failure.
+  if ! has_app_product || ! has_app_source; then
     if [ "$SPRINT" -ge 2 ]; then
-      FAILURES+=("No application source found by sprint $SPRINT. The gate needs package.json at the repo root plus app code in one of: src/, app/, packages/, frontend/, backend/. If the app was scaffolded elsewhere (e.g. a nested my-app/ directory), move it into a recognized directory — otherwise every build/test/lint check is silently skipped.")
+      FAILURES+=("No application product found by sprint $SPRINT. The gate requires app/package.json and application source under app/ (e.g. app/src/). Scaffold the product only under app/ — see app/README.md.")
     else
-      echo "⚠ No application source detected — build/test/typecheck checks SKIPPED."
-      echo "  Sprint 1 may be docs-only, but from sprint 2 the gate requires app code in src/, app/, packages/, frontend/, or backend/ (plus package.json at the repo root)."
+      echo "⚠ No application product detected under app/ — build/test/typecheck checks SKIPPED."
+      echo "  Sprint 1 may be docs-only, but from sprint 2 the gate requires app/package.json and source under app/."
     fi
     return 0
   fi
@@ -87,7 +94,7 @@ check_app_build_and_tests() {
   if has_npm_script build; then
     echo "Running build..."
     if ! run_pm_script build 2>&1; then
-      FAILURES+=("npm run build failed")
+      FAILURES+=("npm run build failed in app/")
     fi
   else
     echo "No build script — skipping build check."
@@ -96,27 +103,26 @@ check_app_build_and_tests() {
   if has_npm_script typecheck; then
     echo "Running typecheck..."
     if ! run_pm_script typecheck 2>&1; then
-      FAILURES+=("npm run typecheck failed")
+      FAILURES+=("npm run typecheck failed in app/")
     fi
-  elif [ -f tsconfig.json ] || [ -f tsconfig.app.json ]; then
+  elif [ -f "$APP_DIR/tsconfig.json" ] || [ -f "$APP_DIR/tsconfig.app.json" ]; then
     echo "Running tsc --noEmit..."
     if command -v npx >/dev/null 2>&1; then
-      if ! npx tsc --noEmit 2>&1; then
-        FAILURES+=("tsc --noEmit failed")
+      if ! (cd "$APP_DIR" && npx tsc --noEmit) 2>&1; then
+        FAILURES+=("tsc --noEmit failed in app/")
       fi
     fi
   fi
 
-  # Application unit tests — never run test:harness / orchestrator tests here.
   if has_npm_script test:unit; then
     echo "Running test:unit..."
     if ! run_pm_script test:unit 2>&1; then
-      FAILURES+=("npm run test:unit failed")
+      FAILURES+=("npm run test:unit failed in app/")
     fi
   elif has_npm_script test && ! is_harness_test_script test; then
     echo "Running test (application)..."
     if ! run_pm_script test 2>&1; then
-      FAILURES+=("npm test failed")
+      FAILURES+=("npm test failed in app/")
     fi
   elif is_harness_test_script test; then
     echo "npm test points at harness tests — add test:unit for application unit tests."
@@ -127,24 +133,23 @@ check_app_build_and_tests() {
     echo "No test:unit script — skipping application unit tests."
   fi
 
-  # Application E2E — Playwright only (not harness orchestrator tests).
   if has_npm_script test:e2e; then
     echo "Running test:e2e..."
     if ! run_pm_script test:e2e 2>&1; then
-      FAILURES+=("npm run test:e2e failed")
+      FAILURES+=("npm run test:e2e failed in app/")
     fi
-  elif [ -f playwright.config.ts ] || [ -f playwright.config.js ] || [ -f playwright.config.mjs ]; then
+  elif [ -f "$APP_DIR/playwright.config.ts" ] || [ -f "$APP_DIR/playwright.config.js" ] || [ -f "$APP_DIR/playwright.config.mjs" ]; then
     echo "Running playwright test..."
     if command -v npx >/dev/null 2>&1; then
-      if ! npx playwright test 2>&1; then
-        FAILURES+=("playwright test failed")
+      if ! (cd "$APP_DIR" && npx playwright test) 2>&1; then
+        FAILURES+=("playwright test failed in app/")
       fi
     else
       FAILURES+=("Playwright config present but npx unavailable")
     fi
   else
     FAILURES+=(
-      "Application source present but no test:e2e or playwright.config.* — add test:e2e (see docs/templates/app-package-scripts.md)"
+      "Application source present but no test:e2e or playwright.config.* under app/ — add test:e2e (see docs/templates/app-package-scripts.md)"
     )
   fi
 }
@@ -165,7 +170,7 @@ else
   fi
 fi
 
-# ── 2. Harness lints on project source (not just staged) ─────────────────────
+# ── 2. Harness lints on app source ───────────────────────────────────────────
 if [ -f ".eslintrc.harness.cjs" ] && [ -f "package.json" ]; then
   echo "Running harness lints..."
   LINT_CMD=""
@@ -178,15 +183,15 @@ if [ -f ".eslintrc.harness.cjs" ] && [ -f "package.json" ]; then
   fi
 
   if [ -n "$LINT_CMD" ]; then
-    # Lint app source if present; skip harness internals and node_modules
     LINT_TARGETS=""
-    for dir in src app packages frontend backend; do
-      [ -d "$dir" ] && LINT_TARGETS="$LINT_TARGETS $dir"
-    done
-    # Also lint root-level source files
-    for f in *.ts *.tsx *.js *.jsx; do
-      [ -f "$f" ] && LINT_TARGETS="$LINT_TARGETS $f"
-    done
+    if [ -d "$APP_DIR" ]; then
+      for dir in "$APP_DIR/src" "$APP_DIR/app" "$APP_DIR/packages" "$APP_DIR/frontend" "$APP_DIR/backend"; do
+        [ -d "$dir" ] && LINT_TARGETS="$LINT_TARGETS $dir"
+      done
+      for f in "$APP_DIR"/*.{ts,tsx,js,jsx}; do
+        [ -f "$f" ] && LINT_TARGETS="$LINT_TARGETS $f"
+      done
+    fi
 
     if [ -n "$(echo "$LINT_TARGETS" | xargs)" ]; then
       if ! $LINT_CMD -- $LINT_TARGETS 2>&1; then
@@ -216,7 +221,6 @@ if command -v gitleaks >/dev/null 2>&1 && [ -d ".git" ]; then
   if ! gitleaks protect --staged --redact --config "$GITLEAKS_CONFIG" --source "$PROJECT_DIR" 2>/dev/null; then
     FAILURES+=("Secret detected in staged changes (gitleaks) — run 'gitleaks protect --staged --verbose' to inspect")
   fi
-  # gitleaks protect --staged only sees the index; best-effort unstaged check
   if git diff 2>/dev/null | grep -qEi '(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})'; then
     FAILURES+=("Possible secret detected in unstaged changes")
   fi
@@ -238,7 +242,7 @@ All pre-QA mechanical checks passed:
 - Sprint contract and status validated
 - Generator self-evaluation present (if contract exists)
 - Harness lints clean (if applicable)
-- Build/typecheck/tests passed (if application source exists)
+- Build/typecheck/tests passed (if application product exists under app/)
 - test:unit and test:e2e passed separately (never test:harness in pre-QA gate)
 - No secrets detected in staged changes
 

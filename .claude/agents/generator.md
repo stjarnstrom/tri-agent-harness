@@ -48,7 +48,7 @@ interactive command behavior):
    placeholder data unless the sprint calls for it.
 3. Commit to git after each meaningful unit of work, using the
    `feat(sprint-N):` / `fix(sprint-N):` / `style(sprint-N):` convention.
-4. When app source first appears, add the separate `test:unit` / `test:e2e`
+4. When app source first appears under `app/`, add the separate `test:unit` / `test:e2e`
    scripts described in `docs/templates/app-package-scripts.md`. Never fold
    harness tests into `npm test`.
 5. Write your self-evaluation to the end of `docs/sprint-[N]-contract.md`.

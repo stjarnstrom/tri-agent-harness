@@ -1,6 +1,6 @@
-# harness-common.sh — Shared sprint helpers for harness runners
+# harness-common.sh — Shared sprint helpers for harness.sh
 #
-# Sourced by harness.sh and runners/{cursor,opencode}-harness.sh. Do not execute directly.
+# Sourced by harness.sh. Do not execute directly.
 
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
@@ -74,7 +74,7 @@ harness_prompt_continue() {
       ;;
     *)
       echo ""
-      echo "Paused. Re-run ./harness.sh with the same prompt to resume (optional runners: runners/README.md)."
+      echo "Paused. Re-run ./harness.sh with the same prompt to resume."
       exit 0
       ;;
   esac
@@ -327,7 +327,7 @@ mark_sprint_skipped() {
   return 1
 }
 
-# ─── Agent watchdog (runners/cursor-harness / runners/opencode-harness) ───────────────
+# ─── Agent watchdog (optional; used if a phase runner enables it) ───────────────
 # CLI agents often finish writing artifacts but keep MCP/dev child
 # processes alive. Poll for canonical phase outputs and stop the agent
 # process group when they are stable.
@@ -538,45 +538,8 @@ run_agent_with_watchdog() {
   return "$exit_code"
 }
 
-run_cursor_agent() {
-  local phase="${1:?phase required (planner|generator|evaluator)}"
-  local sprint="${2:?sprint required}"
-  local phase_prompt="${3:?prompt required}"
-
-  local cursor_args=(
-    agent -p --force --approve-mcps
-    --workspace "$PROJECT_DIR"
-  )
-  if [ -n "${HARNESS_MODEL:-}" ]; then
-    cursor_args+=(--model "$HARNESS_MODEL")
-  fi
-  cursor_args+=("$phase_prompt")
-
-  run_agent_with_watchdog "$phase" "$sprint" cursor "${cursor_args[@]}"
-}
-
-run_opencode_agent() {
-  local phase="${1:?phase required (planner|generator|evaluator)}"
-  local sprint="${2:?sprint required}"
-  local phase_prompt="${3:?prompt required}"
-  local agent_name="${HARNESS_OPENCODE_AGENT:-$phase}"
-
-  local opencode_args=(
-    run
-    --dir "$PROJECT_DIR"
-    --dangerously-skip-permissions
-    --agent "$agent_name"
-  )
-  if [ -n "${HARNESS_MODEL:-}" ]; then
-    opencode_args+=(--model "$HARNESS_MODEL")
-  fi
-  if [ -n "${HARNESS_OPENCODE_ATTACH:-}" ]; then
-    opencode_args+=(--attach "$HARNESS_OPENCODE_ATTACH")
-  fi
-  opencode_args+=("$phase_prompt")
-
-  run_agent_with_watchdog "$phase" "$sprint" opencode "${opencode_args[@]}"
-}
+# Cursor / OpenCode phase runners live in sibling repos
+# (tri-agent-harness-cursor, tri-agent-harness-opencode).
 
 # ─── Helper: handle max QA rounds reached ────────────────────────────
 # Returns 0 to break inner loop (advance), 1 to halt harness
@@ -808,7 +771,7 @@ harness_handle_design_scout_complete() {
   echo "  Next steps:"
   echo "    1. Review docs/design-options.md"
   echo "    2. Create design/selected-direction.md with your pick (e.g. 'Option B — Momentum Dark')"
-  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (optional: ./runners/cursor-harness.sh / ./runners/opencode-harness.sh)"
+  echo "    3. Re-run: ./harness.sh \"<same prompt>\""
   echo ""
 
   if harness_should_pause_design; then
@@ -828,7 +791,7 @@ Read harness/LESSONS.md — distilled lessons from previous runs' QA failures. T
 GENERATOR_LINT_CONTEXT="
 Before marking Ready for QA:
 1. Run 'bun lint:harness' (or npm run lint:harness) and fix all issues.
-2. If app source exists, ensure package.json has test:unit and test:e2e (see docs/templates/app-package-scripts.md) — do not run test:harness via npm test.
+2. If app source exists under app/, ensure app/package.json has test:unit and test:e2e (see docs/templates/app-package-scripts.md) — do not run test:harness via npm test.
 3. Commit with messages that pass the pre-commit hook (bun run setup installs it).
 4. Do not stage .env files or hardcode secrets."
 

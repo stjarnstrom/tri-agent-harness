@@ -126,17 +126,42 @@ test("gate warns but passes when no app source is found on sprint 1", async () =
   const project = await makeGateProject({ contract: CONTRACT_WITH_CHECKLIST });
   const result = await runGate(project);
   assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
-  assert.match(result.stdout, /No application source detected/);
+  assert.match(result.stdout, /No application product detected/);
   assert.match(result.stdout, /sprint 2/i);
 });
 
-test("gate fails from sprint 2 on when no app source is found", async () => {
+test("gate fails from sprint 2 on when no app product is found under app/", async () => {
   const project = await makeGateProject({
     contract: CONTRACT_WITH_CHECKLIST,
     sprint: 2,
   });
   const result = await runGate(project, 2);
   assert.equal(result.code, 1, `expected app-source failure:\n${result.stdout}`);
-  assert.match(result.stdout, /No application source/);
-  assert.match(result.stdout, /src\/|app\//);
+  assert.match(result.stdout, /No application product/);
+  assert.match(result.stdout, /app\/package\.json/);
+});
+
+test("gate passes from sprint 2 when app/package.json and app/src exist", async () => {
+  const project = await makeGateProject({
+    contract: CONTRACT_WITH_CHECKLIST,
+    sprint: 2,
+  });
+  const appDir = path.join(project.dir, "app");
+  await mkdir(path.join(appDir, "src"), { recursive: true });
+  await writeFile(
+    path.join(appDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "product",
+        scripts: {
+          "test:e2e": "node -e \"process.exit(0)\"",
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(path.join(appDir, "src", "main.ts"), "export {};\n");
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
 });
