@@ -1,7 +1,7 @@
 # Design: Three tool-specific harness repos
 
 **Date:** 2026-07-17  
-**Status:** Draft for review  
+**Status:** Approved  
 **Goal:** One honest product surface per agent tool — no partial-parity footnotes in the happy path.
 
 ## Decision
@@ -41,18 +41,21 @@ Sibling-copy dogfood remains recommended when iterating on the **template itself
 - Ships: autonomous `./harness.sh`, interactive `/plan` `/build` `/qa` `/retro`, Retrospector, Fable/Sonnet model policy, Claude sandbox settings.
 - Does not ship: Cursor/OpenCode runners, `runners/`, root compatibility stubs for other tools.
 - README: “Claude Code only.” Optional one-liner pointing at sibling repos — no parity table that implies sameness.
+- `docs/guide.html`: Claude-only Starting a product, modes, and field notes (`./harness.sh` only).
 
 ### `tri-agent-harness-cursor` (new)
 
 - Ships: `./cursor-harness.sh`, Cursor handoffs (`runners/cursor/` flattened to top-level scripts), artifact watchdog, Cursor model defaults.
 - Does not ship: Claude CLI loop, Retrospector (until explicitly built), Claude slash commands.
 - README: honest limits (no Retrospector in v1).
+- `docs/guide.html`: Cursor-only walkthrough (`./cursor-harness.sh`); no Claude slash-command section as the happy path.
 
 ### `tri-agent-harness-opencode` (new)
 
 - Ships: `./opencode-harness.sh`, OpenCode config/agents, watchdog, OpenCode model defaults.
 - Does not ship: Claude/Cursor loops, Retrospector (until built).
 - README: honest limits.
+- `docs/guide.html`: OpenCode-only walkthrough (`./opencode-harness.sh`).
 
 ## Cut procedure
 
@@ -97,6 +100,7 @@ Sibling-copy dogfood remains recommended when iterating on the **template itself
 - A new user cloning `tri-agent-harness` never sees Cursor/OpenCode setup instructions in Quick start.
 - Product code cannot be mistaken for harness code (`app/` boundary).
 - `tri-agent-harness-cursor` and `tri-agent-harness-opencode` exist on GitHub with working one-command entry points and honest READMEs.
+- Each repo has a `docs/guide.html` whose Starting a product / modes / field notes match **that tool only**.
 - `npm run test:harness` passes on the Claude repo after the strip + `app/` change.
 
 ## Implementation order
