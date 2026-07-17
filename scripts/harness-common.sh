@@ -264,12 +264,12 @@ run_pre_qa_gate() {
   bash "$PROJECT_DIR/scripts/pre-qa-gate.sh" "$sprint"
 }
 
-# ─── Helper: validate phase via sdk-orchestrator ─────────────────────
+# ─── Helper: validate phase via harness-runtime ─────────────────────
 validate_phase() {
   local phase="$1"
   local sprint="${2:-1}"
-  if [ -f "$PROJECT_DIR/sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
-    node "$PROJECT_DIR/sdk-orchestrator/cli.mjs" validate --phase "$phase" --sprint "$sprint"
+  if [ -f "$PROJECT_DIR/harness-runtime/cli.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" validate --phase "$phase" --sprint "$sprint"
   fi
 }
 
@@ -282,8 +282,8 @@ write_handoff() {
   shift 4
   local artifacts="$*"
 
-  if [ -f "$PROJECT_DIR/sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
-    node "$PROJECT_DIR/sdk-orchestrator/cli.mjs" handoff-write \
+  if [ -f "$PROJECT_DIR/harness-runtime/cli.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" handoff-write \
       --phase "$phase" \
       --sprint "$sprint" \
       --qa-round "$qa_round" \
@@ -316,14 +316,14 @@ mark_sprint_skipped() {
   local sprint="$1"
   local notes="${2:-Max QA rounds reached; advanced with known issues}"
 
-  if [ -f "$PROJECT_DIR/sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
-    node "$PROJECT_DIR/sdk-orchestrator/cli.mjs" sprint-mark-skipped \
+  if [ -f "$PROJECT_DIR/harness-runtime/cli.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" sprint-mark-skipped \
       --sprint "$sprint" \
       --notes "$notes"
     return 0
   fi
 
-  echo "ERROR: Node.js is required to mark sprint $sprint as Skipped (sdk-orchestrator/cli.mjs)."
+  echo "ERROR: Node.js is required to mark sprint $sprint as Skipped (harness-runtime/cli.mjs)."
   return 1
 }
 
@@ -950,8 +950,8 @@ harness_preflight_model_ping() {
 harness_post_qa_write() {
   local sprint="$1"
   local qa_round="$2"
-  if [ -f "$PROJECT_DIR/sdk-orchestrator/cli.mjs" ] && command -v node >/dev/null 2>&1; then
-    node "$PROJECT_DIR/sdk-orchestrator/cli.mjs" post-qa-write \
+  if [ -f "$PROJECT_DIR/harness-runtime/cli.mjs" ] && command -v node >/dev/null 2>&1; then
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" post-qa-write \
       --sprint "$sprint" \
       --qa-round "$qa_round" \
       --source "${HARNESS_SOURCE:-harness.sh}"

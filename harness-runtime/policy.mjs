@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const DEFAULT_CONFIG_PATH = path.join("sdk-orchestrator.config.json");
+const DEFAULT_CONFIG_PATH = path.join("harness-runtime.config.json");
 
 const DEFAULT_POLICY = {
   maxQaRounds: 3,

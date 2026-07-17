@@ -11,10 +11,10 @@ import {
   isDesignScoutComplete,
   isPlanningComplete,
   needsPlanning,
-} from "../sdk-orchestrator/design-brief.mjs";
-import { buildPlannerPrompt } from "../sdk-orchestrator/prompts.mjs";
-import { getNextDecision } from "../sdk-orchestrator/orchestrator.mjs";
-import { assertPhaseOutputs } from "../sdk-orchestrator/validate.mjs";
+} from "../harness-runtime/design-brief.mjs";
+import { buildPlannerPrompt } from "../harness-runtime/prompts.mjs";
+import { getNextDecision } from "../harness-runtime/orchestrator.mjs";
+import { assertPhaseOutputs } from "../harness-runtime/validate.mjs";
 
 async function withTempDir(run) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "design-brief-"));

@@ -7,10 +7,10 @@ import {
   dryRunSequence,
   evaluateMaxRoundsPolicy,
   runLoop,
-} from "../sdk-orchestrator/orchestrator.mjs";
-import { runWithFallback } from "../sdk-orchestrator/phase-runners.mjs";
-import { buildGeneratorPrompt, buildPlannerPrompt } from "../sdk-orchestrator/prompts.mjs";
-import { readOrchestratorState, updateOrchestratorState, resolveQaRound } from "../sdk-orchestrator/state-store.mjs";
+} from "../harness-runtime/orchestrator.mjs";
+import { runWithFallback } from "../harness-runtime/phase-runners.mjs";
+import { buildGeneratorPrompt, buildPlannerPrompt } from "../harness-runtime/prompts.mjs";
+import { readOrchestratorState, updateOrchestratorState, resolveQaRound } from "../harness-runtime/state-store.mjs";
 
 const basePolicy = {
   maxQaRounds: 3,

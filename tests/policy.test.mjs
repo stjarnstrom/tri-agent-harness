@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { loadPolicy } from "../sdk-orchestrator/policy.mjs";
+import { loadPolicy } from "../harness-runtime/policy.mjs";
 
 const POLICY_ENV_VARS = [
   "HARNESS_MODEL",

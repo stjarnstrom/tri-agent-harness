@@ -9,11 +9,11 @@ import {
   resolveQaRound,
   updateOrchestratorState,
   writeOrchestratorState,
-} from "../sdk-orchestrator/state-store.mjs";
+} from "../harness-runtime/state-store.mjs";
 import {
   readWorkflowHandoff,
   writeWorkflowHandoff,
-} from "../sdk-orchestrator/workflow-handoff.mjs";
+} from "../harness-runtime/workflow-handoff.mjs";
 
 async function withTempDir(run) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "state-store-"));

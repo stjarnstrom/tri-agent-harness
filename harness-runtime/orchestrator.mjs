@@ -23,7 +23,7 @@ import {
 import { assertPhaseOutputs, sprintPassed } from "./validate.mjs";
 import { readWorkflowHandoff, writeWorkflowHandoff, HANDOFF_FILE } from "./workflow-handoff.mjs";
 
-const SOURCE = "sdk-orchestrator";
+const SOURCE = "harness-runtime";
 
 // Resolve the QA round from bookkeeping (state + handoff) cross-checked
 // against the canonical docs, so a lost handoff/state write after an

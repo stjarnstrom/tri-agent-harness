@@ -56,18 +56,18 @@ async function hasSprintStatus() {
 
 function usage() {
   console.log(`Usage:
-  node sdk-orchestrator/cli.mjs run-loop --prompt "..." [--continue] [--dry-run]
-  node sdk-orchestrator/cli.mjs resume [--continue] [--dry-run] [--json] [--prompt "..."]
+  node harness-runtime/cli.mjs run-loop --prompt "..." [--continue] [--dry-run]
+  node harness-runtime/cli.mjs resume [--continue] [--dry-run] [--json] [--prompt "..."]
                                        (--json without --continue prints status JSON only, never runs a phase)
-  node sdk-orchestrator/cli.mjs plan --prompt "..." [--dry-run]
-  node sdk-orchestrator/cli.mjs build [--sprint N] [--dry-run]
-  node sdk-orchestrator/cli.mjs qa [--sprint N] [--dry-run]
-  node sdk-orchestrator/cli.mjs dry-run [--prompt "..."] [--max-steps N]
-  node sdk-orchestrator/cli.mjs status [--json]
-  node sdk-orchestrator/cli.mjs validate --phase <planner|generator|evaluator> --sprint <N>
-  node sdk-orchestrator/cli.mjs sprint-mark-skipped --sprint <N> [--notes "..."]
-  node sdk-orchestrator/cli.mjs handoff-write --phase <planner|generator|evaluator> --sprint <N> --qa-round <N> --next <run-planner|run-generator|run-evaluator|done|manual-review> --source <workflow> [--artifacts <comma,separated,paths>] [--runtime-mode <local|cloud>] [--agent-id <id>] [--run-id <id>] [--notes <text>]
-  node sdk-orchestrator/cli.mjs post-qa-write [--sprint <N>] [--qa-round <N>] [--source <workflow>]
+  node harness-runtime/cli.mjs plan --prompt "..." [--dry-run]
+  node harness-runtime/cli.mjs build [--sprint N] [--dry-run]
+  node harness-runtime/cli.mjs qa [--sprint N] [--dry-run]
+  node harness-runtime/cli.mjs dry-run [--prompt "..."] [--max-steps N]
+  node harness-runtime/cli.mjs status [--json]
+  node harness-runtime/cli.mjs validate --phase <planner|generator|evaluator> --sprint <N>
+  node harness-runtime/cli.mjs sprint-mark-skipped --sprint <N> [--notes "..."]
+  node harness-runtime/cli.mjs handoff-write --phase <planner|generator|evaluator> --sprint <N> --qa-round <N> --next <run-planner|run-generator|run-evaluator|done|manual-review> --source <workflow> [--artifacts <comma,separated,paths>] [--runtime-mode <local|cloud>] [--agent-id <id>] [--run-id <id>] [--notes <text>]
+  node harness-runtime/cli.mjs post-qa-write [--sprint <N>] [--qa-round <N>] [--source <workflow>]
 
 Environment overrides:
   HARNESS_MODEL            Override all phase models

@@ -32,7 +32,7 @@ If both autonomous and interactive modes follow this contract, you can switch
 between them at any time within the same repo.
 
 Autonomous runs write `docs/workflow-handoff.json` at phase boundaries
-via `sdk-orchestrator/cli.mjs`.
+via `harness-runtime/cli.mjs`.
 
 ## Architecture Layers
 

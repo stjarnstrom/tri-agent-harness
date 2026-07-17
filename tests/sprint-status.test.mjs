@@ -9,7 +9,7 @@ import {
   markSprintSkipped,
   readSprintRows,
   updateSprintStatus,
-} from "../sdk-orchestrator/sprint-status.mjs";
+} from "../harness-runtime/sprint-status.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
