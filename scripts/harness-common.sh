@@ -188,13 +188,20 @@ get_total_sprints() {
 }
 
 # ─── Helper: check if sprint passed ─────────────────────────────────
+# The sprint-status row is the source of truth (a loose grep on the QA
+# report matches failing phrasings like "Result: FAIL — 12 of 15 criteria
+# passed"). The report is only consulted as a FAIL cross-check.
 sprint_passed() {
   local sprint_num="$1"
   local report="docs/qa-report-sprint-${sprint_num}.md"
-  if [ -f "$report" ] && grep -qi "Result:.*PASS" "$report" 2>/dev/null; then
-    return 0
+  local row_status
+  row_status="$(harness_get_sprint_row_status "$sprint_num")"
+  [ "$row_status" = "Pass" ] || return 1
+  if [ -f "$report" ] && grep -qiE 'Result[^[:alnum:]]*FAIL' "$report" 2>/dev/null; then
+    echo "WARNING: sprint-status row says Pass but $report records Result: FAIL — not counting sprint $sprint_num as passed." >&2
+    return 1
   fi
-  return 1
+  return 0
 }
 
 # ─── Helper: run pre-QA mechanical gate ───────────────────────────────
@@ -456,7 +463,7 @@ run_opencode_agent() {
 # Returns 0 to break inner loop (advance), 1 to halt harness
 handle_max_rounds() {
   local sprint="$1"
-  log_qa_failure "$sprint" "$MAX_QA_ROUNDS"
+  # The sprint loop already logged this round via log_qa_failure — don't double-count.
 
   if [ "$HARNESS_ON_MAX_ROUNDS" = "advance" ]; then
     if ! mark_sprint_skipped "$sprint"; then

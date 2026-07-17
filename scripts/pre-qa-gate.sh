@@ -54,7 +54,8 @@ check_generator_self_eval() {
     return 0
   fi
 
-  if ! awk '/## Generator self-evaluation/I {found=1; next} found && /^## / {exit} found {print}' "$contract" | grep -qE '\- \[[ xX]\]'; then
+  # tolower() for case-insensitivity — the GNU-only /re/I flag breaks BSD awk
+  if ! awk 'tolower($0) ~ /## generator self-evaluation/ {found=1; next} found && /^## / {exit} found {print}' "$contract" | grep -qE '\- \[[ xX]\]'; then
     FAILURES+=("Generator self-evaluation in $contract is missing checklist items")
   fi
 }
@@ -205,12 +206,11 @@ GITLEAKS_CONFIG="$PROJECT_DIR/harness/gitleaks.toml"
 if command -v gitleaks >/dev/null 2>&1 && [ -d ".git" ]; then
   echo "Running gitleaks on uncommitted changes..."
   if ! gitleaks protect --staged --redact --config "$GITLEAKS_CONFIG" --source "$PROJECT_DIR" 2>/dev/null; then
-    # Also check unstaged if staged passed
-    if git diff --name-only 2>/dev/null | grep -qE '\.(ts|tsx|js|jsx|json|env|md)$'; then
-      if git diff 2>/dev/null | grep -qEi '(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})'; then
-        FAILURES+=("Possible secret detected in working tree changes")
-      fi
-    fi
+    FAILURES+=("Secret detected in staged changes (gitleaks) — run 'gitleaks protect --staged --verbose' to inspect")
+  fi
+  # gitleaks protect --staged only sees the index; best-effort unstaged check
+  if git diff 2>/dev/null | grep -qEi '(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})'; then
+    FAILURES+=("Possible secret detected in unstaged changes")
   fi
 fi
 

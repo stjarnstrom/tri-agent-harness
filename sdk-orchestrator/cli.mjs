@@ -270,7 +270,7 @@ async function runStatus(flags) {
     console.log(`Source workflow: ${summary.sourceWorkflow}`);
   }
   if (summary.sprintPassed !== null) {
-    console.log(`Sprint passed (QA report): ${summary.sprintPassed ? "yes" : "no"}`);
+    console.log(`Sprint passed (status row): ${summary.sprintPassed ? "yes" : "no"}`);
   }
   if (summary.runtime?.agentId) {
     console.log(`Agent ID: ${summary.runtime.agentId}`);

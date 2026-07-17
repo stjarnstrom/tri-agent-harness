@@ -9,7 +9,8 @@ import { parseLedger } from './lib/lessons-core.mjs';
 
 const __dirname = import.meta.dirname;
 const ROOT = join(__dirname, '..');
-const GC_DIR = join(ROOT, '.gc-cache');
+// HARNESS_GC_DIR override lets tests point at a fixture cache.
+const GC_DIR = process.env.HARNESS_GC_DIR || join(ROOT, '.gc-cache');
 const REPORT_FILE = join(GC_DIR, 'weekly-report.jsonl');
 
 // Ensure cache directory exists.
@@ -18,13 +19,22 @@ if (!existsSync(GC_DIR)) {
 }
 
 function loadReport() {
-  if (existsSync(REPORT_FILE)) {
-    return readFileSync(REPORT_FILE, 'utf-8')
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => JSON.parse(line));
+  if (!existsSync(REPORT_FILE)) {
+    return [];
   }
-  return [];
+  const entries = [];
+  const lines = readFileSync(REPORT_FILE, 'utf-8').split('\n').filter(Boolean);
+  for (const [index, line] of lines.entries()) {
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed && typeof parsed === 'object') {
+        entries.push(parsed);
+      }
+    } catch {
+      console.warn(`WARN (weekly-report.jsonl): skipping invalid JSON on line ${index + 1}`);
+    }
+  }
+  return entries;
 }
 
 function saveReport(entries) {
@@ -37,8 +47,24 @@ function getWeekStart() {
   const diffToMonday = (day + 6) % 7; // days since Monday
   const monday = new Date(now);
   monday.setDate(now.getDate() - diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-  return monday.toISOString().split('T')[0];
+  // Format from local parts — toISOString() would shift the date in UTC+ zones.
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
+}
+
+// log_qa_failure (harness-common.sh) stamps entries with ts; manual entries use week.
+function entryWeek(entry) {
+  if (typeof entry.week === 'string') return entry.week;
+  if (typeof entry.ts === 'string') return entry.ts.split('T')[0];
+  return null;
+}
+
+// Repeat QA failures of one sprint differ per round in description — group by sprint.
+function groupKey(entry) {
+  if (entry.category === 'qa-failure' && entry.sprint !== undefined) {
+    return `qa-failure:sprint-${entry.sprint}`;
+  }
+  return `${entry.category}:${entry.description}`;
 }
 
 function printLessonsSummary() {
@@ -65,7 +91,11 @@ printLessonsSummary();
 
 // Load previous entries to find recurring patterns.
 const allEntries = loadReport();
-const thisWeeksEntries = allEntries.filter((e) => e.week >= getWeekStart());
+const weekStart = getWeekStart();
+const thisWeeksEntries = allEntries.filter((e) => {
+  const week = entryWeek(e);
+  return week !== null && week >= weekStart;
+});
 
 if (thisWeeksEntries.length === 0) {
   console.log('No issues logged this week.\n');
@@ -78,7 +108,7 @@ if (thisWeeksEntries.length === 0) {
 // Group by category and description to find recurring issues.
 const groups = new Map();
 for (const entry of thisWeeksEntries) {
-  const key = `${entry.category}:${entry.description}`;
+  const key = groupKey(entry);
   if (!groups.has(key)) {
     groups.set(key, []);
   }
@@ -98,9 +128,9 @@ const duplicates = [...groups.entries()].filter(([, v]) => v.length > 1).length;
 console.log(`\nTotal recurring issues: ${duplicates}`);
 if (duplicates > 0) {
   console.log('\nThis week\'s action items:');
-  for (const [key, entries] of groups) {
+  for (const [, entries] of groups) {
     if (entries.length > 1) {
-      const [category, description] = key.split(':');
+      const [{ category, description }] = entries;
       console.log(`  - Convert "${description}" into a ${category === 'lint' ? 'custom lint rule' : category === 'review' ? 'review persona checklist item' : 'process improvement'}`);
     }
   }

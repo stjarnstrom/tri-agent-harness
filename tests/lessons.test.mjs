@@ -187,3 +187,19 @@ test("sync CLI merges a clone ledger into the template", async () => {
   const md = await readFile(path.join(template, "harness", "LESSONS.md"), "utf-8");
   assert.match(md, /brand-new-lesson|design/);
 });
+
+test("sync CLI works without --from (defaults source to this repo)", async () => {
+  const template = await makeRepo(JSON.stringify(entry()) + "\n");
+  await execFileAsync("node", [path.join(scriptsDir, "sync-lessons.mjs"), template]);
+  const merged = await readFile(path.join(template, "harness", "lessons.jsonl"), "utf-8");
+  const { entries } = parseLedger(merged);
+  assert.ok(entries.some((e) => e.id === "a11y-button-contrast"));
+});
+
+test("sync CLI rejects --from with no value", async () => {
+  const template = await makeRepo(JSON.stringify(entry()) + "\n");
+  await assert.rejects(
+    execFileAsync("node", [path.join(scriptsDir, "sync-lessons.mjs"), template, "--from"]),
+    (err) => err.code === 1 && /Usage/.test(err.stderr),
+  );
+});

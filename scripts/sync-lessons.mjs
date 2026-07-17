@@ -9,7 +9,8 @@ import { mergeLedgers, parseLedger, renderLessonsMd, serializeLedger } from "./l
 const args = process.argv.slice(2);
 const fromIndex = args.indexOf("--from");
 const sourceRoot = fromIndex !== -1 ? args[fromIndex + 1] : join(import.meta.dirname, "..");
-const positional = args.filter((_, i) => i !== fromIndex && i !== fromIndex + 1);
+const positional =
+  fromIndex === -1 ? args : args.filter((_, i) => i !== fromIndex && i !== fromIndex + 1);
 const templateRoot = positional[0];
 
 if (!templateRoot || (fromIndex !== -1 && !args[fromIndex + 1])) {

@@ -30,14 +30,27 @@ async function fileExists(filePath) {
   }
 }
 
+// The sprint-status row is the source of truth (a loose grep on the QA
+// report matches failing phrasings like "Result: FAIL — 12 of 15 criteria
+// passed"). The report is only consulted as a FAIL cross-check.
 export async function sprintPassed(sprintNum) {
+  const status = await getSprintStatus(sprintNum);
+  if (status !== "Pass") {
+    return false;
+  }
   const reportPath = path.join("docs", `qa-report-sprint-${sprintNum}.md`);
   try {
     const raw = await readFile(reportPath, "utf8");
-    return /Result:.*PASS/i.test(raw);
+    if (/Result[^a-z0-9]*FAIL/i.test(raw)) {
+      console.warn(
+        `WARNING: sprint-status row says Pass but ${reportPath} records Result: FAIL — not counting sprint ${sprintNum} as passed.`,
+      );
+      return false;
+    }
   } catch {
-    return false;
+    // No readable report — the status row is canonical.
   }
+  return true;
 }
 
 export async function getSprintStatus(sprintNum, filePath = SPRINT_STATUS_FILE) {
