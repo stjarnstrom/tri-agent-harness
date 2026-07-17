@@ -15,7 +15,9 @@ EXTRA_CONTEXT="${1:-}"
 for required in "$PROMPT_FILE" "$RUNTIME_CONTRACT" "docs/spec.md" "docs/sprint-plan.md" "$STATUS_FILE" "agents/generator.md"; do
   if [ ! -f "$required" ]; then
     echo "Missing required file: $required"
-    echo "Run planning first (`scripts/cursor-plan.sh`) or `./harness.sh`."
+    # Single quotes: unescaped backticks in a double-quoted string would
+    # execute these paths via command substitution.
+    echo 'Run planning first (`scripts/cursor-plan.sh`) or `./harness.sh`.'
     exit 1
   fi
 done

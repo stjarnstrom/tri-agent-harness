@@ -74,16 +74,19 @@ test("selectActive filters, sorts by strikes then recency, and caps", () => {
 });
 
 test("renderLessonsMd groups active lessons by phase and skips non-active", () => {
+  // The graduated entry gets rule text that appears nowhere else, so the
+  // doesNotMatch below actually fails if graduated entries are rendered
+  // (the markdown never contains ids, only rule text).
   const md = renderLessonsMd([
     entry({ id: "gen-lesson" }),
     entry({ id: "eval-lesson", phase: "evaluator", category: "process", rule: "Re-test previously passed criteria after fixes." }),
-    entry({ id: "grad-lesson", status: "graduated" }),
+    entry({ id: "grad-lesson", status: "graduated", rule: "Graduated-only wording that must never be rendered." }),
   ]);
   assert.match(md, /## Generator/);
   assert.match(md, /## Evaluator/);
   assert.match(md, /\*\*\[a11y\]\*\* Verify WCAG AA contrast/);
   assert.match(md, /2 strikes/);
-  assert.doesNotMatch(md, /grad-lesson/);
+  assert.doesNotMatch(md, /Graduated-only wording that must never be rendered/);
   assert.ok(md.endsWith("\n"));
   assert.ok(!md.endsWith("\n\n"));
 });
@@ -173,10 +176,18 @@ test("validate CLI fails on malformed ledger lines", async () => {
 
 test("sync CLI merges a clone ledger into the template", async () => {
   const template = await makeRepo(JSON.stringify(entry()) + "\n");
+  // Distinctive rule text: rendered LESSONS.md contains rule text (not ids),
+  // and a bare /design/ match would be satisfied by the category label alone.
   const clone = await makeRepo(
     JSON.stringify(entry({ sources: [{ project: "other-app", sprint: 1, date: "2026-07-20" }] })) +
       "\n" +
-      JSON.stringify(entry({ id: "brand-new-lesson", category: "design" })) +
+      JSON.stringify(
+        entry({
+          id: "brand-new-lesson",
+          category: "design",
+          rule: "Use the committed palette tokens for every chart series color.",
+        }),
+      ) +
       "\n",
   );
   await execFileAsync("node", [path.join(scriptsDir, "sync-lessons.mjs"), template, "--from", clone]);
@@ -185,7 +196,7 @@ test("sync CLI merges a clone ledger into the template", async () => {
   assert.equal(entries.length, 2);
   assert.equal(entries.find((e) => e.id === "a11y-button-contrast").strikes, 2);
   const md = await readFile(path.join(template, "harness", "LESSONS.md"), "utf-8");
-  assert.match(md, /brand-new-lesson|design/);
+  assert.match(md, /Use the committed palette tokens for every chart series color/);
 });
 
 test("sync CLI works without --from (defaults source to this repo)", async () => {

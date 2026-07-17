@@ -3,12 +3,19 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-HOOKS_DIR="$ROOT/.git/hooks"
 
-if [[ ! -d "$ROOT/.git" ]]; then
+# `[ -d .git ]` is false in git worktrees (.git is a file there); resolve the
+# real hooks directory through git instead.
+if ! git -C "$ROOT" rev-parse --git-dir >/dev/null 2>&1; then
   echo "ERROR: Not a git repository. Run 'git init' first." >&2
   exit 1
 fi
+
+HOOKS_DIR="$(git -C "$ROOT" rev-parse --git-path hooks)"
+case "$HOOKS_DIR" in
+  /*) ;;
+  *) HOOKS_DIR="$ROOT/$HOOKS_DIR" ;;
+esac
 
 mkdir -p "$HOOKS_DIR"
 
@@ -17,7 +24,7 @@ for hook in pre-commit post-merge; do
   dest="$HOOKS_DIR/$hook"
   cp "$src" "$dest"
   chmod +x "$dest"
-  echo "Installed $hook → .git/hooks/$hook"
+  echo "Installed $hook → $dest"
 done
 
 # Install .cursorignore if the project doesn't have one yet
