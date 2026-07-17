@@ -1,5 +1,7 @@
 // Rule: flag UI components that exceed a line-count threshold.
 // Agent prompt: "Components must be under N lines. Extract stateless child components."
+const { isGeneratedPath, isTestPath } = require('../utils');
+
 module.exports = {
   meta: {
     type: 'suggestion',
@@ -27,17 +29,28 @@ module.exports = {
   create(context) {
     const options = context.options[0] || {};
     const maxLines = options.maxLines ?? 150;
+    const filename = context.filename ?? context.getFilename();
+
+    if (isGeneratedPath(filename) || isTestPath(filename)) return {};
+
+    // Detect JSX from the AST, not a regex — `i<len` and `Map<string, T>`
+    // must never count as JSX.
+    let hasJsx = false;
 
     return {
-      Program(node) {
-        if (!node.body.length) return;
+      JSXElement() {
+        hasJsx = true;
+      },
+      JSXFragment() {
+        hasJsx = true;
+      },
+      'Program:exit'(node) {
+        if (!node.body.length || !hasJsx) return;
 
         const sourceCode = context.sourceCode ?? context.getSourceCode();
-        const text = sourceCode.getText();
-        const lineCount = text.split('\n').length;
-        const hasJsx = /<(?:[A-Z][a-z]+|[a-z][\w-]+)/.test(text);
+        const lineCount = sourceCode.getText().split('\n').length;
 
-        if (lineCount > maxLines && hasJsx) {
+        if (lineCount > maxLines) {
           context.report({ node, messageId: 'tooLarge', data: { maxLines } });
         }
       },

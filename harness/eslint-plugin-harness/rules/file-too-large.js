@@ -41,17 +41,25 @@ module.exports = {
     if (isGeneratedPath(filename) || isTestPath(filename)) return {};
     if (excludePatterns.some((pattern) => filename.includes(pattern))) return {};
 
-    return {
-      Program(node) {
-        if (!node.body.length) return;
+    // Detect JSX from the AST, not a regex — `i<len` and `Map<string, T>`
+    // must never count as JSX (that used to exempt big utility files).
+    let hasJsx = false;
 
-        const sourceCode = context.sourceCode ?? context.getSourceCode();
-        const text = sourceCode.getText();
-        const lineCount = text.split('\n').length;
-        const hasJsx = /<(?:[A-Z][a-z]+|[a-z][\w-]+)/.test(text);
+    return {
+      JSXElement() {
+        hasJsx = true;
+      },
+      JSXFragment() {
+        hasJsx = true;
+      },
+      'Program:exit'(node) {
+        if (!node.body.length) return;
 
         // Component files are handled by component-too-large.
         if (hasJsx) return;
+
+        const sourceCode = context.sourceCode ?? context.getSourceCode();
+        const lineCount = sourceCode.getText().split('\n').length;
 
         if (lineCount > maxLines) {
           context.report({ node, messageId: 'tooLarge', data: { maxLines } });

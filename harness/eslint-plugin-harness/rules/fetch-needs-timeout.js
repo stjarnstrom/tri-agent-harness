@@ -20,22 +20,52 @@ module.exports = {
   },
 
   create(context) {
+    const TIMEOUT_KEYS = new Set(['timeout', 'signal', 'abortController']);
+
+    // The global fetch: bare `fetch(...)` or `window/globalThis/self/this.fetch(...)`.
+    function isGlobalFetchCallee(callee) {
+      if (callee.type === 'Identifier') return callee.name === 'fetch';
+      if (callee.type === 'MemberExpression' && !callee.computed) {
+        if (callee.property.type !== 'Identifier' || callee.property.name !== 'fetch') return false;
+        if (callee.object.type === 'ThisExpression') return true;
+        return (
+          callee.object.type === 'Identifier' &&
+          ['window', 'globalThis', 'self'].includes(callee.object.name)
+        );
+      }
+      return false;
+    }
+
+    // Only report when we can PROVE the timeout/signal is absent. Identifiers,
+    // spreads, and computed keys may carry a signal we cannot see — stay quiet.
+    function provablyMissingTimeout(args) {
+      if (args.some((arg) => arg.type === 'SpreadElement')) return false;
+      if (args.length < 2) return true;
+
+      const options = args[1];
+      if (options.type !== 'ObjectExpression') return false;
+
+      let opaque = false;
+      for (const prop of options.properties) {
+        if (prop.type === 'SpreadElement') {
+          opaque = true;
+          continue;
+        }
+        if (prop.computed) {
+          opaque = true;
+          continue;
+        }
+        const keyName = prop.key.name ?? prop.key.value;
+        if (TIMEOUT_KEYS.has(keyName)) return false;
+      }
+      return !opaque;
+    }
+
     return {
       CallExpression(node) {
-        if (node.callee.type !== 'Identifier' || node.callee.name !== 'fetch') return;
+        if (!isGlobalFetchCallee(node.callee)) return;
 
-        const hasTimeoutArg = node.arguments.some((arg) => {
-          if (arg.type !== 'ObjectExpression') return false;
-          return arg.properties.some(
-            (p) =>
-              p.key &&
-              (p.key.name === 'timeout' ||
-                p.key.name === 'signal' ||
-                p.key.name === 'abortController'),
-          );
-        });
-
-        if (!hasTimeoutArg) {
+        if (provablyMissingTimeout(node.arguments)) {
           context.report({ node, messageId: 'missingTimeout' });
         }
       },

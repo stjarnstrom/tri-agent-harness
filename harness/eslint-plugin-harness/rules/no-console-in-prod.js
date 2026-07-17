@@ -39,9 +39,10 @@ module.exports = {
     }
 
     return {
-      ExpressionStatement(node) {
-        if (node.expression.type !== 'CallExpression') return;
-        const callee = node.expression.callee;
+      // Visit calls directly so `.catch((e) => console.error(e))`,
+      // `x && console.log(...)`, and `return console.log(...)` are caught too.
+      CallExpression(node) {
+        const callee = node.callee;
         const isConsole =
           callee.type === 'MemberExpression' &&
           callee.object.type === 'Identifier' &&

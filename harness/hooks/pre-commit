@@ -110,7 +110,7 @@ if command -v gitleaks >/dev/null 2>&1; then
     echo "Use environment variables or a secrets manager — see .env.example for the pattern."
     exit 1
   fi
-elif git diff --cached --diff-filter=ACM | grep -qEi '(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})'; then
+elif git diff --cached --diff-filter=ACM -- . ':(exclude)tests/eslint-plugin.test.mjs' | grep -qEi '(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})'; then
   echo ""
   echo "ERROR: Possible secret detected in staged changes."
   echo "Use an environment variable or secrets manager instead of hardcoding credentials."

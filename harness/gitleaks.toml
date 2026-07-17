@@ -11,4 +11,6 @@ paths = [
   '''\.env\.example$''',
   '''\.env\.sample$''',
   '''\.env\.template$''',
+  # Test fixtures for the no-leaked-secrets ESLint rule must look like real tokens.
+  '''tests/eslint-plugin\.test\.mjs$''',
 ]

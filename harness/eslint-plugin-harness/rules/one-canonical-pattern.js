@@ -51,10 +51,28 @@ module.exports = {
 
     if (conceptMap.size === 0) return {};
 
+    // Word-boundary concept matching: "log" must match "@app/log" or
+    // "my-log-lib", but never "dialog" or "logout".
+    function sourceMentionsConcept(source, concept) {
+      const words = source
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean);
+      return words.includes(concept.toLowerCase());
+    }
+
+    // local binding name -> import source, so calls can be traced to imports.
+    const importSources = new Map();
+
     return {
       ImportDeclaration(node) {
         const source = node.source.value;
         if (typeof source !== 'string') return;
+
+        for (const specifier of node.specifiers) {
+          if (specifier.local) importSources.set(specifier.local.name, source);
+        }
 
         for (const [concept, config] of conceptMap) {
           if (config.disallowedPatterns.some((p) => source.includes(p))) {
@@ -64,10 +82,11 @@ module.exports = {
 
         for (const [concept, config] of conceptMap) {
           if (config.allowedPaths.length === 0) continue;
-          const isConceptImport = config.allowedPaths.some(
-            (path) => source.includes(concept) || source.includes(path),
-          );
-          if (isConceptImport && !config.allowedPaths.includes(source)) {
+          if (config.allowedPaths.includes(source)) continue;
+          const isConceptImport =
+            sourceMentionsConcept(source, concept) ||
+            config.allowedPaths.some((path) => source.includes(path));
+          if (isConceptImport) {
             context.report({ node, messageId: 'disallowedImport', data: { concept } });
           }
         }
@@ -78,13 +97,19 @@ module.exports = {
         if (callee.type !== 'Identifier') return;
 
         for (const [concept, config] of conceptMap) {
-          if (callee.name === concept && config.allowedPaths.length > 0) {
-            const isAllowed = config.allowedPaths.some(
-              (p) => p.endsWith(`/${concept}`) || p === concept,
-            );
-            if (!isAllowed) {
-              context.report({ node, messageId: 'disallowedImport', data: { concept } });
-            }
+          if (callee.name !== concept) continue;
+
+          // Concept is configured but no canonical path is defined for it.
+          if (config.allowedPaths.length === 0) {
+            context.report({ node, messageId: 'noPatternDefined', data: { concept } });
+            continue;
+          }
+
+          // Allowed only when this call site's binding was imported from a
+          // canonical path — a bare global (or off-list import) is flagged.
+          const importedFrom = importSources.get(callee.name);
+          if (!importedFrom || !config.allowedPaths.includes(importedFrom)) {
+            context.report({ node, messageId: 'disallowedImport', data: { concept } });
           }
         }
       },
