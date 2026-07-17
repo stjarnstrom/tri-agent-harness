@@ -449,8 +449,10 @@
       <h2>Starting a product</h2>
       <p class="lead-in">
         This repo is a <strong>harness template</strong>, not your app.
-        Copy it once per product, stay on Claude Code, and keep the first run
-        small enough that you can watch cost and scope.
+        The product the agents build lives under <code>app/</code> — harness
+        tooling stays at the repo root. Copy the template once per product,
+        stay on Claude Code, and keep the first run small enough that you can
+        watch cost and scope.
       </p>
 
       <div class="start-steps">
@@ -458,9 +460,10 @@
           <div>
             <h3>Copy the template — don’t dogfood it</h3>
             <p>
-              The generated app lands <strong>in this repo</strong> next to the
-              harness. Dogfooding the template pollutes its history and makes
-              upstream updates painful. Start each product from a sibling copy:
+              The generated app lands in <code>app/</code> inside your product
+              repo — never mixed with harness files at the root. Dogfooding
+              this template pollutes its history and makes upstream updates
+              painful. Start each product from a sibling copy:
             </p>
             <div class="console">
 <pre><span class="k">cp -R</span> agent-harness-loops ../my-product
@@ -477,13 +480,12 @@
 
         <div class="start-step">
           <div>
-            <h3>Use one runner: Claude Code</h3>
+            <h3>Claude Code only</h3>
             <p>
               The canonical entry point is <code>./harness.sh</code>. You need
-              the Claude Code CLI installed and logged in. Cursor, OpenCode, and
-              the SDK live under <code>runners/</code> with
-              <strong>partial parity</strong> (no Retrospector) — skip them for
-              a first product. See <code>runners/README.md</code>.
+              the Claude Code CLI installed and logged in. This repo is the
+              Claude Code product — Cursor and OpenCode are separate sibling
+              repos (see <a href="#modes">Modes</a>).
             </p>
           </div>
         </div>
@@ -590,7 +592,7 @@
           <h3>Build (sprint N)</h3>
           <p>The Generator writes the sprint contract, implements it, commits
           through the pre-commit hook, and marks the sprint “Ready for QA”.</p>
-          <span class="wire">docs/sprint-N-contract.md · app code</span>
+          <span class="wire">docs/sprint-N-contract.md · app/ (source, package.json, tests)</span>
         </div>
         <div class="event">
           <span class="tplus">1–5 min</span>
@@ -640,9 +642,6 @@
           <p>The default. Each phase runs as a separate <code>claude -p</code>
           process, fully hands-off until pass, halt, or a pause you configured
           (<code>HARNESS_PAUSE=sprint</code> asks before each sprint).</p>
-          <p>Optional adapters (Cursor / OpenCode / SDK) live under
-          <code>runners/</code> — partial parity; see
-          <code>runners/README.md</code>.</p>
         </div>
         <div class="card">
           <h3>Interactive — slash commands</h3>
@@ -654,6 +653,12 @@
           <code>/project:retro</code> distill the lessons.</p>
         </div>
       </div>
+      <p style="margin-top: 1.5rem; max-width: 44em;">
+        Using Cursor or OpenCode instead? Those are separate products:
+        <a href="https://github.com/stjarnstrom/tri-agent-harness-cursor">tri-agent-harness-cursor</a>
+        and
+        <a href="https://github.com/stjarnstrom/tri-agent-harness-opencode">tri-agent-harness-opencode</a>.
+      </p>
     </div>
   </section>
 
@@ -675,6 +680,7 @@
             <tr><td><code>docs/spec.md</code></td><td class="who">Planner</td><td>Product vision, features, design language</td></tr>
             <tr><td><code>docs/sprint-status.md</code></td><td class="who">all phases</td><td>Source of truth for progress and resume</td></tr>
             <tr><td><code>docs/sprint-N-contract.md</code></td><td class="who">Generator</td><td>Sprint scope, acceptance criteria, self-eval</td></tr>
+            <tr><td><code>app/</code></td><td class="who">Generator</td><td>Product source — <code>package.json</code>, <code>src/</code>, tests, config</td></tr>
             <tr><td><code>docs/mechanical-checks-sprint-N.md</code></td><td class="who">Pre-QA gate</td><td>Lint/artifact results; FAIL blocks evaluation</td></tr>
             <tr><td><code>docs/qa-report-sprint-N.md</code></td><td class="who">Evaluator</td><td>Verdict, scores, bugs — ends with lesson candidates</td></tr>
             <tr><td><code>harness/LESSONS.md</code></td><td class="who learn-w">Retrospector</td><td>Distilled cross-run lessons (max 25, phase-grouped)</td></tr>
@@ -785,8 +791,8 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             </tr>
             <tr>
               <td>Gate fails: "No application source found by sprint 2"</td>
-              <td>The Generator scaffolded the app outside <code>src/</code>, <code>app/</code>, <code>packages/</code>, <code>frontend/</code>, <code>backend/</code></td>
-              <td>Move the app into a recognized directory with <code>package.json</code> at the repo root</td>
+              <td>The Generator scaffolded outside <code>app/</code> (e.g. at repo root or in <code>src/</code>)</td>
+              <td>Move the app into <code>app/package.json</code> and <code>app/src/</code></td>
             </tr>
             <tr>
               <td>QA round 1 fails on setup, not bugs</td>
@@ -813,7 +819,7 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
       </div>
       <p>
         Two structural facts worth internalizing again: the generated app lives
-        <em>in this repo</em> (see <a href="#quickstart">Starting a product</a>
+        under <code>app/</code> (see <a href="#quickstart">Starting a product</a>
         for the sibling-copy ritual), and agents run with
         <code>--dangerously-skip-permissions</code> — the sandbox rules are
         instructions to the agents, not OS-level enforcement. The hooks catch

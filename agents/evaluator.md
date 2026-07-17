@@ -47,12 +47,12 @@ clean pass.
 
 ### Start the application
 
-Confirm the dev server is running. If not, start it:
+Confirm the dev server is running. If not, start it from `app/`:
 
 ```bash
-npm run dev
+cd app && npm run dev
 # For full-stack projects, also:
-cd backend && uvicorn main:app --reload --port 8000
+cd app/backend && uvicorn main:app --reload --port 8000
 ```
 
 Wait for the server to be fully ready before testing.

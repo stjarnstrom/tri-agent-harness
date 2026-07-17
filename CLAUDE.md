@@ -53,8 +53,13 @@ in `.claude/agents/*.md`; autonomous runs (`harness.sh`) get it from the
 per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
 `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
 or `HARNESS_MODEL` to force one model for all phases. If Fable is unavailable, fall back to
-`claude-opus-4-8` for the Planner/Evaluator. (The Cursor/OpenCode/SDK runners
-use their own model ecosystems — see `runners/README.md`.)
+`claude-opus-4-8` for the Planner/Evaluator.
+
+### Product layout
+
+The harness lives at the repo root; the product the agents build lives under
+`app/` (`app/package.json`, `app/src/`, tests, and app config). Do not mix
+application source with harness tooling at the root.
 
 ### Environment (always on)
 - Git pre-commit hook: sandbox, lints, secret scan (`bun run setup`)
@@ -150,16 +155,16 @@ first-class requirements, not nice-to-haves
 # Harness setup (first time)
 bun install && bun run setup
 
-# App setup (after Generator creates the app)
-npm install
-npm run dev
+# App setup (after Generator creates the app under app/)
+cd app && npm install
+cd app && npm run dev
 
 # Harness lints
 bun lint:harness
 
 # Tests
 npm run test:harness   # harness orchestrator tests only
-npx playwright test    # app E2E (after Generator scaffolds test:e2e)
+cd app && npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 ```
 
 ---
@@ -194,13 +199,6 @@ HARNESS_MODEL=claude-opus-4-8 ./harness.sh "..."           # force one model for
 HARNESS_GENERATOR_MODEL=claude-opus-4-8 ./harness.sh "..." # override a single phase
 ```
 
-Optional adapters (partial parity — see `runners/README.md`):
-
-```bash
-./runners/cursor-harness.sh "product prompt"    # Cursor CLI
-./runners/opencode-harness.sh "product prompt"  # OpenCode CLI
-```
-
 **Interactive mode (Claude Code slash commands):**
 
 - `/project:plan [description]` — Expand idea into full spec
@@ -218,6 +216,11 @@ Optional adapters (partial parity — see `runners/README.md`):
 - `bun lint:harness` — Run agent-prompt lint rules
 - `bun gc:weekly` — Anti-slop review of recurring failures
 - `bun lessons:validate` / `bun lessons:render` / `bun lessons:sync` — lessons ledger tools (see README "Learning loop")
+
+**Sibling repos** (separate products for other tools):
+
+- [tri-agent-harness-cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) — Cursor CLI
+- [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode) — OpenCode CLI
 
 ---
 

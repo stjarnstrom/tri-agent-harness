@@ -1,15 +1,15 @@
 # Runtime Contract
 
-This document defines the shared file and state contract used by the **combined
+This document defines the shared file and state contract used by the **Claude Code
 harness** (orchestration + guardrails):
 
-- `harness.sh` autonomous execution (Claude Code) — **canonical**
+- `./harness.sh` autonomous execution — **canonical**
 - Claude Code interactive execution (`.claude/commands/*` → `.claude/agents/*` subagents)
-- Optional adapters (partial parity) — see [`runners/README.md`](../runners/README.md):
-  - `runners/cursor-harness.sh` (Cursor CLI)
-  - `runners/opencode-harness.sh` (OpenCode CLI)
-  - `runners/cursor/*.sh` (Cursor Agent Manager handoffs)
-  - SDK orchestrator (`npm run harness:sdk`)
+
+Sibling repos for other tools (separate products, not adapters in this tree):
+
+- [tri-agent-harness-cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) — Cursor CLI
+- [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode) — OpenCode CLI
 
 The interactive Claude Code path dispatches each phase to a dedicated subagent
 (`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`,
@@ -26,14 +26,12 @@ runs read this from the `model:` field in `.claude/agents/*`; `harness.sh` reads
 it from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
 `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
 or `HARNESS_MODEL` for all phases. `HARNESS_RETRO=off` disables the
-Retrospector phase on `harness.sh` (the Cursor/OpenCode runners do not run it
-yet). Optional runners use their own model ecosystems — see
-[`runners/README.md`](../runners/README.md).
+Retrospector phase on `./harness.sh`.
 
-If all modes follow this contract, you can switch between them at any time
-(prefer staying on one runner — see parity notes in `runners/README.md`).
+If both autonomous and interactive modes follow this contract, you can switch
+between them at any time within the same repo.
 
-Autonomous runners write `docs/workflow-handoff.json` at phase boundaries
+Autonomous runs write `docs/workflow-handoff.json` at phase boundaries
 via `sdk-orchestrator/cli.mjs`.
 
 ## Architecture Layers
@@ -119,7 +117,7 @@ via `sdk-orchestrator/cli.mjs`.
 - Writes:
   - `docs/sprint-[N]-contract.md` (create/update)
   - `docs/sprint-status.md` (set target sprint to `Ready for QA`)
-  - application code and related assets (must pass pre-commit hook)
+  - application code under `app/` and related assets (must pass pre-commit hook)
 
 ### Pre-QA Gate (orchestrator, not an agent)
 - Reads: sprint contract, sprint status, application source
@@ -171,24 +169,11 @@ Rules:
 
 ## Mode Switching Rules
 
-Prefer staying on `./harness.sh`. Optional adapters: [`runners/README.md`](../runners/README.md).
+Within this repo, prefer `./harness.sh` for autonomous runs and slash commands
+for interactive control. Both paths share the same canonical files above.
 
-### Claude CLI -> Cursor
-1. Stop after any completed phase (planner/generator/evaluator).
-2. Ensure the relevant output files exist and are committed or intentionally staged.
-3. Run the matching `./runners/cursor/*.sh` to generate a handoff prompt.
-4. Execute the next phase in Cursor Agent Manager using generated context.
-
-### Cursor -> Claude CLI (or Cursor CLI loop)
-1. Ensure Cursor phase updated the canonical files listed above.
-2. Ensure `docs/sprint-status.md` reflects latest sprint state.
-3. Re-run `./harness.sh "<same prompt>" [max_qa_rounds]` or `./runners/cursor-harness.sh "<same prompt>" [max_qa_rounds]`.
-4. Harness resume logic should pick up at the correct sprint/QA round boundary.
-
-### OpenCode CLI
-1. OpenCode loads project config from `opencode.jsonc` and phase agents from `.opencode/agents/`.
-2. Autonomous runs use `./runners/opencode-harness.sh` with `--agent planner|generator|evaluator` (via `run_opencode_agent`).
-3. Switch mid-run the same way as Claude/Cursor: stop after a completed phase, ensure canonical files are updated, re-run `./runners/opencode-harness.sh "<same prompt>"`.
+For Cursor or OpenCode, use the sibling repos linked at the top of this
+document — they are separate products, not adapters in this tree.
 
 ## Conflict Resolution
 

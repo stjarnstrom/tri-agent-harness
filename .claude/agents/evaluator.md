@@ -34,7 +34,7 @@ Grade the running application and the artifacts in `docs/`, per
 
 ## Your task
 
-1. Start the app if it isn't running (`npm run dev`, plus the backend for
+1. Start the app if it isn't running (`cd app && npm run dev`, plus the backend for
    full-stack projects). Wait until it's ready.
 2. Use the Playwright MCP tools to navigate, click, type, screenshot, and
    verify **every** acceptance criterion end-to-end — exercise real user flows
