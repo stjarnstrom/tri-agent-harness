@@ -258,7 +258,7 @@ pgrep -fl 'harness|claude|cursor|opencode'    # process still alive?
 Copy this repo to a sibling folder before your first full run — the loop creates app code and product docs in the same tree:
 
 ```bash
-cp -R tri-agent-harness ../my-product-dogfood
+cp -R agent-harness-loops ../my-product-dogfood
 cd ../my-product-dogfood && rm -rf .git _ref && git init && bun install && bun run setup
 ```
 
@@ -291,7 +291,7 @@ bun lessons:sync <template-repo-path>   # merge a product clone's ledger home
 
 Interactive equivalent: `/project:retro` dispatches the `retrospector`
 subagent on demand. When dogfooding in a sibling copy (see above), run
-`bun lessons:sync ../tri-agent-harness` afterwards so the template inherits
+`bun lessons:sync ../agent-harness-loops` afterwards so the template inherits
 what the run learned.
 
 ## Documentation map
