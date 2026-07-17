@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pre-qa-gate.sh — Mechanical checks before Evaluator runs
 #
-# Called by harness.sh / cursor-harness.sh after Generator completes.
+# Called by harness.sh / runners/*-harness.sh after Generator completes.
 # Blocks the QA phase until artifacts and guardrails pass.
 #
 # Usage:

@@ -1,6 +1,6 @@
 # harness-common.sh — Shared sprint helpers for harness runners
 #
-# Sourced by harness.sh, cursor-harness.sh, and opencode-harness.sh. Do not execute directly.
+# Sourced by harness.sh and runners/{cursor,opencode}-harness.sh. Do not execute directly.
 
 PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
@@ -74,7 +74,7 @@ harness_prompt_continue() {
       ;;
     *)
       echo ""
-      echo "Paused. Re-run ./harness.sh, ./cursor-harness.sh, or ./opencode-harness.sh with the same prompt to resume."
+      echo "Paused. Re-run ./harness.sh with the same prompt to resume (optional runners: runners/README.md)."
       exit 0
       ;;
   esac
@@ -327,7 +327,7 @@ mark_sprint_skipped() {
   return 1
 }
 
-# ─── Agent watchdog (cursor-harness / opencode-harness) ───────────────
+# ─── Agent watchdog (runners/cursor-harness / runners/opencode-harness) ───────────────
 # CLI agents often finish writing artifacts but keep MCP/dev child
 # processes alive. Poll for canonical phase outputs and stop the agent
 # process group when they are stable.
@@ -808,7 +808,7 @@ harness_handle_design_scout_complete() {
   echo "  Next steps:"
   echo "    1. Review docs/design-options.md"
   echo "    2. Create design/selected-direction.md with your pick (e.g. 'Option B — Momentum Dark')"
-  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (or ./cursor-harness.sh / ./opencode-harness.sh)"
+  echo "    3. Re-run: ./harness.sh \"<same prompt>\"  (optional: ./runners/cursor-harness.sh / ./runners/opencode-harness.sh)"
   echo ""
 
   if harness_should_pause_design; then

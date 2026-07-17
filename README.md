@@ -4,7 +4,7 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; the harness creates `docs/` planning artifacts and application code sprint by sprint.
 
-> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are supported as optional alternatives — see [Usage modes](#usage-modes).
+> **Claude Code is the default runner.** Cursor, OpenCode, and the SDK orchestrator are optional adapters under [`runners/`](runners/README.md) — partial parity; see that doc before using them.
 
 ## Architecture
 
@@ -22,12 +22,10 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 |-------------|-------|
 | **Git repo** | `git init` before setup — hooks install into `.git/hooks/`. Without one the harness runs but **warns that guardrails are OFF** (no pre-commit hook, no secret scan, no lint gate) |
 | **Bun or Node ≥ 20** | `bun install` preferred; `npm install` works as fallback. `node` must be on PATH — validation, handoffs, and state helpers need it |
-| **Claude Code CLI** (`claude`) | Primary runner — for `./harness.sh` autonomous mode. Must be **logged in** (run `claude` once interactively) |
-| **Cursor CLI** | Optional — only for the `./cursor-harness.sh` alternative |
-| **OpenCode CLI** (`opencode`) | Optional — only for the `./opencode-harness.sh` alternative |
+| **Claude Code CLI** (`claude`) | Required for `./harness.sh`. Must be **logged in** (run `claude` once interactively) |
 | **`.env.local`** | Copy from `.env.example`; never commit real secrets |
 
-Each runner verifies its required CLIs at startup and exits with install instructions if one is missing. `./harness.sh` additionally pings each configured model once before planning, so a model your account can't use fails in seconds instead of mid-run (skip with `HARNESS_PREFLIGHT=off`).
+`./harness.sh` verifies the Claude CLI at startup and exits with install instructions if missing. It also pings each configured model once before planning, so a model your account can't use fails in seconds instead of mid-run (skip with `HARNESS_PREFLIGHT=off`). Optional runners (Cursor, OpenCode) have their own CLI requirements — see [`runners/README.md`](runners/README.md).
 
 Optional:
 - **gitleaks** — `brew install gitleaks` for full secret scan in pre-commit. Without it the scan **silently degrades** to a 3-pattern regex (AWS/GitHub/sk- tokens only)
@@ -41,18 +39,16 @@ git init
 bun install && bun run setup
 cp .env.example .env.local   # fill in values locally
 
-# 2. Run autonomous build (Claude Code — the default runner)
+# 2. Run autonomous build (Claude Code)
 ./harness.sh "Build a project management tool with kanban boards"
-
-# Optional alternative runners — same artifacts, same state machine:
-./cursor-harness.sh "Build a project management tool with kanban boards"
-./opencode-harness.sh "Build a project management tool with kanban boards"
 
 # 3. Resume after interruption — re-run the same command
 ./harness.sh "Build a project management tool with kanban boards"
 ```
 
 The harness reads `docs/spec.md` and `docs/sprint-status.md` and resumes from the first sprint not in terminal `Pass` or `Skipped` state.
+
+Optional adapters (Cursor / OpenCode / SDK): [`runners/README.md`](runners/README.md).
 
 ## Before your first run
 
@@ -72,22 +68,20 @@ Things that most commonly trip up a fresh clone, and how the harness behaves aro
 
 **One clone = one product.** The generated app lives in this repo, next to the harness. That's by design (the learning loop feeds on it), but it means pulling harness updates from upstream later will conflict with your product history. Start each product from a fresh clone, and push lessons back to your template with `bun lessons:sync`.
 
-**Pick a runner and stay with it.** State is shared through `docs/`, so switching between `./harness.sh`, `./cursor-harness.sh`, and `./opencode-harness.sh` mid-project mostly works — but QA-round counting restarts on every resume, so a stubborn sprint can consume more total rounds than `MAX_QA_ROUNDS` suggests.
+**Stay on one runner.** `./harness.sh` is the supported path. Optional adapters under `runners/` share `docs/` state, but switching mid-project restarts QA-round counting — and Cursor/OpenCode lack the Retrospector. See [`runners/README.md`](runners/README.md).
 
 **Autonomy means real permissions.** Agents run with `--dangerously-skip-permissions`; the "sandbox" rules in `harness/AGENT-INSTRUCTIONS.md` are instructions, not enforcement. The git hooks catch bad commits, not bad commands. Run the harness on machines and in directories where that's acceptable.
 
 ## Usage modes
 
-Pick the mode that matches how much control you want. Claude Code is the default runner throughout; modes 3–4 cover the optional Cursor, OpenCode, and SDK paths. All modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md) for file ownership and mode switching.
+Pick the mode that matches how much control you want. All Claude Code modes share the same artifacts and state machine — see [`docs/runtime-contract.md`](docs/runtime-contract.md). Optional Cursor / OpenCode / SDK adapters: [`runners/README.md`](runners/README.md).
 
 ### 1. Autonomous (recommended for hands-off builds)
 
-Full loop with no human checkpoints — except on a **fresh project**, where the harness pauses before each sprint until you opt into full autonomy (see [Before your first run](#before-your-first-run)). **`./harness.sh` (Claude Code) is the canonical runner; the Cursor and OpenCode runners are drop-in alternatives.**
+Full loop with no human checkpoints — except on a **fresh project**, where the harness pauses before each sprint until you opt into full autonomy (see [Before your first run](#before-your-first-run)).
 
 ```bash
-./harness.sh "your product prompt"              # Claude Code (default)
-./cursor-harness.sh "your product prompt"       # Cursor CLI (optional)
-./opencode-harness.sh "your product prompt"     # OpenCode CLI (optional)
+./harness.sh "your product prompt"              # Claude Code
 ./harness.sh "your product prompt" 5            # max 5 QA rounds per sprint
 ```
 
@@ -133,51 +127,11 @@ Each agent runs on a model matched to its job — big-picture reasoning on **Fab
 | Generator | `claude-sonnet-5` | Strong coding at lower cost — and the highest-token-volume phase |
 | Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review runs on Fable) |
 
-This is the default, not opt-in. The interactive/mobile path gets it from the `model:` field in [`.claude/agents/`](.claude/agents/); the autonomous path gets it from `harness.sh`'s per-phase defaults. Overrides (most specific wins): `HARNESS_MODEL` (all phases) › `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` (one phase). If Fable isn't available in your environment, set the Planner/Evaluator to `claude-opus-4-8`. The Cursor, OpenCode, and SDK runners use their own model ecosystems (see [`sdk-orchestrator.config.json`](sdk-orchestrator.config.json)).
+This is the default, not opt-in. The interactive/mobile path gets it from the `model:` field in [`.claude/agents/`](.claude/agents/); the autonomous path gets it from `harness.sh`'s per-phase defaults. Overrides (most specific wins): `HARNESS_MODEL` (all phases) › `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` (one phase). If Fable isn't available in your environment, set the Planner/Evaluator to `claude-opus-4-8`. Optional runners use their own model ecosystems — see [`runners/README.md`](runners/README.md).
 
-### 3. Interactive — Cursor Agent Manager (optional)
+### 3. Advanced runners (optional)
 
-Generate a handoff prompt, then paste it into Cursor Agent Manager:
-
-```bash
-# Phase 1: Planning (requires product prompt)
-scripts/cursor-plan.sh "Build a kanban app"
-
-# Phase 2: Build (after planning artifacts exist)
-scripts/cursor-build.sh
-scripts/cursor-build.sh "fix checkout validation"   # optional extra context
-
-# Phase 3: QA (after sprint status is Ready for QA)
-scripts/cursor-qa.sh
-```
-
-Each script writes [`docs/cursor-handoff.md`](docs/cursor-handoff.md) listing required reads and expected outputs. Phase prompt templates live in [`cursor/prompts/`](cursor/prompts/).
-
-To switch from Claude CLI to Cursor mid-run: stop after any completed phase, ensure `docs/sprint-status.md` is up to date, then run the matching `scripts/cursor-*.sh`. Details in [`docs/runtime-contract.md`](docs/runtime-contract.md#mode-switching-rules).
-
-### 4. SDK orchestrator (optional, bash-free)
-
-Alternative to shell loops; same artifacts, resumable state in `docs/workflow-handoff.json`:
-
-```bash
-# Full autonomous loop
-npm run harness:sdk -- run-loop --prompt "Build X"
-
-# Resume after interruption
-npm run harness:sdk -- resume
-
-# Single phases
-npm run harness:sdk -- plan --prompt "Build X"
-npm run harness:sdk -- build --sprint 1
-npm run harness:sdk -- qa --sprint 1
-
-# Inspect state without running agents
-npm run harness:sdk -- status
-npm run harness:sdk -- dry-run --prompt "Build X"
-npm run harness:sdk -- validate --phase generator --sprint 1
-```
-
-Architecture and roadmap: [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor-sdk-orchestrator-design.md).
+Cursor CLI, OpenCode, Cursor Agent Manager handoffs, and the SDK orchestrator live under [`runners/`](runners/README.md). They share the runtime contract but **do not** match Claude Code parity (notably: no Retrospector on Cursor/OpenCode). Use them only if you already depend on that tool.
 
 ## What happens during a run
 
@@ -251,18 +205,16 @@ See [`design/README.md`](design/README.md) and [`docs/templates/design-brief.md`
 
 | Phase | Output style | If it looks "stuck" |
 |-------|--------------|---------------------|
-| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` / `cursor agent` / `opencode run` do not stream tool steps to the shell) | Watch for new files in `docs/`; `cursor-harness.sh` and `opencode-harness.sh` auto-stop when phase artifacts are complete |
+| Planner / Generator / Evaluator | **Mostly silent** while the AI agent runs (`claude -p` does not stream tool steps to the shell) | Watch for new files in `docs/`; optional Cursor/OpenCode runners auto-stop when phase artifacts are complete (see [`runners/README.md`](runners/README.md)) |
 | Pre-QA Gate | **Verbose** — each check prints pass/fail | Fails fast with a clear error list |
 
-**CLI hang after Evaluator:** `cursor agent` and `opencode run` sometimes finish writing
-`docs/qa-report-sprint-[N].md` but never exit (MCP/dev child processes stay
-alive). `cursor-harness.sh` and `opencode-harness.sh` run an **artifact watchdog** (on by default) that
-polls for canonical phase outputs and stops the agent process group when they
-are stable. You will see `▶ Agent watchdog: phase artifacts complete` in the
-terminal, then the harness continues to the next sprint.
+**CLI hang after Evaluator (optional runners):** `cursor agent` and `opencode run`
+sometimes finish writing `docs/qa-report-sprint-[N].md` but never exit.
+`runners/cursor-harness.sh` and `runners/opencode-harness.sh` run an **artifact
+watchdog** (on by default) — see [`runners/README.md`](runners/README.md).
 
 ```bash
-# Tune or disable (defaults shown)
+# Tune or disable (defaults shown) — Cursor / OpenCode runners only
 HARNESS_AGENT_WATCHDOG=1          # set 0 to wait for the CLI agent to exit on its own
 HARNESS_AGENT_POLL_SEC=15         # seconds between artifact checks
 HARNESS_AGENT_STABLE_POLLS=2      # consecutive ready polls before stopping agent
@@ -358,7 +310,7 @@ what the run learned.
 | Write sprint contracts | [`docs/templates/sprint-contract.md`](docs/templates/sprint-contract.md) |
 | Configure app vs harness test scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |
 | Extend lints, personas, or guardrails | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Understand SDK orchestrator internals | [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor-sdk-orchestrator-design.md) |
+| Understand SDK / Cursor / OpenCode adapters | [`runners/README.md`](runners/README.md), [`docs/cursor-sdk-orchestrator-design.md`](docs/cursor-sdk-orchestrator-design.md) |
 | See stack defaults and project context | [`CLAUDE.md`](CLAUDE.md) |
 
 ## Extending the harness
@@ -391,15 +343,12 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 
 | Path | Purpose |
 |------|---------|
-| `harness.sh` | Autonomous loop via Claude Code CLI |
-| `cursor-harness.sh` | Autonomous loop via Cursor CLI |
-| `opencode-harness.sh` | Autonomous loop via OpenCode CLI |
-| `sdk-orchestrator/` | SDK-based orchestrator (alternative to bash loops) |
+| `harness.sh` | Autonomous loop via Claude Code CLI (canonical) |
+| `runners/` | Optional Cursor / OpenCode adapters + Cursor handoffs — see [`runners/README.md`](runners/README.md) |
+| `sdk-orchestrator/` | Shared validation/handoff helpers + optional SDK loop |
 | `scripts/pre-qa-gate.sh` | Mechanical gate between Generator and Evaluator |
-| `scripts/cursor-*.sh` | Cursor Agent Manager handoff generators |
 | `.claude/commands/` | Claude Code slash commands (`/plan`, `/build`, `/qa`) that dispatch to isolated subagents |
 | `.claude/agents/` | Claude Code subagents (`planner`, `generator`, `evaluator`) — clean context per phase |
-| `cursor/prompts/` | Cursor phase prompt templates |
 | `harness/AGENT-INSTRUCTIONS.md` | Universal agent rules |
 | `agents/*.md` | Planner, Generator, Evaluator personas |
 | `agents/criteria/*.md` | QA scoring rubrics |
@@ -413,8 +362,8 @@ Log friction as you hit it: append entries to `.gc-cache/weekly-report.jsonl`, t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HARNESS_MODEL` | *(CLI default)* / `composer-2.5` / `anthropic/claude-sonnet-4-5` | Optional model override. When unset, each runner uses its own default (Claude Code typically latest Opus). Set to pin a specific model, e.g. `claude-opus-4-6` or alias `opus`. |
-| `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (avoids MCP cold start) |
+| `HARNESS_MODEL` | *(CLI default)* | Optional model override for Claude Code. Set to pin a specific model, e.g. `claude-opus-4-6` or alias `opus`. Optional runners have their own defaults — see [`runners/README.md`](runners/README.md). |
+| `HARNESS_OPENCODE_ATTACH` | — | Attach to `opencode serve` URL (OpenCode runner only) |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` to move on with known failures |
 | `HARNESS_MAX_QA_ROUNDS` | `3` | Max Generator↔Evaluator retries per sprint |
 | `HARNESS_PAUSE` | `off` (`sprint` on a fresh project) | `sprint` = confirm before each sprint; `phase` = confirm before every agent; `design` = confirm after design-scout. Defaults to `sprint` when `docs/sprint-status.md` doesn't exist yet |
@@ -439,7 +388,7 @@ HARNESS_PAUSE=sprint ./harness.sh "Build a kanban app"
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "Build a kanban app"
 
 # Confirm before every Generator/Evaluator call
-HARNESS_PAUSE=phase ./opencode-harness.sh "Build a kanban app"
+HARNESS_PAUSE=phase ./harness.sh "Build a kanban app"
 
 # Custom usage probe (your script exits 1 when low)
 HARNESS_USAGE_CHECK=1 HARNESS_USAGE_CMD='./my-usage-probe.sh' ./harness.sh "..."

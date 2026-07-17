@@ -3,12 +3,13 @@
 This document defines the shared file and state contract used by the **combined
 harness** (orchestration + guardrails):
 
-- `harness.sh` autonomous execution (Claude Code)
-- `cursor-harness.sh` autonomous execution (Cursor CLI)
-- `opencode-harness.sh` autonomous execution (OpenCode CLI)
+- `harness.sh` autonomous execution (Claude Code) — **canonical**
 - Claude Code interactive execution (`.claude/commands/*` → `.claude/agents/*` subagents)
-- Cursor human-in-the-loop execution (`scripts/cursor-*.sh` + Agent Manager)
-- SDK orchestrator (`npm run harness:sdk`)
+- Optional adapters (partial parity) — see [`runners/README.md`](../runners/README.md):
+  - `runners/cursor-harness.sh` (Cursor CLI)
+  - `runners/opencode-harness.sh` (OpenCode CLI)
+  - `runners/cursor/*.sh` (Cursor Agent Manager handoffs)
+  - SDK orchestrator (`npm run harness:sdk`)
 
 The interactive Claude Code path dispatches each phase to a dedicated subagent
 (`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`,
@@ -26,12 +27,13 @@ it from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
 `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
 or `HARNESS_MODEL` for all phases. `HARNESS_RETRO=off` disables the
 Retrospector phase on `harness.sh` (the Cursor/OpenCode runners do not run it
-yet). The Cursor/OpenCode/SDK runners use their own model ecosystems
-(`sdk-orchestrator.config.json`).
+yet). Optional runners use their own model ecosystems — see
+[`runners/README.md`](../runners/README.md).
 
-If all modes follow this contract, you can switch between them at any time.
+If all modes follow this contract, you can switch between them at any time
+(prefer staying on one runner — see parity notes in `runners/README.md`).
 
-Both autonomous runners write `docs/workflow-handoff.json` at phase boundaries
+Autonomous runners write `docs/workflow-handoff.json` at phase boundaries
 via `sdk-orchestrator/cli.mjs`.
 
 ## Architecture Layers
@@ -169,22 +171,24 @@ Rules:
 
 ## Mode Switching Rules
 
+Prefer staying on `./harness.sh`. Optional adapters: [`runners/README.md`](../runners/README.md).
+
 ### Claude CLI -> Cursor
 1. Stop after any completed phase (planner/generator/evaluator).
 2. Ensure the relevant output files exist and are committed or intentionally staged.
-3. Run the matching `scripts/cursor-*.sh` to generate a handoff prompt.
+3. Run the matching `./runners/cursor/*.sh` to generate a handoff prompt.
 4. Execute the next phase in Cursor Agent Manager using generated context.
 
 ### Cursor -> Claude CLI (or Cursor CLI loop)
 1. Ensure Cursor phase updated the canonical files listed above.
 2. Ensure `docs/sprint-status.md` reflects latest sprint state.
-3. Re-run `./harness.sh "<same prompt>" [max_qa_rounds]` or `./cursor-harness.sh "<same prompt>" [max_qa_rounds]`.
+3. Re-run `./harness.sh "<same prompt>" [max_qa_rounds]` or `./runners/cursor-harness.sh "<same prompt>" [max_qa_rounds]`.
 4. Harness resume logic should pick up at the correct sprint/QA round boundary.
 
 ### OpenCode CLI
 1. OpenCode loads project config from `opencode.jsonc` and phase agents from `.opencode/agents/`.
-2. Autonomous runs use `./opencode-harness.sh` with `--agent planner|generator|evaluator` (via `run_opencode_agent`).
-3. Switch mid-run the same way as Claude/Cursor: stop after a completed phase, ensure canonical files are updated, re-run `./opencode-harness.sh "<same prompt>"`.
+2. Autonomous runs use `./runners/opencode-harness.sh` with `--agent planner|generator|evaluator` (via `run_opencode_agent`).
+3. Switch mid-run the same way as Claude/Cursor: stop after a completed phase, ensure canonical files are updated, re-run `./runners/opencode-harness.sh "<same prompt>"`.
 
 ## Conflict Resolution
 

@@ -1,14 +1,4 @@
 #!/bin/bash
-# cursor-post-qa.sh — Persist cross-workflow handoff after evaluator run
-
-set -euo pipefail
-
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$PROJECT_DIR"
-
-if [ ! -f "sdk-orchestrator/cli.mjs" ]; then
-  echo "Missing sdk orchestrator CLI at sdk-orchestrator/cli.mjs"
-  exit 1
-fi
-
-node sdk-orchestrator/cli.mjs post-qa-write "$@"
+# Compatibility stub — Cursor handoffs live under runners/cursor/
+echo "→ Moved: use ./runners/cursor/post-qa.sh (see runners/README.md)" >&2
+exec "$(cd "$(dirname "$0")/.." && pwd)/runners/cursor/post-qa.sh" "$@"

@@ -180,7 +180,7 @@ Read/continue rules:
 The following transitions are explicitly supported:
 
 - `harness.sh` -> SDK `resume`
-- SDK `run-loop` -> Cursor manual (`scripts/cursor-*.sh`)
+- SDK `run-loop` -> Cursor manual (`runners/cursor/*.sh`)
 - Cursor manual -> SDK `resume`
 - SDK local -> SDK cloud (and reverse), if repo/artifacts are in sync
 
@@ -233,7 +233,7 @@ Equivalent operational behavior to current harness, but with resumable SDK agent
 
 - `run-loop --pause-after-phase` for manual review after Planner/Generator/Evaluator.
 - `status` prints current sprint, phase, round, and last run IDs.
-- Existing `scripts/cursor-*.sh` remain usable for manual takeover.
+- Existing `runners/cursor/*.sh` (and `scripts/cursor-*.sh` stubs) remain usable for manual takeover.
 - Manual edits to `docs/` remain first-class and are respected on `resume`.
 
 ## Migration plan

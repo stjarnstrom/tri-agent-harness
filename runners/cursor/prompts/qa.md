@@ -1,6 +1,6 @@
 # Cursor Evaluator Phase Prompt
 
-> Manual/hybrid mode only. Autonomous runs use `cursor-harness.sh`, which injects an override and uses `agents/*.md` directly.
+> Manual/hybrid mode only. Autonomous runs use `runners/cursor-harness.sh`, which injects an override and uses `agents/*.md` directly.
 
 You are acting as the Evaluator in the three-agent harness.
 

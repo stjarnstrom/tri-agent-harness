@@ -54,7 +54,7 @@ per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
 `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
 or `HARNESS_MODEL` to force one model for all phases. If Fable is unavailable, fall back to
 `claude-opus-4-8` for the Planner/Evaluator. (The Cursor/OpenCode/SDK runners
-use their own model ecosystems — see `sdk-orchestrator.config.json`.)
+use their own model ecosystems — see `runners/README.md`.)
 
 ### Environment (always on)
 - Git pre-commit hook: sandbox, lints, secret scan (`bun run setup`)
@@ -194,11 +194,11 @@ HARNESS_MODEL=claude-opus-4-8 ./harness.sh "..."           # force one model for
 HARNESS_GENERATOR_MODEL=claude-opus-4-8 ./harness.sh "..." # override a single phase
 ```
 
-Optional alternative runners (same artifacts and state machine):
+Optional adapters (partial parity — see `runners/README.md`):
 
 ```bash
-./cursor-harness.sh "product prompt"       # Cursor CLI loop
-./opencode-harness.sh "product prompt"     # OpenCode CLI loop
+./runners/cursor-harness.sh "product prompt"    # Cursor CLI
+./runners/opencode-harness.sh "product prompt"  # OpenCode CLI
 ```
 
 **Interactive mode (Claude Code slash commands):**
