@@ -136,7 +136,27 @@
     .signal { animation: none; }
   }
 
-  /* ---------- agent cards ---------- */
+  /* ---------- start checklist ---------- */
+  .start-steps { margin: 2rem 0 1.5rem; counter-reset: start-step; }
+  .start-step {
+    display: grid; grid-template-columns: 2.5rem 1fr; gap: 0.85rem;
+    padding: 1.1rem 0; border-top: 1px solid var(--panel-deep);
+  }
+  .start-step:last-child { border-bottom: 1px solid var(--panel-deep); }
+  .start-step::before {
+    counter-increment: start-step; content: counter(start-step, decimal-leading-zero);
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+    color: var(--muted); padding-top: 0.2rem;
+  }
+  .start-step h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    letter-spacing: -0.015em; margin-bottom: 0.35rem;
+  }
+  .start-step p {
+    font-size: 0.95rem; color: var(--muted); margin-bottom: 0.5rem; max-width: 40em;
+  }
+  .start-step p:last-child { margin-bottom: 0; }
+  .start-step strong { color: var(--ink); }
   .cards {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.9rem; margin: 2rem 0;
@@ -263,7 +283,7 @@
     <nav aria-label="Sections">
       <a href="#loop">The loop</a>
       <a href="#agents">Agents</a>
-      <a href="#quickstart">Quick start</a>
+      <a href="#quickstart">Start a product</a>
       <a href="#run">A run</a>
       <a href="#modes">Modes</a>
       <a href="#artifacts">Artifacts</a>
@@ -422,41 +442,126 @@
     </div>
   </section>
 
-  <!-- ================= QUICK START ================= -->
+  <!-- ================= START A PRODUCT ================= -->
   <section id="quickstart">
     <div class="wrap">
       <span class="eyebrow">Phase 00</span>
-      <h2>Quick start</h2>
+      <h2>Starting a product</h2>
       <p class="lead-in">
-        Two commands to install the guardrails, one to start a build. State
-        lives in <code>docs/sprint-status.md</code>, so resuming after any
-        interruption is just re-running the same command.
+        This repo is a <strong>harness template</strong>, not your app.
+        Copy it once per product, stay on Claude Code, and keep the first run
+        small enough that you can watch cost and scope.
       </p>
-      <div class="console">
-<pre><span class="c"># one-time setup: git repo, hooks, lints, sandbox</span>
-<span class="k">git init</span> &amp;&amp; <span class="k">bun install</span> &amp;&amp; <span class="k">bun run setup</span>
 
-<span class="c"># start (or resume) an autonomous build</span>
-<span class="k">./harness.sh</span> <span class="f">"Build a kanban app for film production crews"</span>
+      <div class="start-steps">
+        <div class="start-step">
+          <div>
+            <h3>Copy the template — don’t dogfood it</h3>
+            <p>
+              The generated app lands <strong>in this repo</strong> next to the
+              harness. Dogfooding the template pollutes its history and makes
+              upstream updates painful. Start each product from a sibling copy:
+            </p>
+            <div class="console">
+<pre><span class="k">cp -R</span> agent-harness-loops ../my-product
+<span class="k">cd</span> ../my-product &amp;&amp; <span class="k">rm -rf</span> .git &amp;&amp; <span class="k">git init</span>
+<span class="k">bun install</span> &amp;&amp; <span class="k">bun run setup</span>
+<span class="k">cp</span> .env.example .env.local</pre>
+            </div>
+            <p>
+              Later, push lessons back to the template with
+              <code>bun lessons:sync /path/to/template</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Use one runner: Claude Code</h3>
+            <p>
+              The canonical entry point is <code>./harness.sh</code>. You need
+              the Claude Code CLI installed and logged in. Cursor, OpenCode, and
+              the SDK live under <code>runners/</code> with
+              <strong>partial parity</strong> (no Retrospector) — skip them for
+              a first product. See <code>runners/README.md</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Scope the prompt — cost is real</h3>
+            <p>
+              A vague “build me a SaaS” prompt routinely plans
+              <strong>8–10 sprints</strong>. Each sprint can burn multiple
+              Generator and Evaluator sessions. Cap the blast radius until you
+              trust the plan:
+            </p>
+            <div class="console">
+<pre><span class="c"># one sprint per invocation (re-run to continue)</span>
+<span class="k">HARNESS_MAX_SPRINTS_PER_RUN=1</span> <span class="k">./harness.sh</span> <span class="f">"Build a kanban board for film production crews"</span>
+
+<span class="c"># or ask before each sprint (default on a fresh project)</span>
+<span class="k">HARNESS_PAUSE=sprint</span> <span class="k">./harness.sh</span> <span class="f">"..."</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Expect the first-run pause</h3>
+            <p>
+              On a fresh project (no <code>docs/sprint-status.md</code> yet) the
+              harness sets <code>HARNESS_PAUSE=sprint</code> automatically. Watch
+              the plan, then answer <code>a</code> for the rest of the run, or
+              set <code>HARNESS_PAUSE=off</code> / <code>HARNESS_YES=1</code> for
+              full autonomy.
+            </p>
+            <p>
+              Startup also pings each configured model — if you lack Fable,
+              override immediately:
+              <code>HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8</code>.
+            </p>
+          </div>
+        </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Optional: steer design before planning</h3>
+            <p>
+              Copy <code>docs/templates/design-brief.md</code> to
+              <code>design/brief.md</code> if you already know the visual
+              direction. With an empty <code>design/</code>, the Planner writes
+              three options to <code>docs/design-options.md</code> and pauses —
+              put your pick in <code>design/selected-direction.md</code> and
+              re-run the same command.
+            </p>
+          </div>
+        </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Start (or resume) the build</h3>
+            <div class="console">
+<pre><span class="k">./harness.sh</span> <span class="f">"Build a kanban app for film production crews"</span>
 
 <span class="c"># optional: allow up to 5 QA rounds per sprint</span>
 <span class="k">./harness.sh</span> <span class="f">"..."</span> 5</pre>
+            </div>
+            <p>
+              State lives in <code>docs/sprint-status.md</code>. Interrupted?
+              Re-run the same command — it resumes from the first sprint not in
+              <code>Pass</code> or <code>Skipped</code>.
+            </p>
+          </div>
+        </div>
       </div>
+
       <p>
-        Startup runs a preflight: required CLIs are checked, and each
-        configured model gets one tiny ping — so a model your account can't
-        use fails in seconds, not after a full planning run. On a fresh
-        project the harness also <strong>pauses before each sprint</strong> so
-        you can watch the plan and cost unfold; answer <code>a</code> at the
-        first checkpoint (or set <code>HARNESS_PAUSE=off</code>) for full
-        autonomy.
-      </p>
-      <p>
-        No design brief? The Planner pauses after writing three design
-        directions to <code>docs/design-options.md</code>. Put your pick in
-        <code>design/selected-direction.md</code> and re-run the same command.
-        To skip the pause entirely, provide <code>design/brief.md</code> up
-        front or run with <code>HARNESS_YES=1</code>.
+        When something fails on setup rather than product bugs, jump to
+        <a href="#fieldnotes">Field notes</a>. Autonomy uses
+        <code>--dangerously-skip-permissions</code> — hooks catch bad commits,
+        not bad commands.
       </p>
     </div>
   </section>
@@ -707,12 +812,12 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
         </table>
       </div>
       <p>
-        Two structural facts worth internalizing: the generated app lives
-        <em>in this repo</em> next to the harness (start each product from a
-        fresh clone; push lessons back with <code>bun lessons:sync</code>), and
-        agents run with <code>--dangerously-skip-permissions</code> — the
-        sandbox rules are instructions to the agents, not OS-level enforcement.
-        The hooks catch bad commits, not bad commands.
+        Two structural facts worth internalizing again: the generated app lives
+        <em>in this repo</em> (see <a href="#quickstart">Starting a product</a>
+        for the sibling-copy ritual), and agents run with
+        <code>--dangerously-skip-permissions</code> — the sandbox rules are
+        instructions to the agents, not OS-level enforcement. The hooks catch
+        bad commits, not bad commands.
       </p>
     </div>
   </section>
