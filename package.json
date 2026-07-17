@@ -19,9 +19,6 @@
   "devDependencies": {
     "eslint": "^9.0.0"
   },
-  "dependencies": {
-    "@cursor/sdk": "^1.0.18"
-  },
   "engines": {
     "node": ">=20.12.0"
   }

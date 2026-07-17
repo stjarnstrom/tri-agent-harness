@@ -332,7 +332,7 @@ mark_sprint_skipped() {
 # processes alive. Poll for canonical phase outputs and stop the agent
 # process group when they are stable.
 #
-# HARNESS_AGENT_WATCHDOG=0     disable (wait for cursor agent to exit on its own)
+# HARNESS_AGENT_WATCHDOG=0     disable (wait for the agent process to exit on its own)
 # HARNESS_AGENT_POLL_SEC=15    seconds between artifact checks
 # HARNESS_AGENT_STABLE_POLLS=2 consecutive ready polls before stopping agent
 # HARNESS_PHASE_TIMEOUT=7200   wall-clock seconds per agent run (0 = no limit)
@@ -538,8 +538,7 @@ run_agent_with_watchdog() {
   return "$exit_code"
 }
 
-# Cursor / OpenCode phase runners live in sibling repos
-# (tri-agent-harness-cursor, tri-agent-harness-opencode).
+# Phase agent runners for other tools live in sibling repos.
 
 # ─── Helper: handle max QA rounds reached ────────────────────────────
 # Returns 0 to break inner loop (advance), 1 to halt harness
@@ -805,9 +804,7 @@ HARNESS_AUTONOMOUS_SUFFIX="
 AUTONOMOUS MODE: Do not ask for confirmation or pause for human review. After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing."
 
 # ─── Centralized phase prompts ────────────────────────────────────────
-# Single source of truth for the Generator/Evaluator prompts. All runners
-# (claude / cursor / opencode) get identical prompts, including the lessons
-# ledger context and the autonomous-mode suffix.
+# Single source of truth for the Generator/Evaluator prompts (Claude Code).
 
 harness_build_generator_prompt() {
   local sprint="${1:?sprint required}"
@@ -907,8 +904,6 @@ harness_preflight() {
         case "$cli" in
           claude)   echo "  claude   → npm install -g @anthropic-ai/claude-code, then run 'claude' once to log in" ;;
           node)     echo "  node     → install Node.js 20+ (validation, handoffs, and state helpers all need it)" ;;
-          cursor)   echo "  cursor   → install the Cursor CLI (https://cursor.com)" ;;
-          opencode) echo "  opencode → install the OpenCode CLI (https://opencode.ai)" ;;
         esac
       done
     } >&2
@@ -967,14 +962,12 @@ harness_post_qa_write() {
 # The entrypoint MUST define, before calling these:
 #
 #   run_phase_agent <phase> <sprint> <prompt>
-#     Runs one agent invocation. harness.sh calls `claude -p`;
-#     cursor/opencode delegate to run_cursor_agent / run_opencode_agent
-#     (which wrap run_agent_with_watchdog).
+#     Runs one agent invocation via `claude -p` (see harness.sh).
 #
 # Optional hook:
 #   harness_run_retro_hook
 #     Runs after the loop completes and on the handle_max_rounds halt
-#     path. harness.sh defines it (Retrospector); other runners may too.
+#     path. harness.sh defines it (Retrospector).
 
 harness_run_planning_phase() {
   local product_prompt="${1:?product prompt required}"

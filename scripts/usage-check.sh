@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # usage-check.sh — Optional budget probe before harness continues
 #
-# Neither Claude Code nor Cursor CLI expose usage/budget in a stable shell API.
+# Neither Claude Code nor this harness expose usage/budget in a stable shell API.
 # This script is a hook point: configure your own probe, or leave unset.
 #
 # Exit 0 = OK to continue

@@ -63,7 +63,7 @@ application source with harness tooling at the root.
 
 ### Environment (always on)
 - Git pre-commit hook: sandbox, lints, secret scan (`bun run setup`)
-- Context-hygiene deny rules: secrets + junk context (deps, build output, lockfiles) are read-denied per tool — `.claude/settings.json` for Claude Code (there is no `.claudeignore`; `Read(...)` deny rules are the native mechanism), `.cursorignore` for Cursor, `opencode.jsonc` for OpenCode. See "Context Hygiene" in `harness/AGENT-INSTRUCTIONS.md`.
+- Context-hygiene deny rules: secrets + junk context (deps, build output, lockfiles) are read-denied via `.claude/settings.json` `Read(...)` deny rules (there is no `.claudeignore`). See "Context Hygiene" in `harness/AGENT-INSTRUCTIONS.md`.
 - ESLint harness plugin: lints are agent instructions (`bun lint:harness`)
 - Review personas: `review-personas/` for focused code review
 - Anti-slop loop: recurring QA failures → new guardrails (`bun gc:weekly`)
@@ -212,7 +212,7 @@ HARNESS_GENERATOR_MODEL=claude-opus-4-8 ./harness.sh "..." # override a single p
 
 **Guardrails:**
 
-- `bun run setup` — Install git hooks and `.cursorignore`
+- `bun run setup` — Install git hooks
 - `bun lint:harness` — Run agent-prompt lint rules
 - `bun gc:weekly` — Anti-slop review of recurring failures
 - `bun lessons:validate` / `bun lessons:render` / `bun lessons:sync` — lessons ledger tools (see README "Learning loop")

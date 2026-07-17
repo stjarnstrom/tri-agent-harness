@@ -2,13 +2,13 @@
   "maxQaRounds": 3,
   "onMaxRoundsReached": "halt",
   "models": {
-    "planner": "composer-2.5",
-    "generator": "composer-2.5",
-    "evaluator": "gpt-5.5-medium"
+    "planner": "claude-fable-5",
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-fable-5"
   },
   "runtime": {
     "mode": "local",
-    "runner": "sdk",
+    "runner": "cli",
     "approveMcps": true
   },
   "budgets": {

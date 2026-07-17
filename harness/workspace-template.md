@@ -101,7 +101,7 @@ Real credentials never belong in source or git history. The harness pattern:
 | File | Committed? | Agent reads? |
 |------|------------|--------------|
 | `.env.example` | Yes | Yes — names and dummy values only |
-| `.env.local`, `.env` | No (gitignored) | No — blocked by `.cursorignore` and opencode |
+| `.env.local`, `.env` | No (gitignored) | No — blocked by `.claude/settings.json` deny rules |
 | Source code | Yes | Yes — use `process.env.VAR`, never literals |
 
 Pre-commit rejects staged `.env` files and runs gitleaks (or a regex fallback). See [`AGENT-INSTRUCTIONS.md`](AGENT-INSTRUCTIONS.md) for agent-facing rules.
@@ -110,7 +110,7 @@ Pre-commit rejects staged `.env` files and runs gitleaks (or a regex fallback). 
 
 1. Copy the template structure above (minus git history).
 2. Create `src/index.ts` with your public re-exports.
-3. Add a `CLAUDE.md` describing what this package does and any domain-specific rules for agents working in it. **Use exactly `CLAUDE.md`** — one canonical filename for all tools (Claude Code auto-loads it; Cursor and opencode follow the rule in [`AGENT-INSTRUCTIONS.md`](AGENT-INSTRUCTIONS.md)).
+3. Add a `CLAUDE.md` describing what this package does and any domain-specific rules for agents working in it. Claude Code auto-loads it.
 4. Register in root `tsconfig.json` under `"references"`.
 5. Update each consumer's tsconfig to add a reference to the new package.
 
@@ -120,13 +120,13 @@ Each domain package gets one `CLAUDE.md` — no per-tool duplicates. When workin
 1. Root `CLAUDE.md` (project-wide rules)
 2. `packages/billing/CLAUDE.md` (domain-specific rules)
 
-Claude Code loads both automatically. Cursor, opencode, and other tools must read the package's `CLAUDE.md` explicitly when scoped to that directory (see [`AGENT-INSTRUCTIONS.md`](AGENT-INSTRUCTIONS.md)).
+Claude Code loads both automatically when present.
 
 The subdirectory file **augments** the root — rules from both files apply. Use this to keep domain-specific guidance close to the code without duplicating project-wide conventions in every package.
 
 ## What NOT to Do
 
-- **Don't duplicate domain instructions per tool.** One `CLAUDE.md` per package — not separate `AGENTS.md` or `.cursorrules` copies. Other tools read the same file explicitly.
+- **Don't duplicate domain instructions.** One `CLAUDE.md` per package.
 - **Don't create 750 packages.** Scope by meaningful domain, not by file count. Two packages are fine; fifty is overkill.
 - **Don't use barrel files as implementation.** `index.ts` should only re-export — no business logic in the entry point.
 - **Don't let agents import from `internal/`.** The boundary lint (`one-canonical-pattern`) will catch it if configured. The real enforcement happens at build time via TypeScript project references.

@@ -172,9 +172,6 @@ Rules:
 Within this repo, prefer `./harness.sh` for autonomous runs and slash commands
 for interactive control. Both paths share the same canonical files above.
 
-For Cursor or OpenCode, use the sibling repos linked at the top of this
-document — they are separate products, not adapters in this tree.
-
 ## Conflict Resolution
 
 If mode outputs disagree, trust these in order:
