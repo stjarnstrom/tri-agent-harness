@@ -284,6 +284,7 @@
       <a href="#loop">The loop</a>
       <a href="#agents">Agents</a>
       <a href="#quickstart">Start a product</a>
+      <a href="#preplan">Pre-plan</a>
       <a href="#run">A run</a>
       <a href="#modes">Modes</a>
       <a href="#artifacts">Artifacts</a>
@@ -536,6 +537,11 @@
               put your pick in <code>design/selected-direction.md</code> and
               re-run the same command.
             </p>
+            <p>
+              Bringing a full product plan from another chat? That helps —
+              see <a href="#preplan">Planning with another agent</a> for what
+              to keep vs strip before you paste it into the prompt.
+            </p>
           </div>
         </div>
 
@@ -562,6 +568,63 @@
         <a href="#fieldnotes">Field notes</a>. Autonomy uses
         <code>--dangerously-skip-permissions</code> — hooks catch bad commits,
         not bad commands.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= PRE-PLAN FROM ANOTHER AGENT ================= -->
+  <section id="preplan">
+    <div class="wrap">
+      <span class="eyebrow">Input shape</span>
+      <h2>Planning with another agent</h2>
+      <p class="lead-in">
+        The prompt you pass to <code>./harness.sh</code> (or
+        <code>/plan</code>) does not have to be a one-liner. A product plan
+        drafted in Claude chat or another agent usually
+        <strong>helps</strong> the Planner — richer intent means fewer
+        invented requirements. It does <strong>not</strong> change the
+        harness architecture: the Planner still writes the canonical
+        <code>docs/spec.md</code> and sprint plan.
+      </p>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>In your pre-plan</th><th>Effect</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Product goals, users, features, UX flows</td>
+              <td>Helps — better input for the spec</td>
+            </tr>
+            <tr>
+              <td>Design direction / brand rules</td>
+              <td>Prefer <code>design/brief.md</code> (authoritative) over burying it in the prompt</td>
+            </tr>
+            <tr>
+              <td>Non-negotiable constraints</td>
+              <td>Prefer <code>design/constraints.md</code>, or say explicitly “do not expand beyond this scope”</td>
+            </tr>
+            <tr>
+              <td>Stack, file layouts, “implement X with Y”</td>
+              <td>Risk — Planner stays high-level; wrong implementation detail cascades to Generator</td>
+            </tr>
+            <tr>
+              <td>Pre-cut sprints</td>
+              <td>Hints only — Planner re-slices into the harness shape (typically 4–8 sprints; Sprint 1 = skeleton)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Practical recipe:</strong> keep the other agent’s output as a
+        product brief, strip implementation prescriptions, park visuals in
+        <code>design/brief.md</code>, then run the harness. The Planner may
+        still ambition-expand unless you constrain it — that is intentional,
+        but easy to overshoot on cost. See
+        <a href="#quickstart">Starting a product</a> for caps like
+        <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code>.
       </p>
     </div>
   </section>

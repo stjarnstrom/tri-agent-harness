@@ -66,6 +66,24 @@ From sprint 2 onward, the pre-QA gate requires `app/package.json` and applicatio
 
 **Autonomy means real permissions.** Agents use `--dangerously-skip-permissions`; hooks catch bad commits, not bad commands.
 
+## Planning with another agent
+
+The prompt you pass to `./harness.sh` (or `/plan`) does not have to be a one-liner. A product plan drafted in Claude chat or another agent usually **helps** the Planner — richer intent means fewer invented requirements.
+
+It does **not** change the harness architecture. The Planner still writes the canonical `docs/spec.md` and sprint plan; your pre-plan is input, not a replacement for those artifacts.
+
+| In your pre-plan | Effect |
+|------------------|--------|
+| Product goals, users, features, UX flows | Helps — better input for the spec |
+| Design direction / brand rules | Prefer `design/brief.md` (authoritative) over burying it in the prompt |
+| Non-negotiable constraints | Prefer `design/constraints.md`, or say explicitly “do not expand beyond this scope” |
+| Stack, file layouts, “implement X with Y” | Risk — Planner stays high-level; wrong implementation detail cascades to Generator |
+| Pre-cut sprints | Hints only — Planner re-slices into the harness shape (typically 4–8 sprints; Sprint 1 = skeleton) |
+
+**Practical recipe:** keep the other agent’s output as a product brief, strip implementation prescriptions, park visuals in `design/brief.md`, then run the harness. The Planner may still ambition-expand unless you constrain it.
+
+Visual walkthrough of the same guidance: [`docs/guide.html#preplan`](docs/guide.html#preplan).
+
 ## Usage modes
 
 ### 1. Autonomous (recommended)
@@ -119,6 +137,7 @@ bun lessons:sync <template-repo-path>
 | If you want to… | Read |
 |-----------------|------|
 | Start a product (visual) | [`docs/guide.html`](docs/guide.html) |
+| Feed a plan from another agent | [README § Planning with another agent](#planning-with-another-agent) · [`guide.html#preplan`](docs/guide.html#preplan) |
 | Phase file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | Agent sandbox rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Product npm scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |
