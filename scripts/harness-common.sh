@@ -379,14 +379,21 @@ harness_phase_artifacts_ready() {
 }
 
 # mtime of a file in epoch seconds; empty when the file doesn't exist.
-# BSD stat first (macOS), GNU stat fallback.
+# GNU coreutils first (Linux CI), BSD second (macOS).
+# Never try BSD `stat -f` first on Linux: GNU treats -f as --file-system and
+# still writes a multi-line dump to stdout even when it exits non-zero, which
+# breaks string equality checks against a numeric baseline.
 harness_report_mtime() {
   local file="$1"
   if [ ! -f "$file" ]; then
     echo ""
     return 0
   fi
-  stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo ""
+  if stat --version >/dev/null 2>&1; then
+    stat -c %Y "$file" 2>/dev/null || echo ""
+  else
+    stat -f %m "$file" 2>/dev/null || echo ""
+  fi
 }
 
 # Watchdog readiness = artifacts ready AND (for the evaluator) the QA report
@@ -404,7 +411,8 @@ harness_watchdog_phase_ready() {
   if [ "$phase" = "evaluator" ] && [ -n "$baseline_mtime" ]; then
     local current_mtime
     current_mtime="$(harness_report_mtime "docs/qa-report-sprint-${sprint}.md")"
-    if [ "$current_mtime" = "$baseline_mtime" ]; then
+    # Fail closed: unreadable mtime or unchanged mtime → not rewritten yet.
+    if [ -z "$current_mtime" ] || [ "$current_mtime" = "$baseline_mtime" ]; then
       return 1
     fi
   fi
