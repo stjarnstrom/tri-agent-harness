@@ -4,7 +4,7 @@ import test from "node:test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { chmod, mkdtemp, mkdir, writeFile, stat } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -155,13 +155,32 @@ async function makeEvaluatorReadyProject() {
 
 test("watchdog evaluator ready-check rejects a stale (unchanged mtime) report", async () => {
   const dir = await makeEvaluatorReadyProject();
-  const { mtimeMs } = await stat(path.join(dir, "docs", "qa-report-sprint-1.md"));
-  const baseline = Math.floor(mtimeMs / 1000);
+  // Baseline must come from the same helper the watchdog uses (GNU vs BSD
+  // stat), not Node's mtimeMs — otherwise Linux CI compares a clean epoch to
+  // a polluted multi-line dump and the check falsely passes.
+  const { stdout: mtimeOut } = await runCommon(
+    dir,
+    "harness_report_mtime docs/qa-report-sprint-1.md",
+  );
+  const baseline = mtimeOut.trim();
+  assert.match(baseline, /^\d+$/, "harness_report_mtime must return a single epoch seconds value");
   const { code } = await runCommon(
     dir,
     `harness_watchdog_phase_ready evaluator 1 "${baseline}"`,
   );
   assert.notEqual(code, 0, "round-1 report with unchanged mtime must not satisfy readiness");
+});
+
+test("harness_report_mtime returns a single integer epoch on this platform", async () => {
+  const dir = await makeEvaluatorReadyProject();
+  const { code, stdout } = await runCommon(
+    dir,
+    "harness_report_mtime docs/qa-report-sprint-1.md",
+  );
+  assert.equal(code, 0);
+  const lines = stdout.split("\n").filter(Boolean);
+  assert.equal(lines.length, 1, `expected one line, got: ${JSON.stringify(stdout)}`);
+  assert.match(lines[0], /^\d+$/);
 });
 
 test("watchdog evaluator ready-check accepts a rewritten report", async () => {
