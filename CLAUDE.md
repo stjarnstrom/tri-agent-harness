@@ -38,22 +38,17 @@ Agents communicate through files in `docs/`. Personas in `agents/`. Criteria in 
 
 ### Model policy (Claude Code paths)
 
-Each agent runs on a model matched to its job — big-picture reasoning on Fable,
-implementation on Sonnet:
+Every phase defaults to `opus` — the alias for the latest Opus (currently
+Opus 5) — so defaults track new model releases automatically.
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| Planner | `claude-fable-5` | Deep, one-shot reasoning to expand a prompt into a sound spec |
-| Generator | `claude-sonnet-5` | Strong coding at lower cost; the highest-token-volume phase |
-| Evaluator | `claude-fable-5` | Skeptical grading + `review-personas/` code review (all review is Fable) |
-| Retrospector | `claude-fable-5` | Judgment call: generalizing failures into durable lessons |
-
-This is the **default**. Interactive/mobile runs get it from the `model:` field
-in `.claude/agents/*.md`; autonomous runs (`harness.sh`) get it from the
+Interactive/mobile runs get the model from the `model:` field in
+`.claude/agents/*.md`; autonomous runs (`harness.sh`) get it from the
 per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
 `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
-or `HARNESS_MODEL` to force one model for all phases. If Fable is unavailable, fall back to
-`claude-opus-4-8` for the Planner/Evaluator.
+or `HARNESS_MODEL` to force one model for all phases. When Fable access is
+available, planning benefits from it:
+`HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."` (see README
+"Model policy").
 
 ### Product layout
 
@@ -194,9 +189,9 @@ HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..."  # one sprint per run
 HARNESS_RETRO=off ./harness.sh "..."       # skip end-of-run learning
 
-# Model overrides (defaults: planner=Fable, generator=Sonnet, evaluator=Fable)
-HARNESS_MODEL=claude-opus-4-8 ./harness.sh "..."           # force one model for all phases
-HARNESS_GENERATOR_MODEL=claude-opus-4-8 ./harness.sh "..." # override a single phase
+# Model overrides (default: `opus` — latest Opus — for all phases)
+HARNESS_MODEL=claude-fable-5 ./harness.sh "..."           # force one model for all phases
+HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."   # override a single phase (Fable for planning)
 ```
 
 **Interactive mode (Claude Code slash commands):**

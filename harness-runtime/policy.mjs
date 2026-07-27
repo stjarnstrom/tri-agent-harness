@@ -7,9 +7,9 @@ const DEFAULT_POLICY = {
   maxQaRounds: 3,
   onMaxRoundsReached: "halt",
   models: {
-    planner: "claude-fable-5",
-    generator: "claude-sonnet-5",
-    evaluator: "claude-fable-5",
+    planner: "opus",
+    generator: "opus",
+    evaluator: "opus",
   },
   runtime: {
     mode: "local",

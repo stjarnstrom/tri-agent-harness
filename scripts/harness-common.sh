@@ -945,7 +945,7 @@ harness_preflight_model_ping() {
         echo "ERROR: model '$m' did not respond — it may be unavailable to this account, or claude is not logged in."
         echo "  See the real error with: claude --model $m -p 'hi'"
         echo "  Override models via HARNESS_PLANNER_MODEL / HARNESS_GENERATOR_MODEL / HARNESS_EVALUATOR_MODEL,"
-        echo "  or HARNESS_MODEL for all phases (claude-opus-4-8 is the suggested fallback)."
+        echo "  or HARNESS_MODEL for all phases ('opus' — the latest-Opus alias — is the default)."
         echo "  Skip this check with HARNESS_PREFLIGHT=off."
       } >&2
       return 1

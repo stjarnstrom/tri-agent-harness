@@ -405,36 +405,36 @@
       <p class="lead-in">
         Each agent runs in its own isolated context and communicates only
         through files in <code>docs/</code> — the Evaluator never sees the
-        Generator's self-justification, only what landed on disk. Models are
-        matched to the job: big-picture reasoning on Fable, implementation
-        volume on Sonnet.
+        Generator's self-justification, only what landed on disk. Every phase
+        defaults to <code>opus</code> — the latest-Opus alias — and any phase
+        can be overridden per run (e.g. Fable for planning).
       </p>
     </div>
     <div class="wrap-wide">
       <div class="cards">
         <div class="card">
           <h3>Planner</h3>
-          <span class="tech">claude-fable-5</span>
+          <span class="tech">opus (latest)</span>
           <p>Expands your one-line prompt into a full spec, sprint plan, and
           status tracker. With no design brief, it first proposes three design
           directions and waits for your pick.</p>
         </div>
         <div class="card">
           <h3>Generator</h3>
-          <span class="tech">claude-sonnet-5</span>
+          <span class="tech">opus (latest)</span>
           <p>Builds one sprint at a time against a written contract. Every
           commit must pass the pre-commit hook: sandbox, lints, secret scan.</p>
         </div>
         <div class="card">
           <h3>Evaluator</h3>
-          <span class="tech">claude-fable-5</span>
+          <span class="tech">opus (latest)</span>
           <p>Starts the app and tests every acceptance criterion with
           Playwright, then grades six weighted criteria. Skeptical by
           instruction: “it mostly works” is a fail.</p>
         </div>
         <div class="card learn-card">
           <h3>Retrospector</h3>
-          <span class="tech">claude-fable-5</span>
+          <span class="tech">opus (latest)</span>
           <p>Runs once at the end of every run. Distills QA failures into
           generalized lessons and drafts guardrail proposals when a pattern
           strikes twice.</p>
@@ -519,9 +519,9 @@
               full autonomy.
             </p>
             <p>
-              Startup also pings each configured model — if you lack Fable,
-              override immediately:
-              <code>HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8</code>.
+              Startup also pings each configured model. To run planning on
+              Fable instead of the default Opus:
+              <code>HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "…"</code>.
             </p>
           </div>
         </div>
@@ -845,8 +845,8 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             </tr>
             <tr>
               <td>Preflight: "model … did not respond"</td>
-              <td>Account lacks the default model (Fable), or <code>claude</code> isn't logged in</td>
-              <td>Log in, or override: <code>HARNESS_MODEL=claude-opus-4-8</code> (or per-phase <code>HARNESS_*_MODEL</code>)</td>
+              <td>Account lacks the configured model, or <code>claude</code> isn't logged in</td>
+              <td>Log in, or override: <code>HARNESS_MODEL=opus</code> (or per-phase <code>HARNESS_*_MODEL</code>)</td>
             </tr>
             <tr>
               <td>Gate fails: "No application source found by sprint 2"</td>

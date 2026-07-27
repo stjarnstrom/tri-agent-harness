@@ -18,15 +18,14 @@ only through the canonical files below — the same isolation `harness.sh` gets
 from separate `claude -p` processes. Subagents cannot pause mid-run, so
 `/build` writes the sprint contract and implements in a single pass.
 
-On the Claude Code paths, each phase runs on a model matched to its job:
-Planner and Evaluator on `claude-fable-5` (big-picture reasoning and code
-review), Generator on `claude-sonnet-5` (implementation), Retrospector on
-`claude-fable-5` (generalizing failures into lessons). Interactive/mobile
-runs read this from the `model:` field in `.claude/agents/*`; `harness.sh` reads
-it from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
-`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
-or `HARNESS_MODEL` for all phases. `HARNESS_RETRO=off` disables the
-Retrospector phase on `./harness.sh`.
+On the Claude Code paths, every phase defaults to `opus` — the alias for the
+latest Opus (currently Opus 5) — so defaults track new releases automatically.
+Interactive/mobile runs read this from the `model:` field in
+`.claude/agents/*`; `harness.sh` reads it from per-phase defaults, overridable
+via `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` /
+`HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`, or `HARNESS_MODEL` for all
+phases (e.g. `HARNESS_PLANNER_MODEL=claude-fable-5` to plan on Fable).
+`HARNESS_RETRO=off` disables the Retrospector phase on `./harness.sh`.
 
 If both autonomous and interactive modes follow this contract, you can switch
 between them at any time within the same repo.

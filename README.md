@@ -60,7 +60,7 @@ From sprint 2 onward, the pre-QA gate requires `app/package.json` and applicatio
 
 **Cost is real.** Cap with `HARNESS_MAX_SPRINTS_PER_RUN=1`. Vague prompts often plan 8–10 sprints.
 
-**Model access.** Defaults: Planner/Evaluator `claude-fable-5`, Generator `claude-sonnet-5`. Without Fable: `HARNESS_PLANNER_MODEL=claude-opus-4-8 HARNESS_EVALUATOR_MODEL=claude-opus-4-8`.
+**Model access.** All phases default to `opus` (the alias for the latest Opus, currently Opus 5). To run planning on Fable instead: `HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."`.
 
 **QA needs a runnable app.** Evaluator starts the dev server from `app/` and drives Playwright. First-run failures are often `cd app && npx playwright install` or a busy port.
 
@@ -106,14 +106,21 @@ Each command dispatches an isolated subagent in [`.claude/agents/`](.claude/agen
 
 #### Model policy
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| Planner | `claude-fable-5` | Spec and sprint design |
-| Generator | `claude-sonnet-5` | Implementation volume |
-| Evaluator | `claude-fable-5` | Skeptical grading + review personas |
-| Retrospector | `claude-fable-5` | Lessons from QA failures |
+Every phase defaults to `opus` — the alias for the latest Opus (currently Opus 5), so defaults track new releases automatically. Override per phase with `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`, or all phases at once with `HARNESS_MODEL`.
 
-Overrides: `HARNESS_MODEL` or per-phase `HARNESS_*_MODEL`.
+**Recommended when you have Fable access** — Fable for planning, Opus for the rest:
+
+```bash
+HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
+
+# Or Fable for all reasoning-heavy phases (planning, QA, retro):
+HARNESS_PLANNER_MODEL=claude-fable-5 \
+HARNESS_EVALUATOR_MODEL=claude-fable-5 \
+HARNESS_RETRO_MODEL=claude-fable-5 \
+./harness.sh "your product prompt"
+```
+
+For the interactive slash commands, the model comes from the `model:` field in [`.claude/agents/`](.claude/agents/) — edit it there to change a phase's model.
 
 ## Learning loop (Retrospector)
 
@@ -146,7 +153,8 @@ bun lessons:sync <template-repo-path>
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HARNESS_MODEL` | *(CLI default)* | Force one model for all phases |
+| `HARNESS_MODEL` | *(unset)* | Force one model for all phases |
+| `HARNESS_PLANNER_MODEL` etc. | `opus` | Per-phase model (`PLANNER`/`GENERATOR`/`EVALUATOR`/`RETRO`), e.g. `claude-fable-5` for planning |
 | `HARNESS_PAUSE` | `off` (`sprint` on fresh project) | Checkpoint before sprint/phase |
 | `HARNESS_MAX_SPRINTS_PER_RUN` | unlimited | Stop after N sprints |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | Or `advance` to skip stuck sprints |

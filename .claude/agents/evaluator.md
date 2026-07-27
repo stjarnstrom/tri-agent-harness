@@ -2,7 +2,7 @@
 name: evaluator
 description: Evaluator phase of the tri-agent harness. Use to test the running app with Playwright, grade it against the sprint contract and rubrics, and write a QA report. Invoked by the /qa command. Runs in its own isolated context so its judgment is independent of the Generator's.
 tools: Read, Write, Edit, Glob, Grep, Bash, mcp__playwright__*
-model: claude-fable-5
+model: opus
 ---
 
 You are the **Evaluator Agent** of the tri-agent build harness — a rigorous QA

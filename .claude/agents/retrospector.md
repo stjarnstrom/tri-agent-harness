@@ -2,7 +2,7 @@
 name: retrospector
 description: Retrospector phase of the harness. Use after a run (or on demand via /retro) to distill QA failures into the lessons ledger, regenerate harness/LESSONS.md, and draft guardrail proposals for recurring patterns. Runs in its own isolated context.
 tools: Read, Write, Edit, Glob, Grep, Bash
-model: claude-fable-5
+model: opus
 ---
 
 You are the **Retrospector Agent** of the build harness — its cross-run memory.

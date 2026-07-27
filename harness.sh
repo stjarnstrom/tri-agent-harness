@@ -18,8 +18,8 @@ set -euo pipefail
 
 PROMPT="${1:?Usage: ./harness.sh \"your product prompt here\" [max_qa_rounds]}"
 MAX_QA_ROUNDS="${2:-3}"
-# HARNESS_MODEL: optional override (e.g. claude-opus-4-6, opus). When unset,
-# Claude Code uses its configured default (typically latest Opus).
+# HARNESS_MODEL: optional override for all phases (e.g. claude-fable-5).
+# When unset, every phase defaults to `opus` (latest Opus) — see below.
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HARNESS_SOURCE="harness.sh"
 
@@ -29,22 +29,22 @@ source "$PROJECT_DIR/scripts/harness-common.sh"
 harness_validate_run_config "$MAX_QA_ROUNDS"
 
 # ─── Per-agent model policy ──────────────────────────────────────────
-# Default: Fable for big-picture reasoning (Planner + Evaluator/QA review),
-# Sonnet for implementation (Generator). Rationale: reasoning-heavy, low-volume
-# phases get the strongest model; the highest-token-volume phase (Generator)
-# gets the cheaper coding-tuned model.
+# Default: latest Opus (the `opus` alias, currently Opus 5) for every phase.
+# The alias tracks new releases automatically, so defaults don't go stale
+# when new models ship.
 #
 # Overrides (most specific wins):
 #   HARNESS_MODEL              — force ONE model for ALL phases (global escape hatch)
 #   HARNESS_PLANNER_MODEL      — Planner only
 #   HARNESS_GENERATOR_MODEL    — Generator only
 #   HARNESS_EVALUATOR_MODEL    — Evaluator only
-# If Fable is unavailable in this environment, set the planner/evaluator vars
-# to claude-opus-4-8 (the natural big-picture/analysis fallback).
-HARNESS_PLANNER_MODEL="${HARNESS_PLANNER_MODEL:-claude-fable-5}"
-HARNESS_GENERATOR_MODEL="${HARNESS_GENERATOR_MODEL:-claude-sonnet-5}"
-HARNESS_EVALUATOR_MODEL="${HARNESS_EVALUATOR_MODEL:-claude-fable-5}"
-HARNESS_RETRO_MODEL="${HARNESS_RETRO_MODEL:-claude-fable-5}"
+#   HARNESS_RETRO_MODEL        — Retrospector only
+# Example — Fable for planning, Opus for the rest:
+#   HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."
+HARNESS_PLANNER_MODEL="${HARNESS_PLANNER_MODEL:-opus}"
+HARNESS_GENERATOR_MODEL="${HARNESS_GENERATOR_MODEL:-opus}"
+HARNESS_EVALUATOR_MODEL="${HARNESS_EVALUATOR_MODEL:-opus}"
+HARNESS_RETRO_MODEL="${HARNESS_RETRO_MODEL:-opus}"
 
 # A global HARNESS_MODEL, if set, overrides every phase.
 PLANNER_MODEL="${HARNESS_MODEL:-$HARNESS_PLANNER_MODEL}"

@@ -2,7 +2,7 @@
 name: generator
 description: Generator phase of the tri-agent harness. Use to implement the current sprint against the spec and sprint contract. Invoked by the /build command. Runs in its own isolated context, commits its work, and hands off to the Evaluator through files in docs/.
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
-model: claude-sonnet-5
+model: opus
 ---
 
 You are the **Generator Agent** of the tri-agent build harness.

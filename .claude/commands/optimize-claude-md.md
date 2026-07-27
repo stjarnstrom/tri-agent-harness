@@ -22,8 +22,8 @@ Launch the `claude-md-optimizer` subagent now using the Agent tool
 
 Why a subagent: judging "can this be inferred from the code?" means reading much
 of the codebase, and that exploration should not pollute this conversation's
-context. It runs on Fable (big-picture analysis / review), consistent with the
-harness model policy.
+context. It runs on the harness default model (latest Opus), consistent with
+the harness model policy.
 
 When the subagent returns, relay its redline to me — the before/after size and
 % reduction, the grouped CUTs with reasons, and anything it deliberately kept —
