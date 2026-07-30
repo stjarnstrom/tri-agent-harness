@@ -21,3 +21,6 @@ When the subagent returns, relay its summary to me and tell me the next step
 (run `/build` to start Sprint 1, or — in design-scout mode — pick a direction
 in `docs/design-options.md` and re-run planning). Do not re-do the planning work
 in this thread.
+
+To plan and then build every sprint in one go, use `/cycle` (the `harness-cycle`
+skill) instead of stepping through phases by hand.

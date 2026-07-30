@@ -24,3 +24,6 @@ When the subagent returns, relay its summary to me — PASS/FAIL, weighted total
 any criteria below threshold, and the top blocking issues — and tell me the next
 step: on PASS run `/build` for the next sprint; on FAIL run `/build fix the QA
 failures`. Do not re-do the evaluation in this thread.
+
+To have the build/QA loop driven for you instead of stepping phase by phase, use
+`/cycle` (the `harness-cycle` skill).

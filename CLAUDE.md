@@ -28,6 +28,12 @@
 This project uses a **combined harness** with two layers:
 
 ### Orchestration (who runs when)
+
+Three runners drive the same phases over the same files: `./harness.sh`
+(unattended terminal), the `harness-cycle` skill via `/cycle` (one Claude Code
+conversation drives the loop), and the per-phase slash commands. Switch between
+them at any point, including mid-sprint.
+
 - **Planner** (Fable): Expands a short prompt into spec, sprint plan, and status tracker.
 - **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
 - **Pre-QA Gate**: Mechanical checks (lints, artifacts) before Evaluator runs.
@@ -193,6 +199,26 @@ HARNESS_RETRO=off ./harness.sh "..."       # skip end-of-run learning
 HARNESS_MODEL=claude-fable-5 ./harness.sh "..."           # force one model for all phases
 HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."   # override a single phase (Fable for planning)
 ```
+
+**Chat-driven cycle** (whole loop in one Claude Code conversation — terminal, desktop, or mobile):
+
+```
+/cycle build a habit tracker with streak analytics   # plan, then build every sprint
+/cycle                                              # continue from current sprint-status
+/cycle sprints=1                                    # one sprint, then stop
+/cycle rounds=5 advance                             # 5 QA rounds/sprint, advance on failure
+```
+
+The `harness-cycle` skill orchestrates; each phase still runs in an isolated
+subagent. Control flow comes from a deterministic oracle, never improvised:
+
+```bash
+node harness-runtime/cli.mjs next-step                            # what runs next, and why
+node harness-runtime/cli.mjs next-step --record generator --sprint 3
+```
+
+`next-step` owns round counting, pre-QA gate ordering, gate-report staleness, the
+round budget, and halt-vs-advance. It is side-effect-free until `--record`.
 
 **Interactive mode (Claude Code slash commands):**
 

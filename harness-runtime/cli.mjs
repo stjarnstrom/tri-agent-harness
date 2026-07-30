@@ -16,6 +16,8 @@ import {
 } from "./orchestrator.mjs";
 import { readOrchestratorState } from "./state-store.mjs";
 import { EVENT_LOG_FILE } from "./event-log.mjs";
+import { computeNextStep, formatNextStep } from "./next-step.mjs";
+import { recordPhase } from "./cycle-record.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -64,6 +66,9 @@ function usage() {
   node harness-runtime/cli.mjs qa [--sprint N] [--dry-run]
   node harness-runtime/cli.mjs dry-run [--prompt "..."] [--max-steps N]
   node harness-runtime/cli.mjs status [--json]
+  node harness-runtime/cli.mjs next-step [--json]
+                                       (read-only: prints the single next step for a chat-driven cycle)
+  node harness-runtime/cli.mjs next-step --record <planner|generator|pre-qa-gate|evaluator|retrospector> [--sprint N] [--result pass|fail]
   node harness-runtime/cli.mjs validate --phase <planner|generator|evaluator> --sprint <N>
   node harness-runtime/cli.mjs sprint-mark-skipped --sprint <N> [--notes "..."]
   node harness-runtime/cli.mjs handoff-write --phase <planner|generator|evaluator> --sprint <N> --qa-round <N> --next <run-planner|run-generator|run-evaluator|done|manual-review> --source <workflow> [--artifacts <comma,separated,paths>] [--runtime-mode <local|cloud>] [--agent-id <id>] [--run-id <id>] [--notes <text>]
@@ -287,6 +292,45 @@ async function runStatus(flags) {
   console.log(`Reason: ${summary.reason}`);
 }
 
+async function runNextStep(flags, policy) {
+  const asJson = Boolean(flags.json);
+
+  if (typeof flags.record === "string") {
+    const sprint = flags.sprint ? Number.parseInt(flags.sprint, 10) : undefined;
+    const outcome = await recordPhase({
+      phase: flags.record,
+      sprint,
+      result: typeof flags.result === "string" ? flags.result : undefined,
+      ...(typeof flags.source === "string" ? { source: flags.source } : {}),
+    });
+
+    if (asJson) {
+      console.log(JSON.stringify(outcome, null, 2));
+      return;
+    }
+
+    console.log(
+      `Recorded ${outcome.phase}${outcome.sprint ? ` (sprint ${outcome.sprint}` : ""}${outcome.qaRound ? `, round ${outcome.qaRound}` : ""}${outcome.sprint ? ")" : ""}.`,
+    );
+    return;
+  }
+
+  if (flags.record === true) {
+    throw new Error(
+      "next-step --record requires a phase: planner, generator, pre-qa-gate, evaluator, or retrospector.",
+    );
+  }
+
+  const step = await computeNextStep({ policy });
+
+  if (asJson) {
+    console.log(JSON.stringify(step, null, 2));
+    return;
+  }
+
+  console.log(formatNextStep(step));
+}
+
 async function runPostQaWrite(flags) {
   if (!(await hasSprintStatus())) {
     throw new Error("docs/sprint-status.md is missing. Cannot write post-QA handoff.");
@@ -407,6 +451,11 @@ async function main() {
 
   if (command === "status") {
     await runStatus(flags);
+    return;
+  }
+
+  if (command === "next-step") {
+    await runNextStep(flags, policy);
     return;
   }
 
