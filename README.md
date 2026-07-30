@@ -93,7 +93,45 @@ Visual walkthrough of the same guidance: [`docs/guide.html#preplan`](docs/guide.
 ./harness.sh "your product prompt" 5    # max QA rounds per sprint
 ```
 
-### 2. Interactive — Claude Code slash commands
+### 2. Chat-driven cycle — one conversation, no terminal
+
+```
+/cycle build a habit tracker with streak analytics
+/cycle                      # continue from wherever sprint-status stands
+/cycle sprints=1            # one sprint, then stop
+/cycle rounds=5 advance     # 5 QA rounds per sprint, advance on persistent failure
+```
+
+The [`harness-cycle`](.claude/skills/harness-cycle/SKILL.md) skill runs the whole
+loop — Planner → Generator → Pre-QA Gate → Evaluator → Retrospector — from a
+single Claude Code session (terminal, desktop app, or mobile). Claude
+orchestrates; each phase still runs in its own isolated subagent, so the
+Evaluator's judgment stays independent of the Generator's.
+
+Control flow is **not** improvised. The orchestrator asks a deterministic oracle
+what to do next and does exactly that:
+
+```bash
+node harness-runtime/cli.mjs next-step          # what runs next, and why
+node harness-runtime/cli.mjs next-step --json   # same, machine-readable
+node harness-runtime/cli.mjs next-step --record generator --sprint 3
+```
+
+`next-step` owns everything a model would eventually get wrong: round counting,
+the pre-QA gate's position between Generator and Evaluator, gate-report
+staleness (a PASS from round 1 never clears round 2's code), the per-sprint round
+budget, and the halt-vs-advance policy. It reads the same canonical files as
+`./harness.sh` and is safe to call repeatedly — it has no side effects until you
+`--record` a finished phase.
+
+| Step | Orchestrator does |
+|------|-------------------|
+| `run-planner` / `run-generator` / `run-evaluator` / `run-retro` | Dispatch that subagent |
+| `run-pre-qa-gate` | Run `scripts/pre-qa-gate.sh N` |
+| `advance-sprint` | Mark the sprint Skipped and continue |
+| `await-design-selection` / `halt` / `manual-review` / `done` | Stop and report |
+
+### 3. Interactive — one phase at a time
 
 | Command | Phase |
 |---------|-------|
@@ -101,8 +139,9 @@ Visual walkthrough of the same guidance: [`docs/guide.html#preplan`](docs/guide.
 | `/build` | Generator |
 | `/qa` | Evaluator |
 | `/retro` | Retrospector |
+| `/cycle` | All of the above, looped |
 
-Each command dispatches an isolated subagent in [`.claude/agents/`](.claude/agents/). Typical flow: `/plan "…"` → `/build` → `/qa` → repeat.
+Each command dispatches an isolated subagent in [`.claude/agents/`](.claude/agents/). Typical flow: `/plan "…"` → `/build` → `/qa` → repeat. Reach for these when you want a checkpoint between phases; reach for `/cycle` when you want the loop driven for you.
 
 #### Model policy
 
@@ -120,7 +159,7 @@ HARNESS_RETRO_MODEL=claude-fable-5 \
 ./harness.sh "your product prompt"
 ```
 
-For the interactive slash commands, the model comes from the `model:` field in [`.claude/agents/`](.claude/agents/) — edit it there to change a phase's model.
+For the chat-driven cycle and the interactive slash commands, the model comes from the `model:` field in [`.claude/agents/`](.claude/agents/) — edit it there to change a phase's model.
 
 ## Learning loop (Retrospector)
 
@@ -145,6 +184,7 @@ bun lessons:sync <template-repo-path>
 |-----------------|------|
 | Start a product (visual) | [`docs/guide.html`](docs/guide.html) |
 | Feed a plan from another agent | [README § Planning with another agent](#planning-with-another-agent) · [`guide.html#preplan`](docs/guide.html#preplan) |
+| Run the whole cycle in one chat | [`.claude/skills/harness-cycle/SKILL.md`](.claude/skills/harness-cycle/SKILL.md) · [README § Chat-driven cycle](#2-chat-driven-cycle--one-conversation-no-terminal) |
 | Phase file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | Agent sandbox rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Product npm scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |

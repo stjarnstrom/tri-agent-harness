@@ -33,6 +33,14 @@ between them at any time within the same repo.
 Autonomous runs write `docs/workflow-handoff.json` at phase boundaries
 via `harness-runtime/cli.mjs`.
 
+There are three runners, all bound by this contract: `./harness.sh`
+(autonomous), the `harness-cycle` skill (one Claude Code conversation drives the
+whole loop), and the per-phase slash commands (`/plan`, `/build`, `/qa`,
+`/retro`). The skill path takes its control flow from
+`node harness-runtime/cli.mjs next-step` — never from a model's own reading of
+the docs — so round counting, gate ordering, and the round budget behave
+identically to the shell loop.
+
 ## Architecture Layers
 
 1. **Environment (always on):** `harness/AGENT-INSTRUCTIONS.md`, git hooks,
@@ -40,7 +48,9 @@ via `harness-runtime/cli.mjs`.
 2. **Orchestration:** Planner → Generator → **Pre-QA Gate** → Evaluator loop,
    then **Retrospector** at end of run.
 3. **Phase gates (programmatic):** `scripts/pre-qa-gate.sh` runs mechanical
-   checks before Evaluator. Failures return to Generator without consuming a QA round.
+   checks before Evaluator. Failures return to Generator and consume a QA round,
+   the same as a QA failure — a sprint that never clears the gate therefore
+   exhausts its round budget rather than looping forever.
 
 ## Canonical Files
 
@@ -122,6 +132,19 @@ via `harness-runtime/cli.mjs`.
 - Reads: sprint contract, sprint status, application source
 - Writes: `docs/mechanical-checks-sprint-[N].md`
 - Blocks Evaluator if Result: FAIL
+- A gate report older than `docs/sprint-status.md` or the sprint contract is
+  **stale** — it was written before the code it claims to have checked, so the
+  gate must run again before the Evaluator does.
+
+### Cycle bookkeeping (orchestrator, not an agent)
+- `docs/orchestrator-state.json`: advisory bookkeeping. `cycleAttempts[sprint]`
+  counts generator dispatches (the round budget) for chat-driven runs;
+  `retro.completedAt` records the last Retrospector pass so retro re-triggers
+  only when a newer QA report exists.
+- Advisory means exactly that: if it disagrees with `docs/sprint-status.md`, the
+  status file wins. `next-step` cross-checks its counter against the canonical
+  docs and takes the higher round, so lost bookkeeping can never silently grant
+  a sprint extra rounds.
 
 ### Evaluator phase
 - Reads:
@@ -168,8 +191,11 @@ Rules:
 
 ## Mode Switching Rules
 
-Within this repo, prefer `./harness.sh` for autonomous runs and slash commands
-for interactive control. Both paths share the same canonical files above.
+Within this repo, prefer `./harness.sh` for unattended terminal runs, the
+`harness-cycle` skill (`/cycle`) when you are working inside a single Claude Code
+conversation, and the per-phase slash commands when you want a checkpoint
+between phases. All three share the canonical files above, so you can switch
+between them mid-project — including mid-sprint.
 
 ## Conflict Resolution
 

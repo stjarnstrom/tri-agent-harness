@@ -22,3 +22,6 @@ separate process. All handoff is through files in `docs/`.
 When the subagent returns, relay its summary to me — sprint number, what it
 built, known gaps, and lint/status confirmation — and tell me the next step:
 run `/qa` to evaluate the sprint. Do not re-do the build work in this thread.
+
+To have the whole loop driven for you instead of stepping phase by phase, use
+`/cycle` (the `harness-cycle` skill).
