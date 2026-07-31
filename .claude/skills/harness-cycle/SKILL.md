@@ -1,6 +1,7 @@
 ---
 name: harness-cycle
 description: Run the full tri-agent build cycle (Planner → Generator → Pre-QA Gate → Evaluator → Retrospector) from a single Claude Code conversation, dispatching each phase to an isolated subagent. Use when the user wants to build a product with the harness without running ./harness.sh in a terminal — "run the harness", "build this with the harness", "run the cycle", "continue the build", "next sprint" — or invokes /harness-cycle. For a single phase, use /plan, /build, /qa, or /retro instead.
+argument-hint: "[product prompt] [sprints=N] [rounds=N] [advance] [pause=sprint] [retro=off]"
 ---
 
 # Harness cycle (chat-driven)
@@ -69,6 +70,11 @@ Use the Agent tool with `subagent_type` matching the `Subagent` field
 (`planner`, `generator`, `evaluator`, `retrospector`). Each subagent already
 knows its own persona and required reading; your prompt gives it the target and
 the focus, not a re-explanation of its job.
+
+Dispatch with the Agent tool directly — do **not** invoke the `/plan`, `/build`,
+`/qa`, or `/retro` skills to do it. Those are the manual single-phase entry
+points; they fork with a fixed prompt and cannot carry the sprint number, round,
+focus, and context files that `next-step` just told you to pass.
 
 Include in the prompt:
 

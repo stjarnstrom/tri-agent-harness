@@ -8,6 +8,10 @@ build/
 out/
 .turbo/
 
+# ...but the /build phase skill is source, not build output. `build/` above
+# matches any directory of that name at any depth, which silently swallows it.
+!.claude/skills/build/
+
 # Environment and secrets
 .env
 .env.*

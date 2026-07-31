@@ -133,15 +133,17 @@ budget, and the halt-vs-advance policy. It reads the same canonical files as
 
 ### 3. Interactive — one phase at a time
 
-| Command | Phase |
-|---------|-------|
-| `/plan` | Planner |
-| `/build` | Generator |
-| `/qa` | Evaluator |
-| `/retro` | Retrospector |
-| `/cycle` | All of the above, looped |
+| Skill | Phase | Subagent |
+|-------|-------|----------|
+| `/plan` | Planner | [`planner`](.claude/agents/planner.md) |
+| `/build` | Generator | [`generator`](.claude/agents/generator.md) |
+| `/qa` | Evaluator | [`evaluator`](.claude/agents/evaluator.md) |
+| `/retro` | Retrospector | [`retrospector`](.claude/agents/retrospector.md) |
+| `/cycle` | All of the above, looped | (orchestrates the rest) |
 
-Each command dispatches an isolated subagent in [`.claude/agents/`](.claude/agents/). Typical flow: `/plan "…"` → `/build` → `/qa` → repeat. Reach for these when you want a checkpoint between phases; reach for `/cycle` when you want the loop driven for you.
+Typical flow: `/plan "…"` → `/build` → `/qa` → repeat. Reach for these when you want a checkpoint between phases; reach for `/cycle` when you want the loop driven for you.
+
+Each phase lives in [`.claude/skills/`](.claude/skills/) and declares `context: fork` with its `agent:`, so Claude Code runs it in the named isolated subagent rather than relying on the model to remember to delegate. They also set `disable-model-invocation: true` — Claude will not fire a build or a QA pass at you unprompted; you invoke them, or `/cycle` drives them. `/cycle` itself does **not** fork: it stays in the conversation to orchestrate, and dispatches each phase as a subagent.
 
 #### Model policy
 
@@ -159,7 +161,7 @@ HARNESS_RETRO_MODEL=claude-fable-5 \
 ./harness.sh "your product prompt"
 ```
 
-For the chat-driven cycle and the interactive slash commands, the model comes from the `model:` field in [`.claude/agents/`](.claude/agents/) — edit it there to change a phase's model.
+For the chat-driven cycle and the per-phase skills, the model comes from the `model:` field in [`.claude/agents/`](.claude/agents/) — edit it there to change a phase's model. The phase skills name the subagent, so they inherit its model and tool restrictions.
 
 ## Learning loop (Retrospector)
 
@@ -185,6 +187,7 @@ bun lessons:sync <template-repo-path>
 | Start a product (visual) | [`docs/guide.html`](docs/guide.html) |
 | Feed a plan from another agent | [README § Planning with another agent](#planning-with-another-agent) · [`guide.html#preplan`](docs/guide.html#preplan) |
 | Run the whole cycle in one chat | [`.claude/skills/harness-cycle/SKILL.md`](.claude/skills/harness-cycle/SKILL.md) · [README § Chat-driven cycle](#2-chat-driven-cycle--one-conversation-no-terminal) |
+| Run or edit a single phase | [`.claude/skills/`](.claude/skills/) — `plan`, `build`, `qa`, `retro` |
 | Phase file ownership | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | Agent sandbox rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Product npm scripts | [`docs/templates/app-package-scripts.md`](docs/templates/app-package-scripts.md) |

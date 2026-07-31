@@ -31,7 +31,7 @@ This project uses a **combined harness** with two layers:
 
 Three runners drive the same phases over the same files: `./harness.sh`
 (unattended terminal), the `harness-cycle` skill via `/cycle` (one Claude Code
-conversation drives the loop), and the per-phase slash commands. Switch between
+conversation drives the loop), and the per-phase skills. Switch between
 them at any point, including mid-sprint.
 
 - **Planner** (Fable): Expands a short prompt into spec, sprint plan, and status tracker.
@@ -220,12 +220,18 @@ node harness-runtime/cli.mjs next-step --record generator --sprint 3
 `next-step` owns round counting, pre-QA gate ordering, gate-report staleness, the
 round budget, and halt-vs-advance. It is side-effect-free until `--record`.
 
-**Interactive mode (Claude Code slash commands):**
+**Interactive mode (one phase at a time):**
 
-- `/project:plan [description]` — Expand idea into full spec
-- `/project:build` — Implement the current sprint
-- `/project:qa` — Run QA against the current sprint
-- `/project:retro` — Distill QA failures into lessons and guardrail proposals
+Each phase is a skill in `.claude/skills/` that forks into its subagent
+(`context: fork` + `agent:`), so isolation is enforced by the harness rather
+than by the model remembering to delegate. All four set
+`disable-model-invocation: true` — they run when you invoke them or when
+`/cycle` drives them, never spontaneously.
+
+- `/plan [description]` — Expand idea into full spec
+- `/build` — Implement the current sprint
+- `/qa` — Run QA against the current sprint
+- `/retro` — Distill QA failures into lessons and guardrail proposals
 
 **Utilities:**
 

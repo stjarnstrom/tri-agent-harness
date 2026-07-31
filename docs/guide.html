@@ -693,8 +693,8 @@
   <!-- ================= MODES ================= -->
   <section id="modes">
     <div class="wrap">
-      <span class="eyebrow">Two ways in</span>
-      <h2>Autonomous or interactive</h2>
+      <span class="eyebrow">Three ways in</span>
+      <h2>Autonomous, one chat, or phase by phase</h2>
     </div>
     <div class="wrap-wide">
       <div class="duo">
@@ -705,18 +705,30 @@
           (<code>HARNESS_PAUSE=sprint</code> asks before each sprint).</p>
         </div>
         <div class="card">
-          <h3>Interactive — slash commands</h3>
-          <p>Drive each phase yourself from a Claude Code session. Each command
-          dispatches an isolated subagent, so the phases stay independent.</p>
-          <p><code>/project:plan</code> expand the idea ·
-          <code>/project:build</code> implement the sprint ·
-          <code>/project:qa</code> grade it ·
-          <code>/project:retro</code> distill the lessons.</p>
+          <h3>One chat — <code>/cycle</code></h3>
+          <p>The whole loop driven from a single Claude Code conversation —
+          terminal, desktop, or mobile. Claude orchestrates; each phase still
+          runs in its own isolated subagent.</p>
+          <p>Control flow comes from
+          <code>harness-runtime/cli.mjs next-step</code>, which owns round
+          counting, the pre-QA gate, and the round budget — never improvised.</p>
+        </div>
+        <div class="card">
+          <h3>Phase by phase — skills</h3>
+          <p>Drive one phase at a time when you want a checkpoint between them.
+          Each skill forks into its subagent, so the phases stay independent.</p>
+          <p><code>/plan</code> expand the idea ·
+          <code>/build</code> implement the sprint ·
+          <code>/qa</code> grade it ·
+          <code>/retro</code> distill the lessons.</p>
         </div>
       </div>
       <p style="margin-top: 1.5rem; max-width: 44em;">
-        Prefer the autonomous loop. Interactive slash commands are the
-        hands-on alternative in the same Claude Code product.
+        Use <code>./harness.sh</code> for unattended terminal runs,
+        <code>/cycle</code> when you are already in a Claude Code session, and
+        the phase skills when you want to inspect the work between phases. All
+        three share the same files, so you can switch at any point — including
+        mid-sprint.
       </p>
     </div>
   </section>

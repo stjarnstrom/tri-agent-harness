@@ -4,7 +4,7 @@ This document defines the shared file and state contract used by the **Claude Co
 harness** (orchestration + guardrails):
 
 - `./harness.sh` autonomous execution — **canonical**
-- Claude Code interactive execution (`.claude/commands/*` → `.claude/agents/*` subagents)
+- Claude Code interactive execution (`.claude/skills/*` → `.claude/agents/*` subagents)
 
 Sibling repos for other tools (separate products, not adapters in this tree):
 
@@ -12,8 +12,10 @@ Sibling repos for other tools (separate products, not adapters in this tree):
 - [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode) — OpenCode CLI
 
 The interactive Claude Code path dispatches each phase to a dedicated subagent
-(`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`,
-`/build`, `/qa`, and `/retro` slash commands. Each subagent runs in its own isolated context and communicates
+(`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`, `/build`,
+`/qa`, and `/retro` skills, each declaring `context: fork` with its `agent:` so
+the harness enforces the isolation rather than trusting the model to delegate.
+Each subagent runs in its own isolated context and communicates
 only through the canonical files below — the same isolation `harness.sh` gets
 from separate `claude -p` processes. Subagents cannot pause mid-run, so
 `/build` writes the sprint contract and implements in a single pass.
@@ -35,8 +37,8 @@ via `harness-runtime/cli.mjs`.
 
 There are three runners, all bound by this contract: `./harness.sh`
 (autonomous), the `harness-cycle` skill (one Claude Code conversation drives the
-whole loop), and the per-phase slash commands (`/plan`, `/build`, `/qa`,
-`/retro`). The skill path takes its control flow from
+whole loop), and the per-phase skills (`/plan`, `/build`, `/qa`, `/retro` in
+`.claude/skills/`, each forking into its subagent via `context: fork`). The skill path takes its control flow from
 `node harness-runtime/cli.mjs next-step` — never from a model's own reading of
 the docs — so round counting, gate ordering, and the round budget behave
 identically to the shell loop.
@@ -193,8 +195,8 @@ Rules:
 
 Within this repo, prefer `./harness.sh` for unattended terminal runs, the
 `harness-cycle` skill (`/cycle`) when you are working inside a single Claude Code
-conversation, and the per-phase slash commands when you want a checkpoint
-between phases. All three share the canonical files above, so you can switch
+conversation, and the per-phase skills when you want a checkpoint between
+phases. All three share the canonical files above, so you can switch
 between them mid-project — including mid-sprint.
 
 ## Conflict Resolution
