@@ -28,7 +28,10 @@
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: clip;
+  }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
   }
@@ -38,13 +41,21 @@
     font-family: var(--body);
     font-size: 1rem;
     line-height: 1.65;
+    overflow-x: clip;
+    max-width: 100%;
   }
   a { color: var(--judge); text-decoration: none; }
   a:hover, a:focus-visible { text-decoration: underline; }
   :focus-visible { outline: 2px solid var(--learn); outline-offset: 2px; }
 
-  .wrap { max-width: 740px; margin: 0 auto; padding: 0 1.5rem; }
-  .wrap-wide { max-width: 1020px; margin: 0 auto; padding: 0 1.5rem; }
+  .wrap, .wrap-wide {
+    width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  .wrap { max-width: 740px; }
+  .wrap-wide { max-width: 1020px; }
 
   /* ---------- header ---------- */
   header { border-bottom: 1px solid var(--panel-deep); padding: 1rem 0; }
@@ -85,31 +96,34 @@
   .doc-meta {
     margin-top: 1.75rem; font-family: var(--mono); font-size: 0.72rem;
     letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 0.35rem 0;
   }
   .doc-meta span { white-space: nowrap; }
   .doc-meta span + span::before { content: "·"; margin: 0 0.6em; }
 
   /* ---------- sections ---------- */
-  section { padding: 3.5rem 0 0.5rem; }
+  section { padding: 3.5rem 0 0.5rem; overflow-x: clip; }
   section h2 {
     font-family: var(--display); font-weight: 700;
     font-size: clamp(1.5rem, 3vw, 1.9rem); letter-spacing: -0.02em;
     margin-bottom: 1.1rem;
   }
-  section p { margin-bottom: 1.05rem; max-width: 44em; }
+  section p { margin-bottom: 1.05rem; max-width: 44em; overflow-wrap: anywhere; }
   section p:last-child { margin-bottom: 0; }
   .lead-in { color: var(--muted); }
   strong { font-weight: 600; }
   code {
     font-family: var(--mono); font-size: 0.85em;
     background: var(--panel); padding: 0.1em 0.35em; border-radius: 3px;
+    overflow-wrap: anywhere; word-break: break-word;
   }
 
   /* ---------- diagram plates ---------- */
   .plate {
     background: var(--panel); border-radius: 10px;
     padding: 1.75rem 1.5rem 1.25rem; margin: 2rem 0;
-    overflow-x: auto; position: relative;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    position: relative; max-width: 100%;
   }
   .plate svg { display: block; width: 100%; height: auto; min-width: 620px; }
   .plate-caption {
@@ -137,10 +151,11 @@
   }
 
   /* ---------- start checklist ---------- */
-  .start-steps { margin: 2rem 0 1.5rem; counter-reset: start-step; }
+  .start-steps { margin: 2rem 0 1.5rem; counter-reset: start-step; min-width: 0; }
   .start-step {
-    display: grid; grid-template-columns: 2.5rem 1fr; gap: 0.85rem;
+    display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0.85rem;
     padding: 1.1rem 0; border-top: 1px solid var(--panel-deep);
+    min-width: 0;
   }
   .start-step:last-child { border-bottom: 1px solid var(--panel-deep); }
   .start-step::before {
@@ -158,10 +173,14 @@
   .start-step p:last-child { margin-bottom: 0; }
   .start-step strong { color: var(--ink); }
   .cards {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.9rem; margin: 2rem 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 0.9rem; margin: 2rem 0; min-width: 0;
   }
-  .card { background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem; }
+  .card {
+    background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem;
+    min-width: 0; max-width: 100%;
+  }
   .card h3 {
     font-family: var(--display); font-weight: 700; font-size: 1.05rem;
     letter-spacing: -0.015em; margin-bottom: 0.1rem;
@@ -221,8 +240,9 @@
 
   /* ---------- two-up panels ---------- */
   .duo {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0.9rem; margin: 1.8rem 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 0.9rem; margin: 1.8rem 0; min-width: 0;
   }
   .duo .card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
   .duo .card p { margin-bottom: 0.6rem; }
@@ -233,15 +253,22 @@
   .console {
     background: var(--console); color: var(--console-ink);
     border-radius: 10px; padding: 1.4rem 1.5rem; margin: 1.8rem 0;
-    overflow-x: auto;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    max-width: 100%; min-width: 0;
   }
-  .console pre { font-family: var(--mono); font-size: 0.84rem; line-height: 1.65; }
+  .console pre {
+    font-family: var(--mono); font-size: 0.84rem; line-height: 1.65;
+    margin: 0; white-space: pre; tab-size: 2;
+  }
   .console .c { color: var(--console-dim); }
   .console .k { color: #e8a87c; }
   .console .f { color: #9ec7ef; }
 
   /* ---------- tables ---------- */
-  .tbl-scroll { overflow-x: auto; margin: 1.8rem 0; }
+  .tbl-scroll {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    margin: 1.8rem 0; max-width: 100%;
+  }
   .tbl { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 560px; }
   .tbl th {
     font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
@@ -273,6 +300,23 @@
   }
   footer a { color: var(--muted); text-decoration: underline; }
   footer a:hover { color: var(--ink); }
+
+  /* ---------- mobile containment ---------- */
+  @media (max-width: 640px) {
+    .wrap, .wrap-wide { padding: 0 1rem; }
+    .hero { padding-top: 3rem; padding-bottom: 2.25rem; }
+    h1 { max-width: none; }
+    .console {
+      padding: 1.1rem 1rem;
+      margin: 1.2rem 0;
+      border-radius: 8px;
+    }
+    .console pre { font-size: 0.75rem; line-height: 1.55; }
+    .plate { padding: 1.25rem 1rem 1rem; margin: 1.4rem 0; }
+    .start-step { grid-template-columns: 2rem minmax(0, 1fr); gap: 0.65rem; }
+    .cards, .duo { grid-template-columns: 1fr; }
+    .tbl { min-width: 480px; font-size: 0.86rem; }
+  }
 </style>
 </head>
 <body>
