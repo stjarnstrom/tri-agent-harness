@@ -39,6 +39,12 @@ jobs:
             '<p><a href="guide/">Open the field guide</a></p>' \
             > _site/index.html
       - uses: actions/configure-pages@v5
+        with:
+          # Best-effort first-run enable. If this still fails with
+          # "Resource not accessible by integration", enable Pages once
+          # manually: Settings → Pages → Source → GitHub Actions, then
+          # re-run this workflow.
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
