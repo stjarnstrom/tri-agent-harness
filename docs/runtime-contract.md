@@ -58,12 +58,10 @@ identically to the shell loop.
 - `docs/spec.md`: product vision, features, design language, AI integration.
 - `docs/sprint-plan.md`: sprint sequence and per-sprint "done when" outcomes.
 - `docs/sprint-status.md`: source of truth for sprint state.
-- `docs/design-options.md`: three proposed design directions (design-scout mode only).
 
 ### Design input (optional, user-provided before planning)
 - `design/brief.md`: primary design direction (authoritative).
 - `design/constraints.md`: must-have / must-not rules.
-- `design/selected-direction.md`: user's pick after reviewing `docs/design-options.md`.
 - `design/references/*`: mood images, logos, screenshots (png, jpg, webp, svg).
 - `brand-guidelines.md` (root or `agents/`): legacy alias for brief content.
 
@@ -92,25 +90,19 @@ identically to the shell loop.
 
 ### Planner phase
 - Reads: `CLAUDE.md`, `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
-  `agents/criteria/*.md`, `harness/workspace-template.md`, `design/*` (if present),
-  `docs/design-options.md` (finalize mode), `docs/templates/design-options.md` (scout mode)
-- Writes (full/finalize mode):
+  `agents/criteria/*.md`, `design/*` (if present)
+- Writes:
   - `docs/spec.md`
   - `docs/sprint-plan.md`
   - `docs/sprint-status.md` (initialize all sprints as `Not started`)
   - `CLAUDE.md` (project-specific updates)
-- Writes (design-scout mode — no user brief):
-  - `docs/design-options.md` only — harness halts for user selection
 
 ### Planning state (resume logic)
 
 | State | Files present | Next action |
 |-------|---------------|-------------|
 | Complete | `docs/spec.md` + `docs/sprint-status.md` | Resume build loop |
-| Await selection | `docs/design-options.md`, no `docs/sprint-status.md`, no `design/selected-direction.md` | User picks direction; re-run harness |
-| Finalize | `docs/design-options.md` + `design/selected-direction.md`, no sprint status | Run planner (finalize mode) |
-| Initial + brief | `design/brief.md` or references | Run planner (full mode) |
-| Initial, no brief | — | Run planner (scout mode) unless `HARNESS_YES=1` (full mode, autonomous pick) |
+| Initial | planning artifacts missing | Run planner |
 
 ### Generator phase
 - Reads:
@@ -139,8 +131,9 @@ identically to the shell loop.
 ### Cycle bookkeeping (orchestrator, not an agent)
 - `docs/orchestrator-state.json`: advisory bookkeeping. `cycleAttempts[sprint]`
   counts generator dispatches (the round budget) for chat-driven runs;
-  `retro.completedAt` records the last Retrospector pass so retro re-triggers
-  only when a newer QA report exists.
+  `retro.completedAt` and `retro.processedReports` record the last Retrospector
+  pass so retro re-triggers when a new QA report appears or an existing report
+  is rewritten after that pass.
 - Advisory means exactly that: if it disagrees with `docs/sprint-status.md`, the
   status file wins. `next-step` cross-checks its counter against the canonical
   docs and takes the higher round, so lost bookkeeping can never silently grant

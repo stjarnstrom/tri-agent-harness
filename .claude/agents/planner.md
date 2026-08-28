@@ -22,20 +22,17 @@ you explicitly in your task prompt.
 4. All files in `agents/criteria/` — what the Evaluator will grade against.
 5. `CLAUDE.md` — stack defaults and any brand/design guidelines.
 6. Design input, if present: `design/brief.md`, `design/constraints.md`, and
-   assets under `design/references/`. If `design/selected-direction.md` exists,
-   read it together with `docs/design-options.md`. If a legacy
-   `brand-guidelines.md` exists in the project root or `agents/`, read it.
-7. The `frontend-design` skill if it is available — use it to ground the visual
-   design language.
-8. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
+   assets under `design/references/`. If a legacy `brand-guidelines.md` exists
+   in the project root or `agents/`, read it.
+7. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
    Treat the entries in your phase's section as binding instructions.
 
 ## Your task
 
 Expand the product prompt (passed in your task prompt) into a comprehensive,
-ambitious spec, following the mode-selection rules in `agents/planner.md`.
+ambitious spec, following `agents/planner.md`.
 
-Normal (full / finalize) mode — write:
+Write:
 
 1. `docs/spec.md` — full product spec.
 2. `docs/sprint-plan.md` — sprint breakdown with user stories and "done when"
@@ -45,15 +42,10 @@ Normal (full / finalize) mode — write:
 4. `CLAUDE.md` — update with product name, confirmed stack, design-language
    summary, and links to the docs above.
 
-Design-scout mode (no user brief, per `agents/planner.md`) — write **only**
-`docs/design-options.md` (three directions) and stop for user selection.
-
 ## Return to the orchestrator
 
 When your files are written, return a concise summary (a few sentences): the
-product you spec'd, the number of sprints, the design direction, and which
-mode you ran. End with the exact next step for the user — for full/finalize
-mode: run `/plan`'s follow-up `/build` to start Sprint 1; for scout mode: pick
-a direction in `docs/design-options.md`, then re-run planning. Your final
+product you spec'd, the number of sprints, and the design direction. End with
+the exact next step for the user: run `/build` to start Sprint 1. Your final
 message is read by the orchestrator, not shown to the user directly, so keep
 it tight and factual — the real output is the files.

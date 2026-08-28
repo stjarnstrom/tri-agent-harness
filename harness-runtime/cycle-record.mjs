@@ -16,6 +16,8 @@ import {
   DOCS_DIR,
   existingFiles,
   nextAttemptNumber,
+  listQaReportPaths,
+  newestQaReportMtimeMs,
   qaReportPath,
   recordedAttempts,
 } from "./cycle-state.mjs";
@@ -93,7 +95,6 @@ async function recordPlanner(source) {
       path.join(DOCS_DIR, "spec.md"),
       path.join(DOCS_DIR, "sprint-plan.md"),
       SPRINT_STATUS_FILE,
-      path.join(DOCS_DIR, "design-options.md"),
     ]),
     source,
   });
@@ -168,7 +169,14 @@ export async function recordPhase({ phase, sprint, result, source = CYCLE_SOURCE
   const handoff = await readWorkflowHandoff(HANDOFF_FILE);
 
   if (phase === "retrospector") {
-    await updateOrchestratorState({ retro: { completedAt: new Date().toISOString() } });
+    const processedReports = await listQaReportPaths();
+    const newestReportMs = await newestQaReportMtimeMs();
+    await updateOrchestratorState({
+      retro: {
+        completedAt: new Date(newestReportMs ?? Date.now()).toISOString(),
+        processedReports,
+      },
+    });
     await logEvent({ event: "phase.done", phase, source });
     return { phase, recorded: true };
   }

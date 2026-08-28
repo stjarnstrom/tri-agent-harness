@@ -1,5 +1,5 @@
 import { logEvent } from "./event-log.mjs";
-import { getPlanningState, needsPlanning } from "./design-brief.mjs";
+import { needsPlanning } from "./design-brief.mjs";
 import { fileExists } from "./fs-utils.mjs";
 import {
   buildEvaluatorPrompt,
@@ -37,16 +37,7 @@ async function resolveQaRoundFromDocs({ state, handoff, sprint, action }) {
 }
 
 export async function getNextDecision() {
-  const planningState = await getPlanningState();
-
-  if (planningState === "await-selection") {
-    return {
-      action: "await-design-selection",
-      reason: "Design options written; waiting for design/selected-direction.md.",
-    };
-  }
-
-  if (planningState === "finalize" || planningState === "scout" || planningState === "full") {
+  if (await needsPlanning()) {
     return {
       action: "run-planner",
       reason: "Planning artifacts are missing.",
@@ -106,8 +97,7 @@ export async function runSinglePhase({
     }
 
     phase = "planner";
-    const harnessYes = process.env.HARNESS_YES === "1";
-    prompt = await buildPlannerPrompt({ productPrompt, harnessYes, cwd });
+    prompt = await buildPlannerPrompt({ productPrompt, cwd });
     handoffNext = "run-generator";
     artifacts = [
       "docs/spec.md",
@@ -134,12 +124,7 @@ export async function runSinglePhase({
   }
 
   const runResult = await runPhase({ phase, prompt, policy, cwd });
-  const validation = await assertPhaseOutputs(phase, sprint);
-
-  if (phase === "planner" && validation.mode === "scout") {
-    handoffNext = "await-design-selection";
-    artifacts = ["docs/design-options.md"];
-  }
+  await assertPhaseOutputs(phase, sprint);
 
   // For the evaluator, resolve the real next action from the canonical docs
   // before writing the handoff, so a single write carries both the decision
@@ -405,19 +390,6 @@ export async function runLoop({
 
     if (decision.action === "manual-review") {
       throw new Error(decision.reason);
-    }
-
-    if (decision.action === "await-design-selection") {
-      console.log("");
-      console.log("▶ DESIGN SCOUT COMPLETE");
-      console.log("  Three design directions written to docs/design-options.md");
-      console.log("");
-      console.log("  Next steps:");
-      console.log("    1. Review docs/design-options.md");
-      console.log("    2. Create design/selected-direction.md with your pick");
-      console.log("    3. Re-run with the same --prompt (or --continue)");
-      await logEvent({ event: "loop.await-design-selection", reason: decision.reason });
-      return { action: "await-design-selection", phasesRun };
     }
 
     if (policy.budgets.maxPhasesPerRun && phasesRun >= policy.budgets.maxPhasesPerRun) {

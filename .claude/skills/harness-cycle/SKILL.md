@@ -46,7 +46,6 @@ It prints `Step`, `Sprint`, `Round`, `Subagent`, `Focus`, `Command`, `Reason`,
 | `run-evaluator` | Dispatch the `evaluator` subagent, then record `evaluator`. |
 | `run-retro` | Dispatch the `retrospector` subagent, then record `retrospector`. |
 | `advance-sprint` | Run the printed `Command`, tell the user what stays broken, continue. |
-| `await-design-selection` | Stop. Ask the user to pick a direction from `docs/design-options.md`. |
 | `halt` | Stop. Report the blocking issues and offer the choices in the instruction. |
 | `manual-review` | Stop. Report the inconsistent sprint row for a human to fix. |
 | `done` | Stop. Report final statuses and QA results. |

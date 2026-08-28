@@ -5,8 +5,8 @@ Launch the `planner` subagent now using the Agent tool (`subagent_type: planner`
 Pass it this task:
 
 > Read `agents/planner.md` and your other required inputs, then expand the
-> following product prompt into a full spec, sprint plan, and status tracker
-> (or design options if in scout mode), writing all files per your instructions.
+> following product prompt into a full spec, sprint plan, and status tracker,
+> writing all files per your instructions.
 >
 > Product prompt: $ARGUMENTS
 
@@ -18,9 +18,7 @@ launching each phase as a separate process. All handoff is through files in
 `docs/`.
 
 When the subagent returns, relay its summary to me and tell me the next step
-(run `/build` to start Sprint 1, or — in design-scout mode — pick a direction
-in `docs/design-options.md` and re-run planning). Do not re-do the planning work
-in this thread.
+(run `/build` to start Sprint 1). Do not re-do the planning work in this thread.
 
 To plan and then build every sprint in one go, use `/cycle` (the `harness-cycle`
 skill) instead of stepping through phases by hand.

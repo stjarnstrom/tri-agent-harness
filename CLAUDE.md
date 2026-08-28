@@ -125,16 +125,12 @@ application source with harness tooling at the root.
 
 ## Design defaults
 
-Every project should feel intentional and specific. The bar is high:
+Every project should feel intentional and specific:
 
-- Read and follow the frontend-design skill when building UI
 - Commit to a strong aesthetic direction before writing a line of CSS
-- Avoid every generic AI pattern: no Inter/Roboto defaults, no purple-gradient-
-over-white-card layouts, no cookie-cutter component assemblies
-- Mobile-responsive is not optional — build it from the start, not as an
-afterthought
-- Spacing, typography hierarchy, and color consistency are treated as
-first-class requirements, not nice-to-haves
+- Avoid generic AI patterns: no Inter/Roboto defaults, no purple-gradient-on-white-card layouts
+- Mobile-responsive is not optional — build it from the start
+- Spacing, typography hierarchy, and color consistency are first-class requirements
 
 ---
 
