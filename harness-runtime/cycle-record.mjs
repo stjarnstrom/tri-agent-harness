@@ -16,6 +16,8 @@ import {
   DOCS_DIR,
   existingFiles,
   nextAttemptNumber,
+  listQaReportPaths,
+  newestQaReportMtimeMs,
   qaReportPath,
   recordedAttempts,
 } from "./cycle-state.mjs";
@@ -167,7 +169,14 @@ export async function recordPhase({ phase, sprint, result, source = CYCLE_SOURCE
   const handoff = await readWorkflowHandoff(HANDOFF_FILE);
 
   if (phase === "retrospector") {
-    await updateOrchestratorState({ retro: { completedAt: new Date().toISOString() } });
+    const processedReports = await listQaReportPaths();
+    const newestReportMs = await newestQaReportMtimeMs();
+    await updateOrchestratorState({
+      retro: {
+        completedAt: new Date(newestReportMs ?? Date.now()).toISOString(),
+        processedReports,
+      },
+    });
     await logEvent({ event: "phase.done", phase, source });
     return { phase, recorded: true };
   }

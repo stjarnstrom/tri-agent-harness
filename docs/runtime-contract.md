@@ -131,8 +131,9 @@ identically to the shell loop.
 ### Cycle bookkeeping (orchestrator, not an agent)
 - `docs/orchestrator-state.json`: advisory bookkeeping. `cycleAttempts[sprint]`
   counts generator dispatches (the round budget) for chat-driven runs;
-  `retro.completedAt` records the last Retrospector pass so retro re-triggers
-  only when a newer QA report exists.
+  `retro.completedAt` and `retro.processedReports` record the last Retrospector
+  pass so retro re-triggers when a new QA report appears or an existing report
+  is rewritten after that pass.
 - Advisory means exactly that: if it disagrees with `docs/sprint-status.md`, the
   status file wins. `next-step` cross-checks its counter against the canonical
   docs and takes the higher round, so lost bookkeeping can never silently grant

@@ -125,6 +125,23 @@ async function qaReportFiles(docsDir = DOCS_DIR) {
     .map((name) => path.join(docsDir, name));
 }
 
+/** Newest mtime among QA reports, or null when none exist. */
+export async function newestQaReportMtimeMs(docsDir = DOCS_DIR) {
+  const reports = await qaReportFiles(docsDir);
+  let max = null;
+  for (const report of reports) {
+    const mtime = await mtimeMs(report);
+    if (mtime !== null && (max === null || mtime > max)) {
+      max = mtime;
+    }
+  }
+  return max;
+}
+
+export async function listQaReportPaths(docsDir = DOCS_DIR) {
+  return qaReportFiles(docsDir);
+}
+
 /**
  * Has the Retrospector already learned from the newest QA report?
  *
@@ -136,6 +153,18 @@ export async function retroIsPending(state, docsDir = DOCS_DIR) {
   const reports = await qaReportFiles(docsDir);
   if (!reports.length) {
     return false;
+  }
+
+  const processed = state?.retro?.processedReports;
+  if (!Array.isArray(processed) || processed.length === 0) {
+    return true;
+  }
+
+  const processedSet = new Set(processed);
+  for (const report of reports) {
+    if (!processedSet.has(report)) {
+      return true;
+    }
   }
 
   const completedAt = state?.retro?.completedAt;
@@ -150,9 +179,6 @@ export async function retroIsPending(state, docsDir = DOCS_DIR) {
 
   for (const report of reports) {
     const reportMtime = await mtimeMs(report);
-    // mtimeMs carries sub-millisecond precision while an ISO timestamp is
-    // truncated to whole milliseconds, so a report written microseconds before
-    // the retro that consumed it would otherwise look newer than it.
     if (reportMtime !== null && Math.floor(reportMtime) > completedMs) {
       return true;
     }
