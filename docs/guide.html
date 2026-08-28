@@ -532,10 +532,8 @@
             <p>
               Copy <code>docs/templates/design-brief.md</code> to
               <code>design/brief.md</code> if you already know the visual
-              direction. With an empty <code>design/</code>, the Planner writes
-              three options to <code>docs/design-options.md</code> and pauses —
-              put your pick in <code>design/selected-direction.md</code> and
-              re-run the same command.
+              direction. With an empty <code>design/</code>, the Planner defines
+              the design language in <code>docs/spec.md</code> from your prompt.
             </p>
             <p>
               Bringing a full product plan from another chat? That helps —
@@ -903,7 +901,7 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code> · <code>sprint</code> on a fresh project</td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent; <code>design</code> after design-scout</td></tr>
+            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code> · <code>sprint</code> on a fresh project</td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent</td></tr>
             <tr><td><code>HARNESS_PREFLIGHT</code></td><td><code>on</code></td><td><code>off</code> skips the startup model ping</td></tr>
             <tr><td><code>HARNESS_MAX_SPRINTS_PER_RUN</code></td><td>unlimited</td><td>Stop cleanly after N sprints; re-run to resume</td></tr>
             <tr><td><code>HARNESS_ON_MAX_ROUNDS</code></td><td><code>halt</code></td><td><code>advance</code> marks a stuck sprint Skipped and moves on</td></tr>

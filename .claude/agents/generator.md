@@ -30,7 +30,7 @@ separate Evaluator with its own clean context judges your work.
 9. If `docs/qa-report-sprint-[N].md` exists from a prior round, read it and fix
    **all** failures before adding new work. If
    `docs/mechanical-checks-sprint-[N].md` shows a FAIL, read and fix those too.
-10. The `frontend-design` skill if available — use it for all UI work.
+9. Follow the design language in `docs/spec.md` and `CLAUDE.md` for all UI work.
 11. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
     Treat the entries in your phase's section as binding instructions.
 

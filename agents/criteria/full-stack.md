@@ -34,9 +34,9 @@ recognize this as something they'd actually use?
 
 ## Visual Design
 
-(See `criteria/frontend-design.md` for the full breakdown.)
-
-Apply all four criteria: Design Quality, Originality, Craft, Functionality.
+Apply the four criteria in `agents/criteria/full-stack.md`: coherent aesthetic,
+originality (avoid generic AI patterns), craft (spacing, typography, motion),
+and functionality (responsive, accessible states).
 
 ## Code Quality (weight: medium)
 
