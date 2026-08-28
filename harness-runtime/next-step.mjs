@@ -89,7 +89,7 @@ function exhausted({ base, sprint, attempt, onMaxRounds, docsDir }) {
  * Steps map 1:1 onto what the chat orchestrator does:
  *   run-planner / run-generator / run-evaluator / run-retro → dispatch a subagent
  *   run-pre-qa-gate / advance-sprint                        → run a shell command
- *   await-design-selection / halt / manual-review / done    → stop and report
+ *   halt / manual-review / done                             → stop and report
  */
 export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
   const maxQaRounds = policy?.maxQaRounds ?? 3;
@@ -100,17 +100,6 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
   const decision = await getNextDecision();
 
   const base = { maxQaRounds, onMaxRounds, reason: decision.reason };
-
-  if (decision.action === "await-design-selection") {
-    return {
-      ...base,
-      step: "await-design-selection",
-      agent: null,
-      instruction:
-        "Stop and ask the user to pick a direction: the Planner wrote docs/design-options.md and is waiting for design/selected-direction.md.",
-      context: await existingFiles([path.join(docsDir, "design-options.md")]),
-    };
-  }
 
   if (decision.action === "run-planner") {
     return {

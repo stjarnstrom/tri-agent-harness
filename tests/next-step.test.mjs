@@ -76,16 +76,6 @@ test("missing planning artifacts resolve to run-planner", async () => {
   });
 });
 
-test("design options without sprint status wait for a selection", async () => {
-  await inTempProject(async () => {
-    await mkdir("docs", { recursive: true });
-    await writeFile(path.join("docs", "design-options.md"), "# Options\n", "utf8");
-    const step = await computeNextStep({ policy: haltPolicy });
-    assert.equal(step.step, "await-design-selection");
-    assert.equal(step.agent, null);
-  });
-});
-
 test("not-started sprint dispatches the generator on round 1", async () => {
   await inTempProject(async () => {
     await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);

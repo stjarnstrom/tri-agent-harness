@@ -5,16 +5,12 @@ import path from "node:path";
 import test from "node:test";
 import {
   collectDesignBriefContext,
-  getPlannerMode,
-  getPlanningState,
   hasDesignBriefInput,
-  isDesignScoutComplete,
   isPlanningComplete,
   needsPlanning,
 } from "../harness-runtime/design-brief.mjs";
 import { buildPlannerPrompt } from "../harness-runtime/prompts.mjs";
 import { getNextDecision } from "../harness-runtime/orchestrator.mjs";
-import { assertPhaseOutputs } from "../harness-runtime/validate.mjs";
 
 async function withTempDir(run) {
   const dir = await mkdtemp(path.join(os.tmpdir(), "design-brief-"));
@@ -31,44 +27,12 @@ test("hasDesignBriefInput detects brief markdown", async () => {
     await writeFile(path.join(cwd, "design", "brief.md"), "Editorial dark aesthetic\n");
 
     assert.equal(await hasDesignBriefInput(cwd), true);
-    assert.equal(await getPlannerMode(cwd), "full");
   });
 });
 
-test("getPlanningState returns scout when no brief", async () => {
+test("needsPlanning is true when planning artifacts are missing", async () => {
   await withTempDir(async (cwd) => {
-    assert.equal(await getPlanningState(cwd), "scout");
-    assert.equal(await getPlannerMode(cwd), "scout");
     assert.equal(await needsPlanning(cwd), true);
-  });
-});
-
-test("getPlanningState returns full when HARNESS_YES and no brief", async () => {
-  await withTempDir(async (cwd) => {
-    assert.equal(await getPlanningState(cwd, { harnessYes: true }), "full");
-    assert.equal(await getPlannerMode(cwd, { harnessYes: true }), "full");
-  });
-});
-
-test("isDesignScoutComplete when options exist without sprint status", async () => {
-  await withTempDir(async (cwd) => {
-    await mkdir(path.join(cwd, "docs"), { recursive: true });
-    await writeFile(path.join(cwd, "docs", "design-options.md"), "# Options\n");
-
-    assert.equal(await isDesignScoutComplete(cwd), true);
-    assert.equal(await getPlanningState(cwd), "await-selection");
-  });
-});
-
-test("getPlanningState finalize when selected direction exists", async () => {
-  await withTempDir(async (cwd) => {
-    await mkdir(path.join(cwd, "docs"), { recursive: true });
-    await mkdir(path.join(cwd, "design"), { recursive: true });
-    await writeFile(path.join(cwd, "docs", "design-options.md"), "# Options\n");
-    await writeFile(path.join(cwd, "design", "selected-direction.md"), "Option B\n");
-
-    assert.equal(await getPlanningState(cwd), "finalize");
-    assert.equal(await getPlannerMode(cwd), "finalize");
   });
 });
 
@@ -96,7 +60,7 @@ test("collectDesignBriefContext includes brief text and reference paths", async 
   });
 });
 
-test("buildPlannerPrompt injects brief and scout mode instructions", async () => {
+test("buildPlannerPrompt injects brief and full plan instructions", async () => {
   await withTempDir(async (cwd) => {
     await mkdir(path.join(cwd, "agents"), { recursive: true });
     await mkdir(path.join(cwd, "design"), { recursive: true });
@@ -115,7 +79,7 @@ test("buildPlannerPrompt injects brief and scout mode instructions", async () =>
   });
 });
 
-test("buildPlannerPrompt uses scout instructions when no brief", async () => {
+test("buildPlannerPrompt uses full plan instructions when no brief", async () => {
   await withTempDir(async (cwd) => {
     await mkdir(path.join(cwd, "agents"), { recursive: true });
     await writeFile(path.join(cwd, "agents", "planner.md"), "# Planner\n");
@@ -124,40 +88,22 @@ test("buildPlannerPrompt uses scout instructions when no brief", async () => {
     process.chdir(cwd);
     try {
       const prompt = await buildPlannerPrompt({ productPrompt: "Build a DAW" });
-      assert.match(prompt, /DESIGN SCOUT MODE/);
-      assert.match(prompt, /docs\/design-options\.md/);
+      assert.match(prompt, /FULL PLAN MODE/);
+      assert.match(prompt, /docs\/spec\.md/);
+      assert.doesNotMatch(prompt, /DESIGN SCOUT MODE/);
     } finally {
       process.chdir(originalCwd);
     }
   });
 });
 
-test("getNextDecision returns await-design-selection after scout", async () => {
+test("getNextDecision returns run-planner when planning is incomplete", async () => {
   await withTempDir(async (cwd) => {
-    await mkdir(path.join(cwd, "docs"), { recursive: true });
-    await writeFile(path.join(cwd, "docs", "design-options.md"), "# Options\n");
-
     const originalCwd = process.cwd();
     process.chdir(cwd);
     try {
       const decision = await getNextDecision();
-      assert.equal(decision.action, "await-design-selection");
-    } finally {
-      process.chdir(originalCwd);
-    }
-  });
-});
-
-test("assertPhaseOutputs accepts design scout planner output", async () => {
-  await withTempDir(async (cwd) => {
-    await mkdir(path.join(cwd, "docs"), { recursive: true });
-    await writeFile(path.join(cwd, "docs", "design-options.md"), "# Options\n");
-
-    const originalCwd = process.cwd();
-    process.chdir(cwd);
-    try {
-      const result = await assertPhaseOutputs("planner", 1);
-      assert.equal(result.mode, "scout");
+      assert.equal(decision.action, "run-planner");
     } finally {
       process.chdir(originalCwd);
     }

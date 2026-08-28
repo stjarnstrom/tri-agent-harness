@@ -93,7 +93,6 @@ async function recordPlanner(source) {
       path.join(DOCS_DIR, "spec.md"),
       path.join(DOCS_DIR, "sprint-plan.md"),
       SPRINT_STATUS_FILE,
-      path.join(DOCS_DIR, "design-options.md"),
     ]),
     source,
   });

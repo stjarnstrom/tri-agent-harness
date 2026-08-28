@@ -2,19 +2,15 @@ import { readFile } from "node:fs/promises";
 import {
   buildPlannerModeInstructions,
   collectDesignBriefContext,
-  getPlannerMode,
 } from "./design-brief.mjs";
 import { getSprintStatus } from "./validate.mjs";
 
-// Per-phase autonomous suffixes. The generator's "implement it immediately"
-// instruction must not leak to the planner (it contradicts design-scout
-// mode's explicit stop) or the evaluator.
 const AUTONOMOUS_PREAMBLE =
   "AUTONOMOUS MODE: Do not ask for confirmation or pause for human review.";
 
 export const PHASE_AUTONOMOUS_SUFFIX = {
   planner: `
-${AUTONOMOUS_PREAMBLE} Follow the mode instructions above exactly — including any instruction to stop after a specific artifact. Complete every artifact your mode requires before finishing.`,
+${AUTONOMOUS_PREAMBLE} Complete every planning artifact before finishing.`,
   generator: `
 ${AUTONOMOUS_PREAMBLE} After writing the sprint contract, implement it immediately in the same session. Complete all required artifacts and status updates before finishing.`,
   evaluator: `
@@ -25,8 +21,6 @@ async function readAgentPersona(phase) {
   return readFile(`agents/${phase}.md`, "utf8");
 }
 
-// Matches the failing header phrasings used by QA reports, e.g.
-// "Result: FAIL — 12 of 15 criteria passed". A PASS report never matches.
 const QA_REPORT_FAIL_PATTERN = /Result[^a-z0-9]*FAIL/i;
 
 async function lastQaFailed(sprint) {
@@ -34,7 +28,7 @@ async function lastQaFailed(sprint) {
   try {
     report = await readFile(`docs/qa-report-sprint-${sprint}.md`, "utf8");
   } catch {
-    return false; // No report — nothing to fix.
+    return false;
   }
 
   if (QA_REPORT_FAIL_PATTERN.test(report)) {
@@ -45,17 +39,14 @@ async function lastQaFailed(sprint) {
   return status === "Fail";
 }
 
-export async function buildPlannerPrompt({ productPrompt, harnessYes = false, cwd = process.cwd() }) {
+export async function buildPlannerPrompt({ productPrompt, cwd = process.cwd() }) {
   const persona = await readAgentPersona("planner");
-  const mode = await getPlannerMode(cwd, { harnessYes });
-  const modeInstructions = buildPlannerModeInstructions(mode);
+  const modeInstructions = buildPlannerModeInstructions();
   const briefContext = await collectDesignBriefContext(cwd);
 
   return `${persona}
 
 Read all criteria files in agents/criteria/ to understand what the evaluator will grade.
-Read harness/workspace-template.md for optional domain-scoped monorepo layout.
-Read docs/templates/design-options.md when in design-scout mode.
 If design/references/ contains images, read/view them before defining the design language.
 
 ${modeInstructions}
@@ -109,4 +100,4 @@ Be skeptical. Find problems. Do not praise mediocre work.
 ${PHASE_AUTONOMOUS_SUFFIX.evaluator}`;
 }
 
-export { getPlannerMode, getPlanningState, collectDesignBriefContext, isDesignScoutComplete, isPlanningComplete, needsPlanning } from "./design-brief.mjs";
+export { collectDesignBriefContext, isPlanningComplete, needsPlanning } from "./design-brief.mjs";
