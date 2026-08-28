@@ -1,6 +1,6 @@
 # Tri-Agent Harness — Cheat Sheet
 
-One page for team walkthroughs. Full narrative: [README](../README.md). Visual guide: [guide.html](guide.html).
+One page for team walkthroughs. Full narrative: [README](../README.md). Visual guide: [field guide](https://stjarnstrom.github.io/tri-agent-harness/guide/) ([source](guide/)).
 
 ## The insight
 
@@ -107,5 +107,5 @@ Static fictional artifacts: **[docs/examples/](examples/README.md)** — Taskflo
 |-------|-----|
 | Full walkthrough | [README](../README.md) |
 | File ownership | [runtime-contract.md](runtime-contract.md) |
-| Visual field guide | [guide.html](guide.html) |
+| Visual field guide | [GitHub Pages](https://stjarnstrom.github.io/tri-agent-harness/guide/) · [`guide/`](guide/) |
 | Chat-driven cycle | [harness-cycle skill](../.claude/skills/harness-cycle/SKILL.md) |
