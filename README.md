@@ -51,6 +51,8 @@ Pass → next sprint  |  Fail → Generator retry (round++, up to budget)
 
 Visual walkthrough of the same flow: [`docs/guide.html`](docs/guide.html).
 
+**Demo without running the harness:** walk the static Taskflow examples in [`docs/examples/`](docs/examples/README.md) (Sprint 2 fail → pass). One-page team reference: [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md).
+
 ## Try it
 
 ```bash
@@ -184,6 +186,8 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 | If you want to… | Read |
 |-----------------|------|
 | Visual field guide | [`docs/guide.html`](docs/guide.html) |
+| One-page cheat sheet (presentations) | [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md) |
+| Example artifacts without running the harness | [`docs/examples/`](docs/examples/README.md) |
 | File ownership and phase boundaries | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | Agent sandbox and lint rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Improving guardrails over time | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
