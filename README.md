@@ -49,7 +49,7 @@ Pass → next sprint  |  Fail → Generator retry (round++, up to budget)
 | **Evaluator** | Contract, criteria, live app via Playwright | QA report, status → Pass/Fail | Evaluator (isolated context) |
 | **Retrospector** | QA reports from the run | `harness/lessons.jsonl`, guardrail proposals | — |
 
-Visual walkthrough of the same flow: [`docs/guide.html`](docs/guide.html).
+Visual walkthrough of the same flow: [field guide](https://stjarnstrom.github.io/tri-agent-harness/guide/) (source: [`docs/guide/`](docs/guide/)).
 
 **Demo without running the harness:** walk the static Taskflow examples in [`docs/examples/`](docs/examples/README.md) (Sprint 2 fail → pass). One-page team reference: [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md).
 
@@ -185,7 +185,7 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 
 | If you want to… | Read |
 |-----------------|------|
-| Visual field guide | [`docs/guide.html`](docs/guide.html) |
+| Visual field guide | [GitHub Pages](https://stjarnstrom.github.io/tri-agent-harness/guide/) · [`docs/guide/`](docs/guide/) |
 | One-page cheat sheet (presentations) | [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md) |
 | Example artifacts without running the harness | [`docs/examples/`](docs/examples/README.md) |
 | File ownership and phase boundaries | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
