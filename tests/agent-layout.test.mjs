@@ -23,7 +23,8 @@ test("AGENTS.md is the canonical instructions file", () => {
 
 test("CLAUDE.md is a loader that imports AGENTS.md", () => {
   const claude = read("CLAUDE.md");
-  assert.match(claude, /@AGENTS\.md/);
+  assert.match(claude, /^@AGENTS\.md$/m);
+  assert.equal(claude.trim().split("\n")[0], "@AGENTS.md");
   assert.ok(
     claude.split("\n").length < 40,
     "CLAUDE.md should stay a thin loader, not a second copy",
@@ -51,7 +52,7 @@ test("domain packages use AGENTS.md plus a CLAUDE.md loader", () => {
   const agents = read(`${dir}/AGENTS.md`);
   const claude = read(`${dir}/CLAUDE.md`);
   assert.match(agents, /Billing Domain/);
-  assert.match(claude, /@AGENTS\.md/);
+  assert.equal(claude.trim().split("\n")[0], "@AGENTS.md");
   assert.ok(claude.split("\n").length < 20);
 });
 
