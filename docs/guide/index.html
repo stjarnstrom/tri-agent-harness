@@ -277,9 +277,8 @@
   }
   .tbl td {
     padding: 0.55rem 1rem 0.55rem 0; border-bottom: 1px solid var(--panel-deep);
-    vertical-align: top;
+    vertical-align: top; overflow-wrap: anywhere;
   }
-  .tbl td:first-child { white-space: nowrap; }
   .tbl .who { font-family: var(--mono); font-size: 0.74rem; color: var(--judge); }
   .tbl .who.learn-w { color: var(--learn); }
 
@@ -315,7 +314,70 @@
     .plate { padding: 1.25rem 1rem 1rem; margin: 1.4rem 0; }
     .start-step { grid-template-columns: 2rem minmax(0, 1fr); gap: 0.65rem; }
     .cards, .duo { grid-template-columns: 1fr; }
-    .tbl { min-width: 480px; font-size: 0.86rem; }
+
+    /* Stack tables into labeled cards — no sideways squeeze */
+    .tbl-scroll {
+      overflow: visible;
+      margin: 1.4rem 0;
+    }
+    .tbl {
+      min-width: 0;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.92rem;
+    }
+    .tbl thead {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .tbl tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .tbl tr {
+      display: block;
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+    .tbl td {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      padding: 0.35rem 0 0.15rem;
+      border: none;
+      white-space: normal;
+    }
+    .tbl td + td {
+      border-top: 1px solid var(--panel-deep);
+      margin-top: 0.5rem;
+      padding-top: 0.55rem;
+    }
+    .tbl td::before {
+      content: attr(data-label);
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    .tbl td:first-child {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.015em;
+      color: var(--ink);
+      padding-top: 0;
+    }
   }
 </style>
 </head>
@@ -636,24 +698,24 @@
           </thead>
           <tbody>
             <tr>
-              <td>Product goals, users, features, UX flows</td>
-              <td>Helps — better input for the spec</td>
+              <td data-label="In your pre-plan">Product goals, users, features, UX flows</td>
+              <td data-label="Effect">Helps — better input for the spec</td>
             </tr>
             <tr>
-              <td>Design direction / brand rules</td>
-              <td>Prefer <code>design/brief.md</code> (authoritative) over burying it in the prompt</td>
+              <td data-label="In your pre-plan">Design direction / brand rules</td>
+              <td data-label="Effect">Prefer <code>design/brief.md</code> (authoritative) over burying it in the prompt</td>
             </tr>
             <tr>
-              <td>Non-negotiable constraints</td>
-              <td>Prefer <code>design/constraints.md</code>, or say explicitly “do not expand beyond this scope”</td>
+              <td data-label="In your pre-plan">Non-negotiable constraints</td>
+              <td data-label="Effect">Prefer <code>design/constraints.md</code>, or say explicitly “do not expand beyond this scope”</td>
             </tr>
             <tr>
-              <td>Stack, file layouts, “implement X with Y”</td>
-              <td>Risk — Planner stays high-level; wrong implementation detail cascades to Generator</td>
+              <td data-label="In your pre-plan">Stack, file layouts, “implement X with Y”</td>
+              <td data-label="Effect">Risk — Planner stays high-level; wrong implementation detail cascades to Generator</td>
             </tr>
             <tr>
-              <td>Pre-cut sprints</td>
-              <td>Hints only — Planner re-slices into the harness shape (typically 4–8 sprints; Sprint 1 = skeleton)</td>
+              <td data-label="In your pre-plan">Pre-cut sprints</td>
+              <td data-label="Effect">Hints only — Planner re-slices into the harness shape (typically 4–8 sprints; Sprint 1 = skeleton)</td>
             </tr>
           </tbody>
         </table>
@@ -778,14 +840,14 @@
             <tr><th>File</th><th>Written by</th><th>What it tells you</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>docs/spec.md</code></td><td class="who">Planner</td><td>Product vision, features, design language</td></tr>
-            <tr><td><code>docs/sprint-status.md</code></td><td class="who">all phases</td><td>Source of truth for progress and resume</td></tr>
-            <tr><td><code>docs/sprint-N-contract.md</code></td><td class="who">Generator</td><td>Sprint scope, acceptance criteria, self-eval</td></tr>
-            <tr><td><code>app/</code></td><td class="who">Generator</td><td>Product source — <code>package.json</code>, <code>src/</code>, tests, config</td></tr>
-            <tr><td><code>docs/mechanical-checks-sprint-N.md</code></td><td class="who">Pre-QA gate</td><td>Lint/artifact results; FAIL blocks evaluation</td></tr>
-            <tr><td><code>docs/qa-report-sprint-N.md</code></td><td class="who">Evaluator</td><td>Verdict, scores, bugs — ends with lesson candidates</td></tr>
-            <tr><td><code>harness/LESSONS.md</code></td><td class="who learn-w">Retrospector</td><td>Distilled cross-run lessons (max 25, phase-grouped)</td></tr>
-            <tr><td><code>docs/proposals/guardrail-*.md</code></td><td class="who learn-w">Retrospector</td><td>Draft guardrails awaiting your review</td></tr>
+            <tr><td data-label="File"><code>docs/spec.md</code></td><td data-label="Written by" class="who">Planner</td><td data-label="What it tells you">Product vision, features, design language</td></tr>
+            <tr><td data-label="File"><code>docs/sprint-status.md</code></td><td data-label="Written by" class="who">all phases</td><td data-label="What it tells you">Source of truth for progress and resume</td></tr>
+            <tr><td data-label="File"><code>docs/sprint-N-contract.md</code></td><td data-label="Written by" class="who">Generator</td><td data-label="What it tells you">Sprint scope, acceptance criteria, self-eval</td></tr>
+            <tr><td data-label="File"><code>app/</code></td><td data-label="Written by" class="who">Generator</td><td data-label="What it tells you">Product source — <code>package.json</code>, <code>src/</code>, tests, config</td></tr>
+            <tr><td data-label="File"><code>docs/mechanical-checks-sprint-N.md</code></td><td data-label="Written by" class="who">Pre-QA gate</td><td data-label="What it tells you">Lint/artifact results; FAIL blocks evaluation</td></tr>
+            <tr><td data-label="File"><code>docs/qa-report-sprint-N.md</code></td><td data-label="Written by" class="who">Evaluator</td><td data-label="What it tells you">Verdict, scores, bugs — ends with lesson candidates</td></tr>
+            <tr><td data-label="File"><code>harness/LESSONS.md</code></td><td data-label="Written by" class="who learn-w">Retrospector</td><td data-label="What it tells you">Distilled cross-run lessons (max 25, phase-grouped)</td></tr>
+            <tr><td data-label="File"><code>docs/proposals/guardrail-*.md</code></td><td data-label="Written by" class="who learn-w">Retrospector</td><td data-label="What it tells you">Draft guardrails awaiting your review</td></tr>
           </tbody>
         </table>
       </div>
@@ -881,39 +943,39 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
           </thead>
           <tbody>
             <tr>
-              <td>"WARNING: guardrails are OFF" at startup</td>
-              <td>Not a git repository — hooks, secret scan, and lint gate can't install</td>
-              <td><code>git init &amp;&amp; bun install &amp;&amp; bun run setup</code></td>
+              <td data-label="Symptom">"WARNING: guardrails are OFF" at startup</td>
+              <td data-label="Cause">Not a git repository — hooks, secret scan, and lint gate can't install</td>
+              <td data-label="Fix"><code>git init &amp;&amp; bun install &amp;&amp; bun run setup</code></td>
             </tr>
             <tr>
-              <td>Preflight: "model … did not respond"</td>
-              <td>Account lacks the configured model, or <code>claude</code> isn't logged in</td>
-              <td>Log in, or override: <code>HARNESS_MODEL=opus</code> (or per-phase <code>HARNESS_*_MODEL</code>)</td>
+              <td data-label="Symptom">Preflight: "model … did not respond"</td>
+              <td data-label="Cause">Account lacks the configured model, or <code>claude</code> isn't logged in</td>
+              <td data-label="Fix">Log in, or override: <code>HARNESS_MODEL=opus</code> (or per-phase <code>HARNESS_*_MODEL</code>)</td>
             </tr>
             <tr>
-              <td>Gate fails: "No application source found by sprint 2"</td>
-              <td>The Generator scaffolded outside <code>app/</code> (e.g. at repo root or in <code>src/</code>)</td>
-              <td>Move the app into <code>app/package.json</code> and <code>app/src/</code></td>
+              <td data-label="Symptom">Gate fails: "No application source found by sprint 2"</td>
+              <td data-label="Cause">The Generator scaffolded outside <code>app/</code> (e.g. at repo root or in <code>src/</code>)</td>
+              <td data-label="Fix">Move the app into <code>app/package.json</code> and <code>app/src/</code></td>
             </tr>
             <tr>
-              <td>QA round 1 fails on setup, not bugs</td>
-              <td>Playwright browsers missing, or the dev-server port is taken</td>
-              <td><code>npx playwright install</code>; free the port before re-running</td>
+              <td data-label="Symptom">QA round 1 fails on setup, not bugs</td>
+              <td data-label="Cause">Playwright browsers missing, or the dev-server port is taken</td>
+              <td data-label="Fix"><code>npx playwright install</code>; free the port before re-running</td>
             </tr>
             <tr>
-              <td>Loop stops: "unrecognized status" in a sprint row</td>
-              <td>A hand-edited (or agent-mangled) <code>docs/sprint-status.md</code> status cell</td>
-              <td>Use exactly: <code>Not started</code>, <code>In progress</code>, <code>Ready for QA</code>, <code>Pass</code>, <code>Fail</code>, <code>Skipped</code></td>
+              <td data-label="Symptom">Loop stops: "unrecognized status" in a sprint row</td>
+              <td data-label="Cause">A hand-edited (or agent-mangled) <code>docs/sprint-status.md</code> status cell</td>
+              <td data-label="Fix">Use exactly: <code>Not started</code>, <code>In progress</code>, <code>Ready for QA</code>, <code>Pass</code>, <code>Fail</code>, <code>Skipped</code></td>
             </tr>
             <tr>
-              <td>Secret scan feels thin</td>
-              <td>gitleaks not installed — fallback is a 3-pattern regex</td>
-              <td><code>brew install gitleaks</code></td>
+              <td data-label="Symptom">Secret scan feels thin</td>
+              <td data-label="Cause">gitleaks not installed — fallback is a 3-pattern regex</td>
+              <td data-label="Fix"><code>brew install gitleaks</code></td>
             </tr>
             <tr>
-              <td>Run costs more than expected</td>
-              <td>Fully autonomous default after the first run; ambitious plans mean many sprints × QA rounds</td>
-              <td>Scope the prompt; <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code> or <code>HARNESS_PAUSE=sprint</code></td>
+              <td data-label="Symptom">Run costs more than expected</td>
+              <td data-label="Cause">Fully autonomous default after the first run; ambitious plans mean many sprints × QA rounds</td>
+              <td data-label="Fix">Scope the prompt; <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code> or <code>HARNESS_PAUSE=sprint</code></td>
             </tr>
           </tbody>
         </table>
@@ -945,15 +1007,15 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
           </thead>
           <tbody>
-            <tr><td><code>HARNESS_PAUSE</code></td><td><code>off</code> · <code>sprint</code> on a fresh project</td><td><code>sprint</code> asks before each sprint; <code>phase</code> before every agent</td></tr>
-            <tr><td><code>HARNESS_PREFLIGHT</code></td><td><code>on</code></td><td><code>off</code> skips the startup model ping</td></tr>
-            <tr><td><code>HARNESS_MAX_SPRINTS_PER_RUN</code></td><td>unlimited</td><td>Stop cleanly after N sprints; re-run to resume</td></tr>
-            <tr><td><code>HARNESS_ON_MAX_ROUNDS</code></td><td><code>halt</code></td><td><code>advance</code> marks a stuck sprint Skipped and moves on</td></tr>
-            <tr><td><code>HARNESS_MODEL</code></td><td>per-phase</td><td>Force one model for every phase</td></tr>
-            <tr><td><code>HARNESS_*_MODEL</code></td><td>Fable / Sonnet</td><td>Per-phase override: <code>PLANNER</code>, <code>GENERATOR</code>, <code>EVALUATOR</code>, <code>RETRO</code></td></tr>
-            <tr><td><code>HARNESS_RETRO</code></td><td><code>on</code></td><td><code>off</code> skips end-of-run learning</td></tr>
-            <tr><td><code>HARNESS_YES</code></td><td><code>0</code></td><td><code>1</code> skips all pause prompts (fully autonomous)</td></tr>
-            <tr><td><code>HARNESS_USAGE_CHECK</code></td><td><code>0</code></td><td>Run a budget probe at sprint boundaries</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_PAUSE</code></td><td data-label="Default"><code>off</code> · <code>sprint</code> on a fresh project</td><td data-label="What it does"><code>sprint</code> asks before each sprint; <code>phase</code> before every agent</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_PREFLIGHT</code></td><td data-label="Default"><code>on</code></td><td data-label="What it does"><code>off</code> skips the startup model ping</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_MAX_SPRINTS_PER_RUN</code></td><td data-label="Default">unlimited</td><td data-label="What it does">Stop cleanly after N sprints; re-run to resume</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_ON_MAX_ROUNDS</code></td><td data-label="Default"><code>halt</code></td><td data-label="What it does"><code>advance</code> marks a stuck sprint Skipped and moves on</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_MODEL</code></td><td data-label="Default">per-phase</td><td data-label="What it does">Force one model for every phase</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_*_MODEL</code></td><td data-label="Default">Fable / Sonnet</td><td data-label="What it does">Per-phase override: <code>PLANNER</code>, <code>GENERATOR</code>, <code>EVALUATOR</code>, <code>RETRO</code></td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_RETRO</code></td><td data-label="Default"><code>on</code></td><td data-label="What it does"><code>off</code> skips end-of-run learning</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_YES</code></td><td data-label="Default"><code>0</code></td><td data-label="What it does"><code>1</code> skips all pause prompts (fully autonomous)</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_USAGE_CHECK</code></td><td data-label="Default"><code>0</code></td><td data-label="What it does">Run a budget probe at sprint boundaries</td></tr>
           </tbody>
         </table>
       </div>
