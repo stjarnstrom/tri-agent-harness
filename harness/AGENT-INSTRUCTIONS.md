@@ -1,14 +1,14 @@
-# Agent Instructions — Claude Code
+# Agent Instructions
 
 These rules apply to every agent session in this harness (Planner, Generator,
-Evaluator, Retrospector). Claude Code loads them via `CLAUDE.md` →
-"Read `harness/AGENT-INSTRUCTIONS.md`".
+Evaluator, Retrospector). They are required reading from `AGENTS.md`. Claude
+Code loads them via `CLAUDE.md` → `@AGENTS.md` → this file.
 
 ## Domain Packages
 
 When working inside a domain package (e.g. `packages/billing/` under `app/`),
-read that package's `CLAUDE.md` before making changes. Claude Code loads these
-automatically when present.
+read that package's `AGENTS.md` before making changes. Claude Code loads the
+sibling `CLAUDE.md` (which imports `AGENTS.md`) automatically when present.
 
 ## The Four Rules Every Agent Must Follow
 

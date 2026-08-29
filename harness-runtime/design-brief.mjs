@@ -69,7 +69,7 @@ export async function needsPlanning(cwd = process.cwd()) {
 
 export function buildPlannerModeInstructions() {
   return `
-FULL PLAN MODE: Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update CLAUDE.md.
+FULL PLAN MODE: Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update AGENTS.md.
 If a user design brief or reference assets were provided, follow them exactly — expand only where the user was silent.`;
 }
 

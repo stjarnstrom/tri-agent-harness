@@ -25,12 +25,12 @@ separate Evaluator with its own clean context judges your work.
 5. `docs/sprint-status.md` — find the first sprint that is not in a terminal
    state; that is your target sprint N.
 6. All files in `agents/criteria/` — what you'll be graded on.
-7. `CLAUDE.md` — stack and design language.
+7. `AGENTS.md` — stack and design language. (`CLAUDE.md` only imports this file.)
 8. Check git log for what's already built.
 9. If `docs/qa-report-sprint-[N].md` exists from a prior round, read it and fix
    **all** failures before adding new work. If
    `docs/mechanical-checks-sprint-[N].md` shows a FAIL, read and fix those too.
-9. Follow the design language in `docs/spec.md` and `CLAUDE.md` for all UI work.
+9. Follow the design language in `docs/spec.md` and `AGENTS.md` for all UI work.
 11. `harness/LESSONS.md` — distilled lessons from previous runs' QA failures.
     Treat the entries in your phase's section as binding instructions.
 

@@ -4,7 +4,7 @@ Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA 
 
 This repo is a **harness scaffold**, not a finished application. You provide a product prompt; agents create planning artifacts in `docs/` and application code under `app/` sprint by sprint.
 
-> **Claude Code only.** Sibling repos for [Cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) and [OpenCode](https://github.com/stjarnstrom/tri-agent-harness-opencode) share the loop idea but omit the Retrospector in v1.
+> **Claude Code runner.** Sibling repos for [Cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) and [OpenCode](https://github.com/stjarnstrom/tri-agent-harness-opencode) share the loop idea but omit the Retrospector in v1. Project instructions live in `AGENTS.md`; `CLAUDE.md` is a one-line `@AGENTS.md` loader. Skills live in `.agents/skills/` with `.claude/skills` as a symlink.
 
 ## The core insight
 
@@ -133,7 +133,7 @@ node harness-runtime/cli.mjs next-step          # what runs next, and why
 node harness-runtime/cli.mjs next-step --record generator --sprint 3
 ```
 
-See [`.claude/skills/harness-cycle/SKILL.md`](.claude/skills/harness-cycle/SKILL.md).
+See [`.agents/skills/harness-cycle/SKILL.md`](.agents/skills/harness-cycle/SKILL.md).
 
 ### 3. Interactive (one phase at a time)
 
@@ -191,7 +191,8 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 | File ownership and phase boundaries | [`docs/runtime-contract.md`](docs/runtime-contract.md) |
 | Agent sandbox and lint rules | [`harness/AGENT-INSTRUCTIONS.md`](harness/AGENT-INSTRUCTIONS.md) |
 | Improving guardrails over time | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Chat-driven cycle details | [`.claude/skills/harness-cycle/SKILL.md`](.claude/skills/harness-cycle/SKILL.md) |
+| Chat-driven cycle details | [`.agents/skills/harness-cycle/SKILL.md`](.agents/skills/harness-cycle/SKILL.md) |
+| Agent instruction layout | [`AGENTS.md`](AGENTS.md) (canonical) · [`CLAUDE.md`](CLAUDE.md) (Claude Code loader) |
 | Optional add-ons | [`extras/README.md`](extras/README.md) |
 
 ## Before your first run

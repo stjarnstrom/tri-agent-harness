@@ -108,4 +108,4 @@ Static fictional artifacts: **[docs/examples/](examples/README.md)** — Taskflo
 | Full walkthrough | [README](../README.md) |
 | File ownership | [runtime-contract.md](runtime-contract.md) |
 | Visual field guide | [GitHub Pages](https://stjarnstrom.github.io/tri-agent-harness/guide/) · [`guide/`](guide/) |
-| Chat-driven cycle | [harness-cycle skill](../.claude/skills/harness-cycle/SKILL.md) |
+| Chat-driven cycle | [harness-cycle skill](../.agents/skills/harness-cycle/SKILL.md) |

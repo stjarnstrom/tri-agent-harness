@@ -82,20 +82,22 @@ identically to the shell loop.
 - `docs/qa-report-sprint-[N].md` gains a required `LESSON-CANDIDATES` block (written by the Evaluator, consumed by the Retrospector).
 
 ### Shared context
-- `CLAUDE.md`: project-level context, stack defaults, design defaults, and links.
+- `AGENTS.md`: canonical project-level context, stack defaults, design defaults, and links. Planner updates this file.
+- `CLAUDE.md`: Claude Code loader (`@AGENTS.md`). Not a second copy of the instructions.
+- `.agents/skills/`: canonical project skills. `.claude/skills` is a symlink to this directory.
 - `agents/*.md`: planner/generator/evaluator/retrospector role instructions.
 - `agents/criteria/*.md`: QA scoring and quality rubrics.
 
 ## Ownership And Read/Write Rules
 
 ### Planner phase
-- Reads: `CLAUDE.md`, `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
+- Reads: `AGENTS.md`, `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
   `agents/criteria/*.md`, `design/*` (if present)
 - Writes:
   - `docs/spec.md`
   - `docs/sprint-plan.md`
   - `docs/sprint-status.md` (initialize all sprints as `Not started`)
-  - `CLAUDE.md` (project-specific updates)
+  - `AGENTS.md` (project-specific updates). Leave `CLAUDE.md` as the loader.
 
 ### Planning state (resume logic)
 
@@ -109,7 +111,7 @@ identically to the shell loop.
   - `docs/spec.md`
   - `docs/sprint-plan.md`
   - `docs/sprint-status.md`
-  - `CLAUDE.md`
+  - `AGENTS.md`
   - `harness/AGENT-INSTRUCTIONS.md`
   - `agents/generator.md`
   - `agents/criteria/*.md`

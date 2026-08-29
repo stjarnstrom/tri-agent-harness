@@ -103,7 +103,7 @@ export async function runSinglePhase({
       "docs/spec.md",
       "docs/sprint-plan.md",
       "docs/sprint-status.md",
-      "CLAUDE.md",
+      "AGENTS.md",
     ];
     sprint = 1;
     qaRound = 1;

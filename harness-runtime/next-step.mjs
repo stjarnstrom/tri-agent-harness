@@ -108,7 +108,7 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
       agent: "planner",
       instruction:
         "Dispatch the planner subagent to expand the product prompt into docs/spec.md, docs/sprint-plan.md, and docs/sprint-status.md.",
-      context: await existingFiles(["agents/planner.md", "CLAUDE.md"]),
+      context: await existingFiles(["agents/planner.md", "AGENTS.md"]),
     };
   }
 
