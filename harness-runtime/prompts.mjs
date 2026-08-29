@@ -72,7 +72,7 @@ Read docs/spec.md for the full spec.
 Read docs/sprint-plan.md for the sprint breakdown.
 Read docs/sprint-status.md to find the current sprint.
 Read all criteria files in agents/criteria/.
-Read CLAUDE.md for the design language and stack.
+Read AGENTS.md for the design language and stack.
 Check git log for what's already built.
 ${qaContext}
 

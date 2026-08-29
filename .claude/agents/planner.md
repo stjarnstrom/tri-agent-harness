@@ -20,7 +20,7 @@ you explicitly in your task prompt.
 2. `harness/AGENT-INSTRUCTIONS.md` — sandbox, secrets, and anti-slop rules.
 3. `docs/runtime-contract.md` — the file-ownership and phase-boundary contract.
 4. All files in `agents/criteria/` — what the Evaluator will grade against.
-5. `CLAUDE.md` — stack defaults and any brand/design guidelines.
+5. `AGENTS.md` — stack defaults and any brand/design guidelines. (`CLAUDE.md` is a loader that imports this file; do not edit it.)
 6. Design input, if present: `design/brief.md`, `design/constraints.md`, and
    assets under `design/references/`. If a legacy `brand-guidelines.md` exists
    in the project root or `agents/`, read it.
@@ -39,8 +39,9 @@ Write:
    criteria.
 3. `docs/sprint-status.md` — status table, all sprints initialized to
    "Not started".
-4. `CLAUDE.md` — update with product name, confirmed stack, design-language
-   summary, and links to the docs above.
+4. `AGENTS.md` — update with product name, confirmed stack, design-language
+   summary, and links to the docs above. Leave `CLAUDE.md` as the `@AGENTS.md`
+   loader.
 
 ## Return to the orchestrator
 

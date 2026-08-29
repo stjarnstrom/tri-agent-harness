@@ -27,6 +27,30 @@ for hook in pre-commit post-merge; do
   echo "Installed $hook → $dest"
 done
 
+# Canonical skills live in `.agents/skills/` (Agent Skills open standard).
+# Claude Code only scans `.claude/skills/`, so that path is a symlink.
+# Git on Windows with `core.symlinks=false` checks the link out as a text file.
+ensure_claude_skills_symlink() {
+  local canonical=".agents/skills"
+  local adapter=".claude/skills"
+  cd "$ROOT"
+  if [[ ! -d "$canonical" ]]; then
+    return 0
+  fi
+  if [[ -L "$adapter" ]]; then
+    return 0
+  fi
+  if [[ -d "$adapter" ]]; then
+    echo "WARNING: $adapter is a real directory; expected a symlink to $canonical" >&2
+    return 0
+  fi
+  rm -f "$adapter"
+  ln -s "../$canonical" "$adapter"
+  echo "Linked $adapter → $canonical"
+}
+
+ensure_claude_skills_symlink
+
 echo ""
 echo "Installing dependencies..."
 cd "$ROOT"

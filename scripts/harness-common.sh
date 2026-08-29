@@ -604,7 +604,7 @@ harness_is_planning_complete() {
 
 harness_planner_mode_instructions() {
   cat <<'EOF'
-FULL PLAN MODE: Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update CLAUDE.md.
+FULL PLAN MODE: Write docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md, and update AGENTS.md.
 If a user design brief or reference assets were provided, follow them exactly — expand only where the user was silent.
 EOF
 }
@@ -737,7 +737,7 @@ Read docs/spec.md for the full spec.
 Read docs/sprint-plan.md for the sprint breakdown.
 Read docs/sprint-status.md to find the current sprint.
 Read all criteria files in agents/criteria/.
-Read CLAUDE.md for the design language and stack.
+Read AGENTS.md for the design language and stack.
 Check git log for what's already built.
 $qa_context
 $mech_context
@@ -905,7 +905,7 @@ harness_run_planning_phase() {
     fi
 
     write_handoff planner 1 1 run-generator \
-      "docs/spec.md,docs/sprint-plan.md,docs/sprint-status.md,CLAUDE.md"
+      "docs/spec.md,docs/sprint-plan.md,docs/sprint-status.md,AGENTS.md"
 
     echo ""
     echo "✓ Spec written to docs/spec.md"

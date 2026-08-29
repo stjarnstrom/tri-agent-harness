@@ -35,7 +35,7 @@ figure those out. Wrong implementation details in the spec cascade into bugs.
 
 Do specify:
 
-- Stack (based on the defaults in CLAUDE.md, adapted if needed)
+- Stack (based on the defaults in AGENTS.md, adapted if needed)
 - Data model at the entity level (User, Project, Session — not table schemas)
 - Key API surface if full-stack (what the frontend needs from the backend)
 - AI feature design (what Claude does, when it's invoked, what it returns)
@@ -136,7 +136,7 @@ Write the following files:
 | 2      | ...   | Not started | — | — |
 ```
 
-**Update `CLAUDE.md`** in the project root with:
+**Update `AGENTS.md`** in the project root with:
 
 - Product name and one-line description
 - Confirmed stack
