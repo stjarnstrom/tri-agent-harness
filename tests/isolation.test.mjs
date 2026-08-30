@@ -96,7 +96,7 @@ test("harness.sh --sandbox without Docker/Podman fails with an install hint", as
   const { stdout, stderr } = await execFileAsync(
     "bash",
     [path.join(ROOT, "harness.sh"), "--sandbox", "Build a kanban board"],
-    { cwd: ROOT, env: { ...process.env, PATH: "/usr/bin:/bin" } },
+    { cwd: ROOT, env: { ...process.env, HARNESS_SANDBOX_ENGINE: "none" } },
   ).catch((error) => error);
   const text = `${stdout ?? ""}\n${stderr ?? ""}`;
   assert.match(text, /Docker or Podman is required/);

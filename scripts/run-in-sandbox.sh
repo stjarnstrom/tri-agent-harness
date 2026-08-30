@@ -44,19 +44,21 @@ if [ ${#CMD[@]} -eq 0 ]; then
 fi
 
 find_engine() {
-  if [ -n "${HARNESS_SANDBOX_ENGINE:-}" ]; then
+  # HARNESS_SANDBOX_ENGINE=none forces the missing-engine path (tests, or a
+  # host that has docker but should not use it).
+  if [ "${HARNESS_SANDBOX_ENGINE:-}" = "none" ]; then
+    :
+  elif [ -n "${HARNESS_SANDBOX_ENGINE:-}" ]; then
     if command -v "$HARNESS_SANDBOX_ENGINE" >/dev/null 2>&1; then
       echo "$HARNESS_SANDBOX_ENGINE"
       return 0
     fi
     echo "ERROR: HARNESS_SANDBOX_ENGINE=$HARNESS_SANDBOX_ENGINE is not on PATH." >&2
     return 1
-  fi
-  if command -v docker >/dev/null 2>&1; then
+  elif command -v docker >/dev/null 2>&1; then
     echo docker
     return 0
-  fi
-  if command -v podman >/dev/null 2>&1; then
+  elif command -v podman >/dev/null 2>&1; then
     echo podman
     return 0
   fi
