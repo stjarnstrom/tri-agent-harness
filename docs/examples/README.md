@@ -8,7 +8,7 @@ The story: Sprint 1 (shell + design system) passed. Sprint 2 (log habits + strea
 
 | # | File | Phase | What to point out |
 |---|------|-------|-------------------|
-| 1 | [pre-plan-input.md](pre-plan-input.md) | *(before harness)* | Messy brief → Planner still writes canonical spec |
+| 1 | [pre-plan-input.md](pre-plan-input.md) | *(before harness)* | Intent brief (not a PRD) → Planner still writes canonical spec. Guide: [planner-input.md](../planner-input.md) |
 | 2 | [spec-excerpt.md](spec-excerpt.md) | Planner | Vision, design language, features |
 | 3 | [sprint-status-mid-run.md](sprint-status-mid-run.md) | State | Sprint 2 Ready for QA — loop about to gate |
 | 4 | [sprint-2-contract.md](sprint-2-contract.md) | Generator | Scope + acceptance criteria + self-eval |

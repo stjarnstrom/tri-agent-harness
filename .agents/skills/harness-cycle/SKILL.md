@@ -93,7 +93,9 @@ the guardrails (sandbox, lints, secret scan) are enforced at commit time and the
 Generator's commits depend on them.
 
 If the user's prompt names a product and `docs/spec.md` does not exist yet, pass
-that prompt to the `planner` subagent as the product prompt.
+that prompt to the `planner` subagent as the product prompt. It may be a
+one-liner or a richer intent brief (see `docs/planner-input.md`) — pass it
+through in full; do not summarize it down to a slogan.
 
 ## Autonomy and budget
 

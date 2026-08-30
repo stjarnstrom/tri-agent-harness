@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Planner phase of the tri-agent harness. Use to expand a short product prompt into a full spec, sprint plan, and status tracker. Invoked by the /plan command. Runs in its own isolated context and hands off to the Generator through files in docs/.
+description: Planner phase of the tri-agent harness. Use to expand a product prompt (one-liner or richer intent brief) into a full spec, sprint plan, and status tracker. Invoked by the /plan command. Runs in its own isolated context and hands off to the Generator through files in docs/.
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
 model: opus
 ---
@@ -20,7 +20,7 @@ you explicitly in your task prompt.
 2. `harness/AGENT-INSTRUCTIONS.md` — sandbox, secrets, and anti-slop rules.
 3. `docs/runtime-contract.md` — the file-ownership and phase-boundary contract.
 4. All files in `agents/criteria/` — what the Evaluator will grade against.
-5. `AGENTS.md` — stack defaults and any brand/design guidelines. (`CLAUDE.md` is a loader that imports this file; do not edit it.)
+5. `AGENTS.md` — stack defaults, Tech Stack Preferences, and any brand/design guidelines. (`CLAUDE.md` is a loader that imports this file; do not edit it.) Honor Tech Stack Preferences when the prompt is silent. Keep that section when you update the file.
 6. Design input, if present: `design/brief.md`, `design/constraints.md`, and
    assets under `design/references/`. If a legacy `brand-guidelines.md` exists
    in the project root or `agents/`, read it.
@@ -30,7 +30,10 @@ you explicitly in your task prompt.
 ## Your task
 
 Expand the product prompt (passed in your task prompt) into a comprehensive,
-ambitious spec, following `agents/planner.md`.
+ambitious spec, following `agents/planner.md`. The prompt may be a one-liner
+or a richer intent brief / pasted PRD — treat it as intent, rewrite it into
+the harness spec format, and re-slice any pre-cut sprints. See
+`docs/planner-input.md`.
 
 Write:
 

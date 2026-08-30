@@ -21,6 +21,26 @@ test("AGENTS.md is the canonical instructions file", () => {
   assert.ok(agents.split("\n").length > 80, "AGENTS.md should hold the real instructions");
 });
 
+test("AGENTS.md records standing Tech Stack Preferences", () => {
+  const agents = read("AGENTS.md");
+  assert.match(agents, /## Tech Stack Preferences/);
+  assert.match(agents, /When uncertain, prefer:/);
+  assert.match(agents, /Convex/);
+  assert.match(agents, /Clerk/);
+  assert.match(agents, /Vercel/);
+});
+
+test("planner treats rich input as intent and honors stack preferences", () => {
+  const planner = read("agents/planner.md");
+  assert.match(planner, /intent/i);
+  assert.match(planner, /Tech Stack Preferences/);
+  assert.match(planner, /Never copy a pasted PRD/);
+  assert.match(planner, /Keep the \*\*Tech Stack Preferences\*\* section as-is/);
+  const guide = read("docs/planner-input.md");
+  assert.match(guide, /intent brief/i);
+  assert.match(guide, /not a PRD|not the spec/i);
+});
+
 test("CLAUDE.md is a loader that imports AGENTS.md", () => {
   const claude = read("CLAUDE.md");
   assert.match(claude, /^@AGENTS\.md$/m);

@@ -2,7 +2,10 @@
 
 Orchestration and guardrails in one harness: **Planner → Generator → Pre-QA Gate → Evaluator → Retrospector**.
 
-This repo is a **harness scaffold**, not a finished application. You provide a product prompt; agents create planning artifacts in `docs/` and application code under `app/` sprint by sprint.
+This repo is a **harness scaffold**, not a finished application. You provide a
+product prompt — a sentence **or** a richer [intent brief](docs/planner-input.md);
+agents create planning artifacts in `docs/` and application code under `app/`
+sprint by sprint. You do not have to start from a one-liner.
 
 > **Claude Code runner.** Sibling repos for [Cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) and [OpenCode](https://github.com/stjarnstrom/tri-agent-harness-opencode) share the loop idea but omit the Retrospector in v1. Project instructions live in `AGENTS.md`; `CLAUDE.md` is a one-line `@AGENTS.md` loader. Skills live in `.agents/skills/` with `.claude/skills` as a symlink.
 
@@ -28,7 +31,7 @@ Layer 1: Environment     hooks, ESLint plugin, sandbox, review personas
 Each sprint is a contract-driven loop. Agents communicate only through files in `docs/` (see [`docs/runtime-contract.md`](docs/runtime-contract.md)).
 
 ```
-User prompt
+User prompt (one-liner or intent brief)
     ↓
 Planner  →  docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md
     ↓
@@ -43,7 +46,7 @@ Pass → next sprint  |  Fail → Generator retry (round++, up to budget)
 
 | Phase | Reads | Writes | Who decides quality? |
 |-------|-------|--------|----------------------|
-| **Planner** | Prompt, `agents/criteria/*`, optional `design/brief.md` | Spec, sprint plan, status tracker | — |
+| **Planner** | Prompt or [intent brief](docs/planner-input.md), `agents/criteria/*`, optional `design/brief.md` | Spec, sprint plan, status tracker | — |
 | **Generator** | Spec, contract template, prior QA report if retrying | Sprint contract, `app/` code, status → Ready for QA | Self-eval only (first pass) |
 | **Pre-QA Gate** | `app/` source, harness lints | Mechanical checks report | Script (deterministic) |
 | **Evaluator** | Contract, criteria, live app via Playwright | QA report, status → Pass/Fail | Evaluator (isolated context) |
@@ -153,10 +156,22 @@ See [`.agents/skills/harness-cycle/SKILL.md`](.agents/skills/harness-cycle/SKILL
 
 From sprint 2 onward, the pre-QA gate requires `app/package.json` and source under `app/`. See [`app/README.md`](app/README.md).
 
+## What to give the Planner
+
+A one-liner works. So does a page of intent. A finished PRD from another chat
+usually does **not** — the Planner writes `docs/spec.md` in its own shape.
+
+The useful middle is an **intent brief**: who it's for, the job, must / nice /
+won't, first-session feel, and outcome-shaped user stories. Park visuals in
+`design/brief.md`. Put your usual stack in `AGENTS.md` under **Tech Stack
+Preferences** so you do not repeat it every run.
+
+Full guide: [`docs/planner-input.md`](docs/planner-input.md). Example:
+[`docs/examples/pre-plan-input.md`](docs/examples/pre-plan-input.md).
+
 ## Optional inputs
 
 - **`design/brief.md`** — visual direction before planning ([`design/README.md`](design/README.md))
-- **Rich pre-plans from another chat** — paste as the product prompt; strip implementation prescriptions. Visual rules belong in `design/brief.md`, not the prompt.
 - **`extras/`** — add-on rubrics and patterns not required for the core loop
 
 ## Model policy
@@ -186,6 +201,7 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 | If you want to… | Read |
 |-----------------|------|
 | Visual field guide | [GitHub Pages](https://stjarnstrom.github.io/tri-agent-harness/guide/) · [`docs/guide/`](docs/guide/) |
+| What to give the Planner | [`docs/planner-input.md`](docs/planner-input.md) · [guide § Pre-plan](https://stjarnstrom.github.io/tri-agent-harness/guide/#preplan) |
 | One-page cheat sheet (presentations) | [`docs/CHEATSHEET.md`](docs/CHEATSHEET.md) |
 | Example artifacts without running the harness | [`docs/examples/`](docs/examples/README.md) |
 | File ownership and phase boundaries | [`docs/runtime-contract.md`](docs/runtime-contract.md) |

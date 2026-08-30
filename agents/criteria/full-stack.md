@@ -44,7 +44,8 @@ Not visible to users but affects maintainability and bug surface.
 
 - Components are composable and single-responsibility
 - State management is clean (no prop drilling > 2 levels without context)
-- API endpoints are RESTful with consistent naming
+- Backend surface is consistent and typed (REST endpoints, or Convex/function
+  queries and mutations — match the spec's stack)
 - Error handling exists at API boundaries
 - No console errors or warnings in normal use
 - TypeScript types are meaningful (not `any` everywhere)

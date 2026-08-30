@@ -5,7 +5,8 @@ Launch the `planner` subagent now using the Agent tool (`subagent_type: planner`
 Pass it this task:
 
 > Read `agents/planner.md` and your other required inputs, then expand the
-> following product prompt into a full spec, sprint plan, and status tracker,
+> following product prompt (one-liner or intent brief — see
+> `docs/planner-input.md`) into a full spec, sprint plan, and status tracker,
 > writing all files per your instructions.
 >
 > Product prompt: $ARGUMENTS

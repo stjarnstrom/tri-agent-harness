@@ -60,6 +60,7 @@ identically to the shell loop.
 - `docs/sprint-status.md`: source of truth for sprint state.
 
 ### Design input (optional, user-provided before planning)
+- Product prompt: one-liner or intent brief. Shape: `docs/planner-input.md`.
 - `design/brief.md`: primary design direction (authoritative).
 - `design/constraints.md`: must-have / must-not rules.
 - `design/references/*`: mood images, logos, screenshots (png, jpg, webp, svg).
@@ -82,7 +83,11 @@ identically to the shell loop.
 - `docs/qa-report-sprint-[N].md` gains a required `LESSON-CANDIDATES` block (written by the Evaluator, consumed by the Retrospector).
 
 ### Shared context
-- `AGENTS.md`: canonical project-level context, stack defaults, design defaults, and links. Planner updates this file.
+- `AGENTS.md`: canonical project-level context, stack defaults, Tech Stack
+  Preferences, design defaults, and links. Planner updates product-specific
+  fields and must keep Tech Stack Preferences.
+- `docs/planner-input.md`: what to give the Planner (intent brief, not a
+  competing PRD).
 - `CLAUDE.md`: Claude Code loader (`@AGENTS.md`). Not a second copy of the instructions.
 - `.agents/skills/`: canonical project skills. `.claude/skills` is a symlink to this directory.
 - `agents/*.md`: planner/generator/evaluator/retrospector role instructions.
@@ -91,7 +96,8 @@ identically to the shell loop.
 ## Ownership And Read/Write Rules
 
 ### Planner phase
-- Reads: `AGENTS.md`, `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
+- Reads: `AGENTS.md` (including Tech Stack Preferences),
+  `harness/AGENT-INSTRUCTIONS.md`, `agents/planner.md`,
   `agents/criteria/*.md`, `design/*` (if present)
 - Writes:
   - `docs/spec.md`
