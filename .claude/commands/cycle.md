@@ -16,6 +16,8 @@ Common forms:
 - `/cycle sprints=1` — one sprint, then stop and report
 - `/cycle rounds=5 advance` — five QA rounds per sprint, advance on persistent failure
 - `/cycle pause=sprint` — confirm before each new sprint
+- `/cycle sandbox` — run via `./harness.sh --sandbox` (Docker/Podman jail)
+- `/cycle sandbox=claude` — Claude Code sandbox only, no container
 
 Remember the two rules that make this work: never build, test, or grade
 anything in this thread, and always take the next step from

@@ -119,6 +119,7 @@ Three runners, same files, same contract — switch between them at any point:
 ```bash
 ./harness.sh "your product prompt"
 ./harness.sh "your product prompt" 5    # max QA rounds per sprint
+./harness.sh --sandbox "your product prompt"   # Docker/Podman jail (opt-in)
 ```
 
 ### 2. Chat-driven cycle (one conversation)
@@ -127,6 +128,7 @@ Three runners, same files, same contract — switch between them at any point:
 /cycle build a habit tracker with streak analytics
 /cycle                      # continue from sprint-status
 /cycle sprints=1            # one sprint, then stop
+/cycle sandbox              # print/run the equivalent ./harness.sh --sandbox
 ```
 
 Control flow is deterministic — the orchestrator asks `next-step`, never improvises:
@@ -195,6 +197,32 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | Or `advance` to skip stuck sprints |
 | `HARNESS_RETRO` | `on` | `off` skips Retrospector |
 | `HARNESS_YES` | `0` | `1` skips pause prompts |
+| `HARNESS_ISOLATION` | `off` | `docker` (or `--sandbox`) jails the cycle; `claude` uses Claude Code's sandbox only |
+
+## Isolation (optional)
+
+Default autonomous runs are **not** an OS jail. Agents use
+`--dangerously-skip-permissions`; hooks catch bad commits, not bad commands.
+
+Opt in when you want a filesystem/credential boundary around the cycle
+(untrusted product prompt, design files, or npm install scripts):
+
+```bash
+./harness.sh --sandbox "your product prompt"              # Docker/Podman (needs one installed)
+HARNESS_ISOLATION=docker ./harness.sh "your product prompt"
+./scripts/harness-sandbox.sh "your product prompt" 5
+./harness.sh --sandbox=claude "your product prompt"       # no container; Claude Code sandbox
+```
+
+Bare `--sandbox` / `HARNESS_ISOLATION=docker` re-execs through
+[`scripts/run-in-sandbox.sh`](scripts/run-in-sandbox.sh): harness core mounted
+read-only, host home/SSH/Claude cookies not mounted, `ANTHROPIC_API_KEY` passed
+in, Playwright gets `--shm-size=1g`. Shared allowlist:
+[`harness/isolation-policy.json`](harness/isolation-policy.json).
+
+`/cycle sandbox` cannot jail the parent chat. It should print or run the
+equivalent `./harness.sh --sandbox "…"`. Use `--sandbox=claude` inside an
+interactive session.
 
 ## Documentation map
 
@@ -219,4 +247,7 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "your product prompt"
 
 **QA needs a runnable app.** First-run failures are often `cd app && npx playwright install` or a busy port.
 
-**Autonomy means real permissions.** Agents use `--dangerously-skip-permissions`; hooks catch bad commits, not bad commands.
+**Autonomy means real permissions unless you opt into isolation.** Default
+agents use `--dangerously-skip-permissions`; hooks catch bad commits, not bad
+commands. `./harness.sh --sandbox` (or `HARNESS_ISOLATION=docker`) runs the
+same loop inside Docker/Podman.

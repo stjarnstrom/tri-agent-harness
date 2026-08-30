@@ -223,6 +223,8 @@ HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failur
 HARNESS_PAUSE=sprint ./harness.sh "..."    # confirm before each sprint
 HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..."  # one sprint per run
 HARNESS_RETRO=off ./harness.sh "..."       # skip end-of-run learning
+./harness.sh --sandbox "..."               # Docker/Podman jail (opt-in; needs Docker)
+HARNESS_ISOLATION=claude ./harness.sh "..." # Claude Code sandbox only
 
 # Model overrides (default: `opus` — latest Opus — for all phases)
 HARNESS_MODEL=claude-fable-5 ./harness.sh "..."           # force one model for all phases
@@ -236,6 +238,7 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."   # override a single ph
 /cycle                                              # continue from current sprint-status
 /cycle sprints=1                                    # one sprint, then stop
 /cycle rounds=5 advance                             # 5 QA rounds/sprint, advance on failure
+/cycle sandbox                                      # equivalent ./harness.sh --sandbox (container)
 ```
 
 The `harness-cycle` skill orchestrates; each phase still runs in an isolated
