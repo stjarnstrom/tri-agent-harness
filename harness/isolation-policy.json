@@ -1,0 +1,57 @@
+{
+  "backends": ["off", "claude", "docker"],
+  "defaultBackend": "off",
+  "bareSandboxBackend": "docker",
+  "network": {
+    "allowedDomains": [
+      "registry.npmjs.org",
+      "cdn.playwright.dev",
+      "playwright.download.prss.microsoft.com",
+      "api.anthropic.com",
+      "github.com",
+      "api.github.com",
+      "codeload.github.com",
+      "objects.githubusercontent.com",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "localhost",
+      "127.0.0.1",
+      "pypi.org",
+      "files.pythonhosted.org",
+      "pypi.python.org"
+    ],
+    "allowLocalBinding": true
+  },
+  "tcbReadOnly": [
+    "agents",
+    "harness-runtime",
+    "scripts",
+    ".claude",
+    "harness.sh",
+    "harness/AGENT-INSTRUCTIONS.md",
+    "harness/eslint-plugin-harness",
+    "harness/gitleaks.toml",
+    "harness/hooks",
+    "harness/isolation-policy.json",
+    "harness/sandbox",
+    "CLAUDE.md",
+    "package.json"
+  ],
+  "writable": [
+    "app",
+    "docs",
+    "design",
+    "AGENTS.md",
+    "harness/lessons.jsonl",
+    "harness/LESSONS.md"
+  ],
+  "credentials": {
+    "passEnv": ["ANTHROPIC_API_KEY"],
+    "neverMount": ["$HOME/.ssh", "$HOME/.git-credentials", "$HOME/.claude"]
+  },
+  "docker": {
+    "image": "harness-sandbox:local",
+    "dockerfile": "harness/sandbox/Dockerfile",
+    "shmSize": "1g"
+  }
+}

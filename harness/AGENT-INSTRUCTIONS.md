@@ -18,10 +18,16 @@ Never read, write, or modify files outside the project root without explicit use
 The pre-commit hook (`harness/hooks/pre-commit`) enforces this at git level — but don't rely on it as your only guardrail. If you're about to `cat /etc/passwd` or `rm -rf ~/Downloads`, stop and ask first.
 
 **Network:** Sandboxed Bash commands can only reach the domains allowlisted in
-`.claude/settings.json` (`sandbox.network.allowedDomains`) — npm registry,
-Playwright CDN, Anthropic API, GitHub, Google Fonts, and localhost. If a build
+`.claude/settings.json` (`sandbox.network.allowedDomains`) and the shared
+policy in `harness/isolation-policy.json` — npm registry, Playwright CDN,
+Anthropic API, GitHub, Google Fonts, PyPI, and localhost. If a build
 step fails on a blocked domain, don't work around the sandbox — surface it so
 the domain can be added to the allowlist deliberately.
+
+**Optional OS jail:** default autonomous runs still use
+`--dangerously-skip-permissions` (`HARNESS_ISOLATION=off`). Opt in with
+`./harness.sh --sandbox` (Docker/Podman) or `--sandbox=claude` (Claude Code
+sandbox only). See the README "Isolation" section.
 
 **Secrets:** Never read, paste, or hardcode real credentials. The workflow:
 
