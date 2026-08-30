@@ -38,7 +38,8 @@ test("planner treats rich input as intent and honors stack preferences", () => {
   assert.match(planner, /Keep the \*\*Tech Stack Preferences\*\* section as-is/);
   const guide = read("docs/planner-input.md");
   assert.match(guide, /intent brief/i);
-  assert.match(guide, /not a PRD|not the spec/i);
+  assert.match(guide, /finished PRD/);
+  assert.match(guide, /This is intent, not the/);
 });
 
 test("CLAUDE.md is a loader that imports AGENTS.md", () => {
