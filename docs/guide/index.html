@@ -667,13 +667,41 @@
             </p>
           </div>
         </div>
+
+        <div class="start-step">
+          <div>
+            <h3>Optional: jail the cycle</h3>
+            <p>
+              Default autonomy uses
+              <code>--dangerously-skip-permissions</code> — hooks catch bad
+              commits, not bad commands. Opt in when the product prompt or
+              design files are untrusted:
+            </p>
+            <div class="console">
+<pre><span class="c"># Docker/Podman jail (bare --sandbox means docker)</span>
+<span class="k">./harness.sh --sandbox</span> <span class="f">"Build a kanban board"</span>
+
+<span class="c"># same knob as an env var, or the thin wrapper</span>
+<span class="k">HARNESS_ISOLATION=docker ./harness.sh</span> <span class="f">"..."</span>
+<span class="k">./scripts/harness-sandbox.sh</span> <span class="f">"..."</span> 5
+
+<span class="c"># Claude Code sandbox only — no container</span>
+<span class="k">./harness.sh --sandbox=claude</span> <span class="f">"..."</span></pre>
+            </div>
+            <p>
+              <code>/cycle sandbox</code> cannot jail the parent chat; it
+              prints or runs the equivalent <code>./harness.sh --sandbox</code>.
+              Policy: <code>harness/isolation-policy.json</code>.
+            </p>
+          </div>
+        </div>
       </div>
 
       <p>
         When something fails on setup rather than product bugs, jump to
-        <a href="#fieldnotes">Field notes</a>. Autonomy uses
+        <a href="#fieldnotes">Field notes</a>. Default autonomy uses
         <code>--dangerously-skip-permissions</code> — hooks catch bad commits,
-        not bad commands.
+        not bad commands. <code>./harness.sh --sandbox</code> is the opt-in jail.
       </p>
     </div>
   </section>
@@ -838,7 +866,9 @@
           <h3>Autonomous — <code>./harness.sh</code></h3>
           <p>The default. Each phase runs as a separate <code>claude -p</code>
           process, fully hands-off until pass, halt, or a pause you configured
-          (<code>HARNESS_PAUSE=sprint</code> asks before each sprint).</p>
+          (<code>HARNESS_PAUSE=sprint</code> asks before each sprint). Add
+          <code>--sandbox</code> to re-exec the same loop inside Docker or
+          Podman.</p>
         </div>
         <div class="card">
           <h3>Interactive — slash commands</h3>
@@ -1009,16 +1039,22 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
               <td data-label="Cause">Fully autonomous default after the first run; ambitious plans mean many sprints × QA rounds</td>
               <td data-label="Fix">Scope the prompt; <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code> or <code>HARNESS_PAUSE=sprint</code></td>
             </tr>
+            <tr>
+              <td data-label="Symptom"><code>--sandbox</code> exits: Docker or Podman required</td>
+              <td data-label="Cause">Bare <code>--sandbox</code> means the Docker jail; neither engine is on PATH</td>
+              <td data-label="Fix">Install Docker/Podman, or use <code>--sandbox=claude</code></td>
+            </tr>
           </tbody>
         </table>
       </div>
       <p>
         Two structural facts worth internalizing again: the generated app lives
         under <code>app/</code> (see <a href="#quickstart">Starting a product</a>
-        for the sibling-copy ritual), and agents run with
-        <code>--dangerously-skip-permissions</code> — the sandbox rules are
-        instructions to the agents, not OS-level enforcement. The hooks catch
-        bad commits, not bad commands.
+        for the sibling-copy ritual), and the default autonomous path uses
+        <code>--dangerously-skip-permissions</code> — policy sandbox rules are
+        instructions, not a jail. Opt in with <code>./harness.sh --sandbox</code>
+        (Docker/Podman) or <code>--sandbox=claude</code>. Hooks still catch
+        bad commits; they do not catch bad commands on the default path.
       </p>
     </div>
   </section>
@@ -1029,9 +1065,9 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
       <span class="eyebrow">Dials</span>
       <h2>Controls</h2>
       <p class="lead-in">
-        Everything is an environment variable on the harness command. The
-        defaults are tuned for hands-off runs; these are the dials you'll
-        actually reach for.
+        Most dials are environment variables on the harness command. Isolation
+        is also a flag: <code>--sandbox</code> (Docker) or
+        <code>--sandbox=claude</code>. Defaults stay hands-off.
       </p>
       <div class="tbl-scroll">
         <table class="tbl">
@@ -1046,6 +1082,7 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
             <tr><td data-label="Variable"><code>HARNESS_MODEL</code></td><td data-label="Default">per-phase</td><td data-label="What it does">Force one model for every phase</td></tr>
             <tr><td data-label="Variable"><code>HARNESS_*_MODEL</code></td><td data-label="Default">Fable / Sonnet</td><td data-label="What it does">Per-phase override: <code>PLANNER</code>, <code>GENERATOR</code>, <code>EVALUATOR</code>, <code>RETRO</code></td></tr>
             <tr><td data-label="Variable"><code>HARNESS_RETRO</code></td><td data-label="Default"><code>on</code></td><td data-label="What it does"><code>off</code> skips end-of-run learning</td></tr>
+            <tr><td data-label="Variable"><code>HARNESS_ISOLATION</code></td><td data-label="Default"><code>off</code></td><td data-label="What it does"><code>docker</code> (or <code>--sandbox</code>) jails the cycle; <code>claude</code> uses Claude Code's sandbox only</td></tr>
             <tr><td data-label="Variable"><code>HARNESS_YES</code></td><td data-label="Default"><code>0</code></td><td data-label="What it does"><code>1</code> skips all pause prompts (fully autonomous)</td></tr>
             <tr><td data-label="Variable"><code>HARNESS_USAGE_CHECK</code></td><td data-label="Default"><code>0</code></td><td data-label="What it does">Run a budget probe at sprint boundaries</td></tr>
           </tbody>

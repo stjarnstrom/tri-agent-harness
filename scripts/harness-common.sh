@@ -31,6 +31,12 @@ HARNESS_USAGE_CHECK="${HARNESS_USAGE_CHECK:-0}"
 HARNESS_MAX_SPRINTS_PER_RUN="${HARNESS_MAX_SPRINTS_PER_RUN:-}"
 SPRINTS_COMPLETED_THIS_RUN=0
 
+# Isolation: off (default) | claude | docker
+# Canonical env is HARNESS_ISOLATION. --sandbox on harness.sh sets the same knob.
+# Bare --sandbox means docker. docker-inner (HARNESS_SANDBOX_INNER=1) skips re-exec.
+HARNESS_ISOLATION="${HARNESS_ISOLATION:-off}"
+HARNESS_SANDBOX_INNER="${HARNESS_SANDBOX_INNER:-}"
+
 # ─── Pause / budget helpers ────────────────────────────────────────────
 
 harness_should_pause_sprint() {
@@ -234,6 +240,95 @@ harness_validate_run_config() {
   if [ -n "${HARNESS_MAX_SPRINTS_PER_RUN:-}" ]; then
     harness_require_positive_int "HARNESS_MAX_SPRINTS_PER_RUN" "$HARNESS_MAX_SPRINTS_PER_RUN" || exit 1
   fi
+  harness_validate_isolation || exit 1
+}
+
+# Parse ./harness.sh [flags] "prompt" [max_qa_rounds].
+# Sets HARNESS_ISOLATION (flag wins over env), HARNESS_CLI_PROMPT, HARNESS_CLI_ROUNDS.
+harness_parse_isolation_args() {
+  local isolation_from_flag=""
+  local positional=()
+  local token
+
+  while [ $# -gt 0 ]; do
+    token="$1"
+    case "$token" in
+      --sandbox)
+        isolation_from_flag="docker"
+        shift
+        ;;
+      --sandbox=*)
+        isolation_from_flag="${token#--sandbox=}"
+        shift
+        ;;
+      --)
+        shift
+        while [ $# -gt 0 ]; do
+          positional+=("$1")
+          shift
+        done
+        break
+        ;;
+      --*)
+        echo "ERROR: unknown flag '$token' (supported: --sandbox, --sandbox=docker|claude)." >&2
+        return 1
+        ;;
+      *)
+        positional+=("$token")
+        shift
+        ;;
+    esac
+  done
+
+  if [ -n "$isolation_from_flag" ]; then
+    HARNESS_ISOLATION="$isolation_from_flag"
+  fi
+  export HARNESS_ISOLATION
+
+  HARNESS_CLI_PROMPT="${positional[0]:-}"
+  HARNESS_CLI_ROUNDS="${positional[1]:-3}"
+  return 0
+}
+
+harness_validate_isolation() {
+  case "${HARNESS_ISOLATION:-off}" in
+    off|claude|docker) ;;
+    *)
+      echo "ERROR: HARNESS_ISOLATION must be off|claude|docker, got '$HARNESS_ISOLATION'." >&2
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+# Re-exec into Docker/Podman when isolation=docker and we are still on the host.
+harness_maybe_enter_sandbox() {
+  if [ "${HARNESS_ISOLATION:-off}" != "docker" ]; then
+    return 0
+  fi
+  if [ "${HARNESS_SANDBOX_INNER:-}" = "1" ]; then
+    return 0
+  fi
+  local runner="$PROJECT_DIR/scripts/run-in-sandbox.sh"
+  if [ ! -x "$runner" ]; then
+    echo "ERROR: missing $runner — cannot enter the docker sandbox." >&2
+    return 1
+  fi
+  exec "$runner" -- "$PROJECT_DIR/harness.sh" "$HARNESS_CLI_PROMPT" "$HARNESS_CLI_ROUNDS"
+}
+
+# Extra args for `claude` invocations. Isolation=claude drops skip-permissions
+# so Claude Code's own sandbox + allowlist apply. off and docker-inner keep
+# autonomy; the container is the jail in the docker case.
+harness_claude_permission_args() {
+  if [ "${HARNESS_ISOLATION:-off}" = "claude" ]; then
+    return 0
+  fi
+  printf '%s' "--dangerously-skip-permissions"
+}
+
+harness_print_isolation() {
+  echo "  Isolation: $HARNESS_ISOLATION"
 }
 
 # ─── Helper: check if sprint passed ─────────────────────────────────

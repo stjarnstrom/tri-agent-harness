@@ -142,6 +142,34 @@ test("harness_validate_run_config validates HARNESS_MAX_SPRINTS_PER_RUN when set
   assert.notEqual(result.code, 0);
 });
 
+test("harness_parse_isolation_args: bare --sandbox means docker and flag wins", async () => {
+  const dir = await makeProject([]);
+  const { code, stdout } = await runCommon(
+    dir,
+    'HARNESS_ISOLATION=claude; harness_parse_isolation_args --sandbox "Build it" 5; echo "$HARNESS_ISOLATION|$HARNESS_CLI_PROMPT|$HARNESS_CLI_ROUNDS"',
+  );
+  assert.equal(code, 0);
+  assert.equal(stdout.trim(), "docker|Build it|5");
+});
+
+test("harness_validate_isolation rejects unknown backends", async () => {
+  const dir = await makeProject([]);
+  const { code, stderr } = await runCommon(
+    dir,
+    "HARNESS_ISOLATION=yes; harness_validate_isolation",
+  );
+  assert.notEqual(code, 0);
+  assert.match(stderr, /off\|claude\|docker/);
+});
+
+test("harness_claude_permission_args drops skip-permissions only for claude", async () => {
+  const dir = await makeProject([]);
+  let result = await runCommon(dir, 'HARNESS_ISOLATION=off; harness_claude_permission_args; echo');
+  assert.match(result.stdout, /--dangerously-skip-permissions/);
+  result = await runCommon(dir, 'HARNESS_ISOLATION=claude; harness_claude_permission_args; echo none');
+  assert.doesNotMatch(result.stdout, /--dangerously-skip-permissions/);
+});
+
 // ─── watchdog evaluator freshness check ───────────────────────────────
 
 async function makeEvaluatorReadyProject() {

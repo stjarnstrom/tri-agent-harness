@@ -111,6 +111,11 @@ Defaults come from `harness-runtime.config.json` (`maxQaRounds`,
   halting: export `HARNESS_ON_MAX_ROUNDS=advance`.
 - **`pause=sprint`** — confirm with the user before starting each new sprint.
 - **`retro=off`** — skip the `run-retro` step and go straight to reporting.
+- **`sandbox`** or **`sandbox=docker`** — do **not** claim this chat is jailed.
+  Print or run the equivalent `./harness.sh --sandbox "…"` (Docker/Podman).
+  Fail with the same install hint if neither engine is on PATH.
+- **`sandbox=claude`** — export `HARNESS_ISOLATION=claude` and tell the user
+  this session uses Claude Code's sandbox, not a container.
 
 Unless the user asked to pause, do not stop between phases to ask permission —
 run the cycle. Stop only on a stopping step, a genuine ambiguity, or a repeated

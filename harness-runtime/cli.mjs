@@ -79,6 +79,7 @@ Environment overrides:
   HARNESS_MAX_QA_ROUNDS    Override max QA rounds
   HARNESS_RUNNER=cli       Prefer cursor CLI over SDK
   HARNESS_ON_MAX_ROUNDS=advance  Advance instead of halt on max rounds
+  HARNESS_ISOLATION=off|claude|docker  Opt-in cycle jail (see ./harness.sh --sandbox)
   CURSOR_API_KEY           Required for SDK runner (cli fallback if unset)
 `);
 }

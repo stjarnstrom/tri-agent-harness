@@ -10,14 +10,14 @@
 #   HARNESS_ON_MAX_ROUNDS=advance ./harness.sh "..."  # advance on persistent failure
 #   HARNESS_PAUSE=sprint ./harness.sh "..."          # confirm before each sprint
 #   HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "..." # one sprint per invocation
+#   ./harness.sh --sandbox "..."                    # Docker/Podman jail (opt-in)
+#   HARNESS_ISOLATION=claude ./harness.sh "..."      # Claude Code sandbox only
 #
 # Setup (first time):
 #   bun install && bun run setup
 
 set -euo pipefail
 
-PROMPT="${1:?Usage: ./harness.sh \"your product prompt here\" [max_qa_rounds]}"
-MAX_QA_ROUNDS="${2:-3}"
 # HARNESS_MODEL: optional override for all phases (e.g. claude-fable-5).
 # When unset, every phase defaults to `opus` (latest Opus) — see below.
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -26,7 +26,14 @@ HARNESS_SOURCE="harness.sh"
 cd "$PROJECT_DIR"
 source "$PROJECT_DIR/scripts/harness-common.sh"
 
+# Flags first: ./harness.sh [--sandbox[=backend]] "prompt" [max_qa_rounds]
+# Flag wins over HARNESS_ISOLATION. Bare --sandbox means docker.
+harness_parse_isolation_args "$@" || exit 1
+PROMPT="${HARNESS_CLI_PROMPT:?Usage: ./harness.sh [--sandbox[=docker|claude]] \"your product prompt here\" [max_qa_rounds]}"
+MAX_QA_ROUNDS="${HARNESS_CLI_ROUNDS:-3}"
+
 harness_validate_run_config "$MAX_QA_ROUNDS"
+harness_maybe_enter_sandbox || exit 1
 
 # ─── Per-agent model policy ──────────────────────────────────────────
 # Default: latest Opus (the `opus` alias, currently Opus 5) for every phase.
@@ -70,7 +77,7 @@ run_phase_agent() {
     *)         model="$PLANNER_MODEL" ;;
   esac
 
-  claude --dangerously-skip-permissions \
+  claude $(harness_claude_permission_args) \
     --model "$model" \
     -p "$phase_prompt"
 }
@@ -95,7 +102,7 @@ harness_run_retrospector() {
   echo "  Distilling lessons from this run's QA reports..."
   echo ""
 
-  if ! claude --dangerously-skip-permissions \
+  if ! claude $(harness_claude_permission_args) \
     --model "$RETRO_MODEL" \
     -p "$(cat agents/retrospector.md)
 
@@ -123,6 +130,7 @@ echo "  COMBINED HARNESS: Build + Guardrails"
 echo "  Prompt: $PROMPT"
 echo "  Max QA rounds per sprint: $MAX_QA_ROUNDS"
 echo "  On max rounds: $HARNESS_ON_MAX_ROUNDS"
+harness_print_isolation
 if [ -n "${HARNESS_MODEL:-}" ]; then
   echo "  Model (all phases): $HARNESS_MODEL"
 else

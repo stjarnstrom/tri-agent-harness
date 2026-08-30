@@ -56,6 +56,7 @@ All sprints Pass or Skipped?
 | Autonomous | `./harness.sh "your product prompt"` |
 | Richer than a one-liner | [planner-input.md](planner-input.md) — intent brief, not a PRD |
 | One sprint demo | `HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "…"` |
+| Sandboxed cycle | `./harness.sh --sandbox "…"` |
 | Chat loop | `/cycle` then `/cycle` to continue |
 | Single phase | `/plan` · `/build` · `/qa` · `/retro` |
 | Next step (cycle) | `node harness-runtime/cli.mjs next-step` |
@@ -88,6 +89,7 @@ All sprints Pass or Skipped?
 | `HARNESS_YES` | `0` | Skip all pause prompts |
 | `HARNESS_ON_MAX_ROUNDS` | `halt` | `advance` skips stuck sprints |
 | `HARNESS_RETRO` | `on` | `off` skips Retrospector |
+| `HARNESS_ISOLATION` | `off` | `docker` / `--sandbox` jails the cycle; `claude` is Claude Code only |
 | `HARNESS_PLANNER_MODEL` | `opus` | e.g. `claude-fable-5` for planning |
 
 ## Learning loop
