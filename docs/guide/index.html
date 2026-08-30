@@ -390,7 +390,7 @@
       <a href="#loop">The loop</a>
       <a href="#agents">Agents</a>
       <a href="#quickstart">Start a product</a>
-      <a href="#preplan">Pre-plan</a>
+      <a href="#preplan">Input</a>
       <a href="#run">A run</a>
       <a href="#modes">Modes</a>
       <a href="#artifacts">Artifacts</a>
@@ -404,17 +404,18 @@
 <main>
   <div class="wrap hero">
     <span class="eyebrow">Field guide</span>
-    <h1>One prompt in. A tested, graded product out.</h1>
+    <h1>Intent in. A tested, graded product out.</h1>
     <p class="thesis">
-      The harness turns a short product prompt into a working app by
+      The harness turns a product prompt — a sentence <strong>or</strong> a
+      richer brief — into a working app by
       <strong>separating creation from judgment</strong>: one agent plans, one
       builds, one grades the running app with a skeptical eye — and a fourth
       distills every failure into lessons, so <strong>each run starts smarter
-      than the last</strong>.
+      than the last</strong>. You do not have to start from a one-liner.
     </p>
     <p class="doc-meta">
       <span>docs/guide/</span>
-      <span>updated 2026-07-17</span>
+      <span>updated 2026-08-30</span>
       <span>zero dependencies</span>
     </p>
   </div>
@@ -521,9 +522,10 @@
         <div class="card">
           <h3>Planner</h3>
           <span class="tech">opus (latest)</span>
-          <p>Expands your one-line prompt into a full spec, sprint plan, and
-          status tracker. With no design brief, it first proposes three design
-          directions and waits for your pick.</p>
+          <p>Expands your prompt — a one-liner or an intent brief — into a
+          full spec, sprint plan, and status tracker. A pasted PRD is raw
+          material, not the spec; the Planner still writes
+          <code>docs/spec.md</code>.</p>
         </div>
         <div class="card">
           <h3>Generator</h3>
@@ -642,9 +644,9 @@
               the design language in <code>docs/spec.md</code> from your prompt.
             </p>
             <p>
-              Bringing a full product plan from another chat? That helps —
-              see <a href="#preplan">Planning with another agent</a> for what
-              to keep vs strip before you paste it into the prompt.
+              Already have more than a sentence? Good — you do not have to
+              be basic. See <a href="#preplan">What to give the Planner</a>
+              for the useful middle (an intent brief, not a competing PRD).
             </p>
           </div>
         </div>
@@ -676,57 +678,87 @@
     </div>
   </section>
 
-  <!-- ================= PRE-PLAN FROM ANOTHER AGENT ================= -->
+  <!-- ================= WHAT TO GIVE THE PLANNER ================= -->
   <section id="preplan">
     <div class="wrap">
       <span class="eyebrow">Input shape</span>
-      <h2>Planning with another agent</h2>
+      <h2>What to give the Planner</h2>
       <p class="lead-in">
-        The prompt you pass to <code>./harness.sh</code> (or
-        <code>/plan</code>) does not have to be a one-liner. A product plan
-        drafted in Claude chat or another agent usually
-        <strong>helps</strong> the Planner — richer intent means fewer
-        invented requirements. It does <strong>not</strong> change the
-        harness architecture: the Planner still writes the canonical
-        <code>docs/spec.md</code> and sprint plan.
+        You do not have to be basic. A sentence works. So does a page of
+        intent from Claude chat or another agent. A finished PRD usually
+        does <strong>not</strong> — the Planner writes the canonical
+        <code>docs/spec.md</code> and sprint plan in the harness’s own
+        shape. Hand it a competing spec and it either gets ignored or it
+        locks in implementation the Planner was supposed to stay above.
       </p>
+      <p>
+        The useful middle is an <strong>intent brief</strong>: who it’s for,
+        the job, must / nice / won’t, first-session feel, and
+        outcome-shaped user stories. Richer than a slogan, thinner than a
+        PRD. Written guide:
+        <a href="../planner-input.md"><code>docs/planner-input.md</code></a>.
+        Worked example:
+        <a href="../examples/pre-plan-input.md"><code>docs/examples/pre-plan-input.md</code></a>.
+      </p>
+
+      <div class="duo">
+        <div class="card">
+          <h3>Give this</h3>
+          <p>Who and the situation. The one job the first session must do well.</p>
+          <p>Must / nice / won’t as <strong>observable</strong> outcomes — “no social, no accounts” is gold.</p>
+          <p>Stories as outcomes: “as a runner I want to mark today done in one tap so the streak stays honest.”</p>
+          <p>Constraints that are real: legal, brand, platform, “do not expand beyond this scope.”</p>
+        </div>
+        <div class="card">
+          <h3>Park or skip this</h3>
+          <p>Visual system → <code>design/brief.md</code> (authoritative). Don’t bury it in the prompt.</p>
+          <p>Usual stack → <code>AGENTS.md</code> <strong>Tech Stack Preferences</strong>. Don’t repeat “use Convex” every run.</p>
+          <p>File trees, table schemas, “put the store in <code>src/store</code>” — strip these. Wrong <em>how</em> cascades into Generator bugs.</p>
+          <p>Pre-cut sprints are hints only. The Planner re-slices into 4–8 runnable sprints; Sprint 1 is always the skeleton.</p>
+        </div>
+      </div>
 
       <div class="tbl-scroll">
         <table class="tbl">
           <thead>
-            <tr><th>In your pre-plan</th><th>Effect</th></tr>
+            <tr><th>In your brief</th><th>What the Planner does</th></tr>
           </thead>
           <tbody>
             <tr>
-              <td data-label="In your pre-plan">Product goals, users, features, UX flows</td>
-              <td data-label="Effect">Helps — better input for the spec</td>
+              <td data-label="In your brief">Who, job, must / won’t, first-session feel</td>
+              <td data-label="What the Planner does">Extracts these and rewrites them into <code>docs/spec.md</code></td>
             </tr>
             <tr>
-              <td data-label="In your pre-plan">Design direction / brand rules</td>
-              <td data-label="Effect">Prefer <code>design/brief.md</code> (authoritative) over burying it in the prompt</td>
+              <td data-label="In your brief">Outcome-shaped user stories</td>
+              <td data-label="What the Planner does">Welcome — it will re-home them in the sprint plan</td>
             </tr>
             <tr>
-              <td data-label="In your pre-plan">Non-negotiable constraints</td>
-              <td data-label="Effect">Prefer <code>design/constraints.md</code>, or say explicitly “do not expand beyond this scope”</td>
+              <td data-label="In your brief">A pasted PRD from another chat</td>
+              <td data-label="What the Planner does">Raw material. Distill first, or add “this is intent, not the spec”</td>
             </tr>
             <tr>
-              <td data-label="In your pre-plan">Stack, file layouts, “implement X with Y”</td>
-              <td data-label="Effect">Risk — Planner stays high-level; wrong implementation detail cascades to Generator</td>
+              <td data-label="In your brief">Design direction / brand rules</td>
+              <td data-label="What the Planner does">Prefer <code>design/brief.md</code> over burying it in the prompt</td>
             </tr>
             <tr>
-              <td data-label="In your pre-plan">Pre-cut sprints</td>
-              <td data-label="Effect">Hints only — Planner re-slices into the harness shape (typically 4–8 sprints; Sprint 1 = skeleton)</td>
+              <td data-label="In your brief">Non-negotiable constraints</td>
+              <td data-label="What the Planner does">Honor exactly. Expand only where you were silent</td>
+            </tr>
+            <tr>
+              <td data-label="In your brief">Stack, file layouts, “implement X with Y”</td>
+              <td data-label="What the Planner does">Risk — ignored unless you marked them non-negotiable. Standing prefs live in <code>AGENTS.md</code></td>
+            </tr>
+            <tr>
+              <td data-label="In your brief">Pre-cut sprints</td>
+              <td data-label="What the Planner does">Hints only — re-sliced into the harness shape</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p>
-        <strong>Practical recipe:</strong> keep the other agent’s output as a
-        product brief, strip implementation prescriptions, park visuals in
-        <code>design/brief.md</code>, then run the harness. The Planner may
-        still ambition-expand unless you constrain it — that is intentional,
-        but easy to overshoot on cost. See
+        The Planner may still ambition-expand unless you constrain it —
+        that is intentional, but easy to overshoot on cost. See
         <a href="#quickstart">Starting a product</a> for caps like
         <code>HARNESS_MAX_SPRINTS_PER_RUN=1</code>.
       </p>
@@ -1026,6 +1058,7 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
     <div class="wrap">
       <p>
         Deeper reading: <a href="../README.md">README</a> ·
+        <a href="../planner-input.md">planner input</a> ·
         <a href="CHEATSHEET.md">cheat sheet</a> ·
         <a href="examples/README.md">example artifacts</a> ·
         <a href="runtime-contract.md">runtime contract</a> ·

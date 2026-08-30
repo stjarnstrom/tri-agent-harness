@@ -15,7 +15,7 @@ Layer 3  Phase gates     pre-qa-gate.sh (lints, artifacts, secrets)
 ## The loop
 
 ```
-Prompt → Planner (spec, sprint plan, status)
+Prompt or intent brief → Planner (spec, sprint plan, status)
        → Generator (contract, app/, Ready for QA)
        → Pre-QA Gate (mechanical-checks-sprint-N.md)
        → Evaluator (qa-report-sprint-N.md, Pass/Fail)
@@ -54,6 +54,7 @@ All sprints Pass or Skipped?
 | Mode | Command |
 |------|---------|
 | Autonomous | `./harness.sh "your product prompt"` |
+| Richer than a one-liner | [planner-input.md](planner-input.md) — intent brief, not a PRD |
 | One sprint demo | `HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "…"` |
 | Chat loop | `/cycle` then `/cycle` to continue |
 | Single phase | `/plan` · `/build` · `/qa` · `/retro` |
@@ -106,6 +107,7 @@ Static fictional artifacts: **[docs/examples/](examples/README.md)** — Taskflo
 | Topic | Doc |
 |-------|-----|
 | Full walkthrough | [README](../README.md) |
+| What to give the Planner | [planner-input.md](planner-input.md) |
 | File ownership | [runtime-contract.md](runtime-contract.md) |
 | Visual field guide | [GitHub Pages](https://stjarnstrom.github.io/tri-agent-harness/guide/) · [`guide/`](guide/) |
 | Chat-driven cycle | [harness-cycle skill](../.agents/skills/harness-cycle/SKILL.md) |

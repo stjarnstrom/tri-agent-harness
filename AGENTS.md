@@ -55,7 +55,7 @@ Three runners drive the same phases over the same files: `./harness.sh`
 conversation drives the loop), and the per-phase slash commands. Switch between
 them at any point, including mid-sprint.
 
-- **Planner** (Fable): Expands a short prompt into spec, sprint plan, and status tracker.
+- **Planner** (Fable): Expands a product prompt (one-liner or intent brief) into spec, sprint plan, and status tracker. See `docs/planner-input.md`.
 - **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
 - **Pre-QA Gate**: Mechanical checks (lints, artifacts) before Evaluator runs.
 - **Evaluator** (Fable): Playwright testing + rubric grading + review persona checklists.
@@ -101,9 +101,17 @@ application source with harness tooling at the root.
 
 ---
 
+## Tech Stack Preferences
+
+Standing defaults for this repo. Planner and Generator honor these when
+the product prompt is silent or uncertain. Edit this list to match how
+you actually like to ship — you should not have to repeat it in every prompt.
+
+- When uncertain, prefer: Tailwind, TypeScript, React, Convex, Clerk, Vercel.
+
 ## Stack
 
-[Defaults — Planner adapts for each product]
+[Defaults — Planner adapts for each product. Preferences above win ties.]
 
 **Frontend (always)**
 
@@ -116,7 +124,10 @@ application source with harness tooling at the root.
 
 **Full stack (when backend needed)**
 
-- FastAPI (Python) for the API layer
+Prefer Convex (data + backend functions), Clerk (auth), and Vercel (host).
+Use the fallbacks below only when the product clearly needs them:
+
+- FastAPI (Python) for a traditional HTTP API
 - SQLite for prototyping, PostgreSQL for production
 - Alembic for migrations
 - Pydantic for data validation
@@ -189,6 +200,7 @@ cd app && npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 
 ## Docs
 
+- What to give the Planner: `docs/planner-input.md`
 - Full spec: `docs/spec.md`
 - Sprint plan: `docs/sprint-plan.md`
 - Sprint status: `docs/sprint-status.md`
@@ -264,4 +276,5 @@ round budget, and halt-vs-advance. It is side-effect-free until `--record`.
 
 ## Key decisions
 
-[Filled in as the project evolves]
+- Planner input is an **intent brief**, not a competing PRD. See `docs/planner-input.md`.
+- When the prompt is silent on stack, use Tech Stack Preferences above.

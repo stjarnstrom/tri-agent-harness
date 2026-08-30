@@ -2,6 +2,9 @@
 
 Add visual direction before running the harness. If this folder is empty, the Planner defines the design language in `docs/spec.md` from your product prompt.
 
+Product intent (who, job, must / won't, stories) is **not** a design brief —
+put that in the prompt. See [`docs/planner-input.md`](../docs/planner-input.md).
+
 ## Quick start
 
 ```bash

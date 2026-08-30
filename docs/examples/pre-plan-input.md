@@ -1,30 +1,42 @@
-# Pre-plan input (from another chat — not canonical)
+# Intent brief (from another chat — not canonical)
 
-> **Example only.** This is the kind of messy brief you might paste into
-> `./harness.sh "…"`. The Planner still writes the authoritative
-> `docs/spec.md` and sprint plan.
+> **Example only.** This is the useful middle: richer than a one-liner, not a
+> competing PRD. Paste something in this shape into `./harness.sh "…"` or
+> `/plan`. The Planner still writes the authoritative `docs/spec.md` and
+> sprint plan. See [`docs/planner-input.md`](../planner-input.md).
 
 ---
 
-Build **Taskflow** — a habit tracker where people log daily habits and see streak analytics.
+# Taskflow
 
-**Users:** individuals building routines (exercise, reading, meditation).
+**Who:** individuals building small daily routines (exercise, reading, meditation) who want streak feedback without an account.
 
-**Must have:**
-- Add habits with name + optional emoji
+**Job:** make today's check-in frictionless and the streak visible.
+
+**First session:** add two habits, mark one done, see a streak of 1. The UI should feel like a private ritual — dark, calm, not generic startup purple.
+
+## Must
+- Add habits with a name and optional emoji
 - One-tap "done today" on the home screen
-- Streak count per habit (current + longest)
-- Dark, calm UI — not generic startup purple
+- Streak count per habit (current + longest), honest across midnight
+- Data survives a refresh
 
-**Nice to have:**
+## Nice
 - Weekly bar chart of completion rate
 - Claude suggests habit names from a short goal description
 
-**Stack:** React, Vite, Tailwind — keep it simple, local-first (localStorage ok for v1).
+## Won't (v1)
+- Social, accounts, or mobile app stores — web only
+- Teams, sharing, or reminders
 
-**Do not** over-scope: no social, no accounts, no mobile app store — web only.
+## Stories
+- As someone building a routine, I want to mark today done in one tap so the streak stays honest.
+- As a returning user, I want to see current and longest streaks so a miss is visible without a lecture.
 
-**Sprints (rough idea — harness will re-slice):**
+## Stack
+- Local-first for v1 (localStorage is fine). Otherwise follow AGENTS.md Tech Stack Preferences.
+
+## Sprints (rough idea — harness will re-slice)
 1. Shell + nav + design tokens
 2. CRUD habits + check-in
 3. Streaks + analytics

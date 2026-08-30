@@ -77,11 +77,16 @@ Use `fix(sprint-N):` for bug fixes, `style(sprint-N):` for design-only changes.
 - **React + Vite + TypeScript** for frontend (adapt if spec says otherwise)
 - **Tailwind CSS** for styling — implement the spec's design language, not
 generic defaults
+- **Stack when the spec is silent:** honor `AGENTS.md` **Tech Stack
+Preferences** (Convex, Clerk, Vercel, …). Do not reach for FastAPI or
+another fallback unless the spec chose it.
 - **Component architecture**: Break the UI into composable, single-responsibility
 components. No god-components.
 - **State management**: Start with React state/context. Only add a library if
 complexity demands it.
-- **API design**: RESTful endpoints with clear naming. Type the API contract.
+- **API design:** match the chosen stack. Convex (or similar) → typed
+functions and queries. Traditional HTTP → RESTful endpoints with a typed
+contract.
 - **Error handling**: User-facing errors should be helpful. Don't let raw
 exceptions hit the UI.
 
