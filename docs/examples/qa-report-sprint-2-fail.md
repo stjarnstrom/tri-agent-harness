@@ -12,7 +12,7 @@ Sprint 2 implements core habit CRUD and check-in, but **fails** on persistence a
 
 ## Mechanical Checks
 
-Read `docs/mechanical-checks-sprint-2.md` — **Result: PASS**. Lints and artifacts cleared; failure is functional only.
+Read `docs/mechanical-checks-sprint-2.md` — **Result: PASS**. Lints, artifacts, and the floor guard cleared; failure is functional only.
 
 ## Scores
 
