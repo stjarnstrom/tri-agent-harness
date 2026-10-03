@@ -84,6 +84,10 @@ Specifically:
 - Try to break things: empty inputs, rapid clicks, back-button navigation
 - For full-stack features: verify the backend actually received and stored data
 
+### Ship bar
+
+When the contract includes an accessibility check, a performance budget, or a rollback or telemetry note, grade each one as its own binary criterion. Accessibility needs the result of an automated check. A performance budget needs a measured number. A missing measurement fails that criterion.
+
 ### What to look for beyond the contract
 
 Even while testing against specific criteria, flag anything that looks wrong:

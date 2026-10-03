@@ -76,16 +76,73 @@ test("missing planning artifacts resolve to run-planner", async () => {
   });
 });
 
-test("not-started sprint dispatches the generator on round 1", async () => {
+test("not-started sprint dispatches a contract draft before implementation", async () => {
   await inTempProject(async () => {
     await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);
     const step = await computeNextStep({ policy: haltPolicy });
     assert.equal(step.step, "run-generator");
     assert.equal(step.agent, "generator");
     assert.equal(step.sprint, 1);
-    assert.equal(step.qaRound, 1);
-    assert.equal(step.focus, "build");
+    assert.equal(step.focus, "write-contract");
+    assert.equal(step.record, "contract-draft");
+    assert.equal(step.qaRound, undefined);
     assert.ok(step.context.includes("docs/spec.md"));
+  });
+});
+
+test("a contract with acceptance criteria waits for one fresh-context review", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);
+    await writeFile(
+      path.join("docs", "sprint-1-contract.md"),
+      "# Contract\n\n## Acceptance criteria\n- [ ] Home loads\n\n## Generator self-evaluation\n- [x] done\n",
+      "utf8",
+    );
+    const step = await computeNextStep({ policy: haltPolicy });
+    assert.equal(step.step, "run-contract-review");
+    assert.equal(step.agent, "contract-reviewer");
+    assert.equal(step.record, "contract-review");
+    assert.equal(step.command, "node harness-runtime/cli.mjs contract-artifact --sprint 1");
+    assert.ok(!step.context.includes("agents/generator.md"));
+  });
+});
+
+test("a fresh contract review dispatches implementation on round 1", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);
+    await writeFile(
+      path.join("docs", "sprint-1-contract.md"),
+      "# Contract\n\n## Acceptance criteria\n- [ ] Home loads\n",
+      "utf8",
+    );
+    await makeOlder(path.join("docs", "sprint-1-contract.md"), 30);
+    await writeFile(
+      path.join("docs", "sprint-1-contract-review.md"),
+      "# Review\n\n## Stop\nStop: reviewed\n\nCross-model: skipped (autonomous)\n",
+      "utf8",
+    );
+    const step = await computeNextStep({ policy: haltPolicy });
+    assert.equal(step.step, "run-generator");
+    assert.equal(step.focus, "build");
+    assert.equal(step.qaRound, 1);
+  });
+});
+
+test("one recorded review attempt is the bound when the review file never lands", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);
+    await writeFile(
+      path.join("docs", "sprint-1-contract.md"),
+      "# Contract\n\n## Acceptance criteria\n- [ ] Home loads\n",
+      "utf8",
+    );
+    await recordPhase({ phase: "contract-draft", sprint: 1 });
+    await recordPhase({ phase: "contract-review", sprint: 1 });
+    const step = await computeNextStep({ policy: haltPolicy });
+    assert.equal(step.focus, "build");
+    const state = await readOrchestratorState();
+    assert.equal(state.contractPrep["1"].reviewDispatches, 1);
+    assert.equal(state.cycleAttempts, undefined);
   });
 });
 

@@ -126,6 +126,7 @@
     position: relative; max-width: 100%;
   }
   .plate svg { display: block; width: 100%; height: auto; min-width: 620px; }
+  .plate svg.circuit { min-width: 0; }
   .plate-caption {
     font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em;
     color: var(--muted); margin-top: 1rem; text-transform: uppercase;
@@ -174,8 +175,11 @@
   .start-step strong { color: var(--ink); }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.9rem; margin: 2rem 0; min-width: 0;
+  }
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .card {
     background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem;
@@ -409,13 +413,14 @@
       The harness turns a product prompt — a sentence <strong>or</strong> a
       richer brief — into a working app by
       <strong>separating creation from judgment</strong>: one agent plans, one
-      builds, one grades the running app with a skeptical eye — and a fourth
-      distills every failure into lessons, so <strong>each run starts smarter
-      than the last</strong>. You do not have to start from a one-liner.
+      builds against a reviewed contract, one grades the running app with a
+      skeptical eye — and a fourth distills every failure into lessons, so
+      <strong>each run starts smarter than the last</strong>. You do not have
+      to start from a one-liner.
     </p>
     <p class="doc-meta">
       <span>docs/guide/</span>
-      <span>updated 2026-08-30</span>
+      <span>updated 2026-10-03</span>
       <span>zero dependencies</span>
     </p>
   </div>
@@ -424,17 +429,19 @@
   <section id="loop">
     <div class="wrap">
       <span class="eyebrow">The machine</span>
-      <h2>Four agents, one circuit</h2>
+      <h2>One circuit</h2>
       <p class="lead-in">
-        Every sprint travels the same circuit. The Generator never has final
-        say on its own work: a mechanical gate checks lints and artifacts, then
-        the Evaluator tests the live app and grades it against rubrics. Fail,
-        and the work goes back — up to three rounds per sprint.
+        Every sprint travels the same circuit. The Generator writes a contract,
+        one fresh context reviews that contract, then the Generator implements.
+        A mechanical gate checks lints, artifacts, and the floor, then the
+        Evaluator tests the live app and grades it against rubrics. A fail
+        returns to implementation — up to three rounds per sprint. Drafting
+        the contract and reviewing it sit before that budget.
       </p>
     </div>
     <div class="wrap-wide">
       <div class="plate">
-        <svg viewBox="0 0 960 250" role="img" aria-label="Diagram: Planner feeds Generator, then Pre-QA Gate, then Evaluator. A fail wire returns to the Generator. After the run, the Retrospector writes lessons that feed the next run.">
+        <svg class="circuit" viewBox="0 0 800 310" role="img" aria-label="Diagram: Planner, then each sprint drafts a contract, one review, and implementation on the top row. The Pre-QA gate, Evaluator, and Retrospector continue on the row below. A fail wire returns to implementation. After the run, the Retrospector writes lessons that feed the next run.">
           <defs>
             <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
               <path d="M0,0 L8,4 L0,8 z" fill="#10202e"/>
@@ -449,52 +456,63 @@
 
           <!-- nodes -->
           <g font-family="ui-monospace, Menlo, monospace" font-size="13">
-            <rect x="20" y="55" width="140" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="90" y="83" text-anchor="middle" fill="#10202e">Planner</text>
+            <rect x="36" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="114" y="84" text-anchor="middle" fill="#10202e">Planner</text>
 
-            <rect x="285" y="55" width="140" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="355" y="83" text-anchor="middle" fill="#10202e">Generator</text>
+            <rect x="228" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="306" y="84" text-anchor="middle" fill="#10202e">Contract</text>
 
-            <rect x="440" y="55" width="130" height="46" rx="23" fill="#d8dfe5" stroke="#52616e" stroke-width="1.2"/>
-            <text x="505" y="83" text-anchor="middle" fill="#10202e">Pre-QA gate</text>
+            <rect x="420" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="498" y="84" text-anchor="middle" fill="#10202e">Review</text>
 
-            <rect x="610" y="55" width="140" height="46" rx="8" fill="#2062ae" stroke="#2062ae"/>
-            <text x="680" y="83" text-anchor="middle" fill="#f1f3f5">Evaluator</text>
+            <rect x="612" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="690" y="84" text-anchor="middle" fill="#10202e">Generator</text>
 
-            <rect x="800" y="55" width="140" height="46" rx="8" fill="#f1f3f5" stroke="#d14d21" stroke-width="1.5"/>
-            <text x="870" y="83" text-anchor="middle" fill="#d14d21">Retrospector</text>
+            <rect x="612" y="188" width="156" height="46" rx="23" fill="#d8dfe5" stroke="#52616e" stroke-width="1.2"/>
+            <text x="690" y="216" text-anchor="middle" fill="#10202e">Pre-QA gate</text>
+
+            <rect x="420" y="188" width="156" height="46" rx="8" fill="#2062ae" stroke="#2062ae"/>
+            <text x="498" y="216" text-anchor="middle" fill="#f1f3f5">Evaluator</text>
+
+            <rect x="36" y="188" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#d14d21" stroke-width="1.5"/>
+            <text x="114" y="216" text-anchor="middle" fill="#d14d21">Retrospector</text>
           </g>
 
-          <!-- forward wires -->
-          <line x1="160" y1="78" x2="278" y2="78" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="425" y1="78" x2="433" y2="78" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="570" y1="78" x2="603" y2="78" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="750" y1="78" x2="793" y2="78" stroke="#10202e" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arr)"/>
+          <!-- forward wires, top row -->
+          <line x1="192" y1="79" x2="222" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="384" y1="79" x2="414" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="576" y1="79" x2="606" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- down into the gate, then back along the second row -->
+          <line x1="690" y1="102" x2="690" y2="188" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="612" y1="211" x2="576" y2="211" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="420" y1="211" x2="192" y2="211" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
 
-          <!-- fail wire: evaluator back to generator -->
-          <path d="M 680 101 C 680 165, 420 165, 358 106" fill="none" stroke="#2062ae" stroke-width="1.5" marker-end="url(#arr-j)"/>
-          <text x="520" y="172" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">FAIL — fix and retest (max 3 rounds/sprint)</text>
+          <!-- fail wire: evaluator back to implementation -->
+          <path d="M 498 188 C 520 138, 640 132, 678 102" fill="none" stroke="#2062ae" stroke-width="1.5" marker-end="url(#arr-j)"/>
+          <text x="306" y="136" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">FAIL — back to implementation</text>
+          <text x="306" y="152" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">max 3 rounds / sprint</text>
 
-          <!-- pass wire: next sprint -->
-          <path d="M 715 55 C 715 18, 420 18, 360 50" fill="none" stroke="#52616e" stroke-width="1.2" stroke-dasharray="3 4" marker-end="url(#arr)"/>
-          <text x="537" y="14" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#52616e">PASS — next sprint</text>
+          <!-- pass wire: next sprint starts at a new contract -->
+          <path d="M 690 56 C 690 28, 400 26, 306 50" fill="none" stroke="#52616e" stroke-width="1.2" stroke-dasharray="3 4" marker-end="url(#arr)"/>
+          <text x="520" y="20" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#52616e">PASS — next sprint</text>
 
-          <!-- learn wire: retrospector back to the start -->
-          <path d="M 870 101 C 870 225, 120 225, 92 106" fill="none" stroke="#d14d21" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-l)"/>
-          <text x="480" y="232" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#d14d21">harness/LESSONS.md — required reading for every agent, every run</text>
+          <!-- learn wire: retrospector back to the planner -->
+          <path d="M 36 211 C 8 211, 8 79, 36 79" fill="none" stroke="#d14d21" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-l)"/>
+          <text x="400" y="286" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#d14d21">harness/LESSONS.md — required reading for every agent, every run</text>
 
           <!-- signature: signal lights travelling the circuit, then the fail wire home -->
           <g aria-hidden="true">
-            <circle class="signal" cx="200" cy="78" r="3.5" fill="#2062ae" style="animation-delay: 0s"/>
-            <circle class="signal" cx="240" cy="78" r="3.5" fill="#2062ae" style="animation-delay: 0.6s"/>
-            <circle class="signal" cx="600" cy="78" r="3.5" fill="#2062ae" style="animation-delay: 1.2s"/>
-            <circle class="signal" cx="672" cy="122" r="3.5" fill="#2062ae" style="animation-delay: 1.8s"/>
-            <circle class="signal" cx="590" cy="153" r="3.5" fill="#2062ae" style="animation-delay: 2.4s"/>
-            <circle class="signal" cx="470" cy="157" r="3.5" fill="#2062ae" style="animation-delay: 3.0s"/>
-            <circle class="signal" cx="385" cy="128" r="3.5" fill="#2062ae" style="animation-delay: 3.6s"/>
+            <circle class="signal" cx="207" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 0s"/>
+            <circle class="signal" cx="399" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 0.5s"/>
+            <circle class="signal" cx="591" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 1s"/>
+            <circle class="signal" cx="690" cy="145" r="3.5" fill="#2062ae" style="animation-delay: 1.5s"/>
+            <circle class="signal" cx="590" cy="211" r="3.5" fill="#2062ae" style="animation-delay: 2s"/>
+            <circle class="signal" cx="300" cy="211" r="3.5" fill="#2062ae" style="animation-delay: 2.5s"/>
+            <circle class="signal" cx="560" cy="155" r="3.5" fill="#2062ae" style="animation-delay: 3.1s"/>
+            <circle class="signal" cx="640" cy="128" r="3.5" fill="#2062ae" style="animation-delay: 3.6s"/>
           </g>
         </svg>
-        <p class="plate-caption">Fig. 1 — the build circuit and the learning return wire</p>
+        <p class="plate-caption">Fig. 1 — contract, one review, build, gate, grade, and the learning return wire</p>
         <div class="legend">
           <span><i class="swatch build"></i> build</span>
           <span><i class="swatch judge"></i> judge</span>
@@ -530,8 +548,17 @@
         <div class="card">
           <h3>Generator</h3>
           <span class="tech">opus (latest)</span>
-          <p>Builds one sprint at a time against a written contract. Every
-          commit must pass the pre-commit hook: sandbox, lints, secret scan.</p>
+          <p>Writes the sprint contract, then implements after one review.
+          Names a failing test per acceptance criterion and cites stack APIs.
+          Every commit must pass the pre-commit hook: sandbox, lints, secret scan.</p>
+        </div>
+        <div class="card">
+          <h3>Contract reviewer</h3>
+          <span class="tech">opus (latest) · one pass</span>
+          <p>Reads the contract, sprint plan, and spec once, before application
+          code. Writes <code>docs/sprint-N-contract-review.md</code> and stops.
+          The self-evaluation stays out of that read. Autonomous runs record
+          <code>Cross-model: skipped (autonomous)</code>.</p>
         </div>
         <div class="card">
           <h3>Evaluator</h3>
@@ -809,22 +836,44 @@
           <span class="tplus">5–15 min</span>
           <h3>Planning</h3>
           <p>The Planner writes the spec, sprint plan, and status tracker, and
-          fills AGENTS.md with the design language.</p>
+          fills AGENTS.md with the design language. The last two sprints of a
+          product plan include a ship bar: keyboard and automated accessibility,
+          measured LCP and CLS, and a rollback or telemetry note. A throwaway
+          prototype records “Ship bar omitted: throwaway prototype.”</p>
           <span class="wire">docs/spec.md · docs/sprint-plan.md · docs/sprint-status.md</span>
         </div>
         <div class="event">
+          <span class="tplus">before code</span>
+          <h3>Contract (sprint N)</h3>
+          <p>The Generator writes the sprint contract and stops. No application
+          code in this step. The contract names acceptance tests and stack APIs.</p>
+          <span class="wire">docs/sprint-N-contract.md</span>
+        </div>
+        <div class="event">
+          <span class="tplus">one pass</span>
+          <h3>Contract review</h3>
+          <p>A fresh context reads the contract, the sprint plan, and the spec,
+          writes the review, and stops. One cycle, outside the QA-round budget.
+          A later QA or gate retry skips it.</p>
+          <span class="wire">docs/sprint-N-contract-review.md · Stop: reviewed</span>
+        </div>
+        <div class="event">
           <span class="tplus">10–30 min</span>
-          <h3>Build (sprint N)</h3>
-          <p>The Generator writes the sprint contract, implements it, commits
-          through the pre-commit hook, and marks the sprint “Ready for QA”.</p>
-          <span class="wire">docs/sprint-N-contract.md · app/ (source, package.json, tests)</span>
+          <h3>Implement (sprint N)</h3>
+          <p>The Generator reads the review, classifies each finding, writes a
+          failing test per criterion, then implements. Commits go through the
+          pre-commit hook. The sprint is marked “Ready for QA.”</p>
+          <span class="wire">app/ (source, package.json, tests) · sprint status</span>
         </div>
         <div class="event">
           <span class="tplus">1–5 min</span>
           <h3>Pre-QA gate</h3>
-          <p>Deterministic checks — lints, required artifacts — before any
-          expensive judgment. A gate failure returns to the Generator without
-          consuming a QA round.</p>
+          <p>Deterministic checks — lints, required artifacts, and the floor
+          guard — before any expensive judgment. The floor guard fails the
+          sprint when the diff adds a suppression, a skipped or deleted test,
+          a stub, stripped assertions, or a loosened
+          <code>CONSTRAINTS.md</code> threshold. A gate failure returns to
+          implementation and spends a QA round, the same way a QA failure does.</p>
           <span class="wire">docs/mechanical-checks-sprint-N.md</span>
         </div>
         <div class="event judge-dot">
@@ -875,7 +924,7 @@
           <p>Drive each phase yourself from a Claude Code session. Each command
           dispatches an isolated subagent, so the phases stay independent.</p>
           <p><code>/project:plan</code> expand the idea ·
-          <code>/project:build</code> implement the sprint ·
+          <code>/project:build</code> write the contract, run one review, then implement ·
           <code>/project:qa</code> grade it ·
           <code>/project:retro</code> distill the lessons.</p>
         </div>
@@ -904,9 +953,10 @@
           <tbody>
             <tr><td data-label="File"><code>docs/spec.md</code></td><td data-label="Written by" class="who">Planner</td><td data-label="What it tells you">Product vision, features, design language</td></tr>
             <tr><td data-label="File"><code>docs/sprint-status.md</code></td><td data-label="Written by" class="who">all phases</td><td data-label="What it tells you">Source of truth for progress and resume</td></tr>
-            <tr><td data-label="File"><code>docs/sprint-N-contract.md</code></td><td data-label="Written by" class="who">Generator</td><td data-label="What it tells you">Sprint scope, acceptance criteria, self-eval</td></tr>
+            <tr><td data-label="File"><code>docs/sprint-N-contract.md</code></td><td data-label="Written by" class="who">Generator</td><td data-label="What it tells you">Scope, acceptance criteria, acceptance tests, stack APIs, self-eval</td></tr>
+            <tr><td data-label="File"><code>docs/sprint-N-contract-review.md</code></td><td data-label="Written by" class="who">Contract reviewer</td><td data-label="What it tells you">One pass on the contract. Ends with <code>Stop: reviewed</code></td></tr>
             <tr><td data-label="File"><code>app/</code></td><td data-label="Written by" class="who">Generator</td><td data-label="What it tells you">Product source — <code>package.json</code>, <code>src/</code>, tests, config</td></tr>
-            <tr><td data-label="File"><code>docs/mechanical-checks-sprint-N.md</code></td><td data-label="Written by" class="who">Pre-QA gate</td><td data-label="What it tells you">Lint/artifact results; FAIL blocks evaluation</td></tr>
+            <tr><td data-label="File"><code>docs/mechanical-checks-sprint-N.md</code></td><td data-label="Written by" class="who">Pre-QA gate</td><td data-label="What it tells you">Lints, artifacts, and the floor guard; FAIL blocks evaluation and spends a QA round</td></tr>
             <tr><td data-label="File"><code>docs/qa-report-sprint-N.md</code></td><td data-label="Written by" class="who">Evaluator</td><td data-label="What it tells you">Verdict, scores, bugs — ends with lesson candidates</td></tr>
             <tr><td data-label="File"><code>harness/LESSONS.md</code></td><td data-label="Written by" class="who learn-w">Retrospector</td><td data-label="What it tells you">Distilled cross-run lessons (max 25, phase-grouped)</td></tr>
             <tr><td data-label="File"><code>docs/proposals/guardrail-*.md</code></td><td data-label="Written by" class="who learn-w">Retrospector</td><td data-label="What it tells you">Draft guardrails awaiting your review</td></tr>
@@ -1018,6 +1068,16 @@ HARNESS_RETRO=off <span class="k">./harness.sh</span> <span class="f">"..."</spa
               <td data-label="Symptom">Gate fails: "No application source found by sprint 2"</td>
               <td data-label="Cause">The Generator scaffolded outside <code>app/</code> (e.g. at repo root or in <code>src/</code>)</td>
               <td data-label="Fix">Move the app into <code>app/package.json</code> and <code>app/src/</code></td>
+            </tr>
+            <tr>
+              <td data-label="Symptom">Gate fails on a suppression, skipped test, stub, or loosened threshold</td>
+              <td data-label="Cause">The diff under <code>app/</code> or <code>CONSTRAINTS.md</code> lowered the floor (silenced lint, <code>it.skip</code>, a TODO throw, or a looser metric)</td>
+              <td data-label="Fix">Remove the suppression, restore the test, or keep the threshold</td>
+            </tr>
+            <tr>
+              <td data-label="Symptom">Gate fails: acceptance tests or stack APIs</td>
+              <td data-label="Cause">App source exists, and the contract is missing <code>## Acceptance tests</code> naming a real test file, or <code>## Stack APIs</code></td>
+              <td data-label="Fix">Name an existing <code>app/</code> test file per criterion, and cite the API, mark it <code>UNVERIFIED</code>, or write <code>No framework APIs</code></td>
             </tr>
             <tr>
               <td data-label="Symptom">QA round 1 fails on setup, not bugs</td>

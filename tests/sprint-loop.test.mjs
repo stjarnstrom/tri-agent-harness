@@ -122,7 +122,11 @@ harness_run_sprint_loop 3`,
   assert.match(stdout, /Sprint 2 PASSED on round 1/);
   assert.deepEqual(await readCalls(dir), [
     "generator 1",
+    "contract-review 1",
+    "generator 1",
     "evaluator 1",
+    "generator 2",
+    "contract-review 2",
     "generator 2",
     "evaluator 2",
   ]);
@@ -161,6 +165,8 @@ harness_run_sprint_loop 3`,
   assert.match(stdout, /Sprint 1 FAILED on round 1/);
   assert.match(stdout, /Sprint 1 PASSED on round 2/);
   assert.deepEqual(await readCalls(dir), [
+    "generator 1",
+    "contract-review 1",
     "generator 1",
     "evaluator 1",
     "generator 1",
@@ -213,7 +219,12 @@ harness_run_sprint_loop 2`,
   assert.match(stdout, /pre-QA gate never passed/);
   assert.match(stdout, /HALTED: Max QA rounds reached for Sprint 1/);
   // Generator ran both rounds, evaluator never ran.
-  assert.deepEqual(await readCalls(dir), ["generator 1", "generator 1"]);
+  assert.deepEqual(await readCalls(dir), [
+    "generator 1",
+    "contract-review 1",
+    "generator 1",
+    "generator 1",
+  ]);
 });
 
 test("HARNESS_MAX_SPRINTS_PER_RUN stops after N sprints", async () => {
@@ -227,7 +238,12 @@ harness_run_sprint_loop 3`,
   );
   assert.equal(code, 0);
   assert.match(stdout, /Reached HARNESS_MAX_SPRINTS_PER_RUN=1/);
-  assert.deepEqual(await readCalls(dir), ["generator 1", "evaluator 1"]);
+  assert.deepEqual(await readCalls(dir), [
+    "generator 1",
+    "contract-review 1",
+    "generator 1",
+    "evaluator 1",
+  ]);
   const status = await readFile(path.join(dir, "docs", "sprint-status.md"), "utf8");
   assert.match(status, /\| 2 \| Sprint 2 \| Not started \|/);
 });

@@ -16,6 +16,7 @@ import { fileExists } from "./fs-utils.mjs";
 import { SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 import { HANDOFF_FILE, readWorkflowHandoff } from "./workflow-handoff.mjs";
 import { readOrchestratorState } from "./state-store.mjs";
+import { contractPrepAction } from "./contract-prep.mjs";
 import {
   contractPath,
   DOCS_DIR,
@@ -36,6 +37,7 @@ async function generatorContext(sprint, gate) {
     path.join(DOCS_DIR, "sprint-plan.md"),
     SPRINT_STATUS_FILE,
     contractPath(sprint),
+    path.join(DOCS_DIR, `sprint-${sprint}-contract-review.md`),
     qaReportPath(sprint),
   ];
   if (gate?.present && gate.result === "fail") {
@@ -211,6 +213,54 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
 
   const gate = await readGateState(sprint, { docsDir });
   const hadQaFailure = await fileExists(qaReportPath(sprint));
+  const gateFailed = gate.present && gate.result === "fail";
+
+  // One contract draft and one fresh-context review, before implementation.
+  // Neither consumes a QA round. Retries skip this — the contract already stood.
+  if (!hadQaFailure && !gateFailed) {
+    const prep = await contractPrepAction(sprint);
+    if (prep === "write-contract") {
+      return {
+        ...base,
+        step: "run-generator",
+        agent: "generator",
+        sprint,
+        focus: "write-contract",
+        record: "contract-draft",
+        instruction: `Dispatch the generator subagent to write docs/sprint-${sprint}-contract.md only. Include acceptance criteria, ## Acceptance tests, and ## Stack APIs. Do not implement, do not mark Ready for QA, and do not review the contract yourself. Then record contract-draft (this does not use a QA round).`,
+        context: await existingFiles([
+          "agents/generator.md",
+          "docs/templates/sprint-contract.md",
+          "docs/templates/constraints.md",
+          path.join(DOCS_DIR, "spec.md"),
+          path.join(DOCS_DIR, "sprint-plan.md"),
+          SPRINT_STATUS_FILE,
+          "harness/LESSONS.md",
+        ]),
+        reason: `Sprint ${sprint} has no acceptance criteria yet.`,
+      };
+    }
+    if (prep === "review") {
+      return {
+        ...base,
+        step: "run-contract-review",
+        agent: "contract-reviewer",
+        sprint,
+        focus: "contract-review",
+        record: "contract-review",
+        command: `node harness-runtime/cli.mjs contract-artifact --sprint ${sprint}`,
+        instruction: `Dispatch the contract-reviewer subagent for sprint ${sprint}. Pass the ARTIFACT printed by the command (the contract with the generator self-evaluation removed) and use docs/sprint-plan.md plus docs/spec.md as the CONTRACT. Do not pass generator reasoning or a claim. One cycle. The subagent writes docs/sprint-${sprint}-contract-review.md and stops. Then record contract-review (this does not use a QA round).`,
+        context: await existingFiles([
+          "agents/contract-reviewer.md",
+          contractPath(sprint),
+          path.join(DOCS_DIR, "sprint-plan.md"),
+          path.join(DOCS_DIR, "spec.md"),
+        ]),
+        reason: `Sprint ${sprint} contract has not had its one review cycle.`,
+      };
+    }
+  }
+
   const focus = hadQaFailure && attempt > 1 ? "fix-qa-failures" : "build";
 
   return {
@@ -223,7 +273,7 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
     instruction:
       focus === "fix-qa-failures"
         ? `Dispatch the generator subagent for sprint ${sprint} (round ${attempt} of ${maxQaRounds}) to fix every failure in docs/qa-report-sprint-${sprint}.md before adding new work.`
-        : `Dispatch the generator subagent to build sprint ${sprint} (round ${attempt} of ${maxQaRounds}): write the contract if missing, implement it, commit, and mark the sprint Ready for QA.`,
+        : `Dispatch the generator subagent to build sprint ${sprint} (round ${attempt} of ${maxQaRounds}): read docs/sprint-${sprint}-contract-review.md, classify each finding, implement the contract, commit, and mark the sprint Ready for QA. Do not spawn another reviewer.`,
     context: await generatorContext(sprint, gate),
   };
 }
@@ -244,6 +294,10 @@ export function formatNextStep(step) {
   }
   if (step.command) {
     lines.push(`Command: ${step.command}`);
+  }
+  if (step.record) {
+    const sprintFlag = step.sprint ? ` --sprint ${step.sprint}` : "";
+    lines.push(`Record: node harness-runtime/cli.mjs next-step --record ${step.record}${sprintFlag}`);
   }
   lines.push(`Reason: ${step.reason}`);
   lines.push(`Instruction: ${step.instruction}`);

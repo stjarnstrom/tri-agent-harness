@@ -21,7 +21,10 @@
 | App lint | PASS | `npm run lint` exit 0 |
 | Secret scan | PASS | No staged secrets |
 | Self-eval not empty | PASS | At least one `[ ]` or `[x]` item |
+| Floor guard | PASS | No new suppressions, skipped or deleted tests, stubs, stripped assertions, or loosened `CONSTRAINTS.md` thresholds |
+| Acceptance tests | PASS | `app/src/habits.test.ts` and `app/src/check-in.test.ts` named in the contract and present under `app/` |
+| Stack APIs | PASS | Contract records `No framework APIs` |
 
 ## Summary
 
-All mechanical checks passed. Evaluator may proceed to Playwright testing.
+All mechanical checks passed, including the floor guard. Evaluator may proceed to Playwright testing.

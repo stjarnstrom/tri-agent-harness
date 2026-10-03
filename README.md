@@ -35,7 +35,11 @@ User prompt (one-liner or intent brief)
     ↓
 Planner  →  docs/spec.md, docs/sprint-plan.md, docs/sprint-status.md
     ↓
-Generator  →  docs/sprint-N-contract.md, app/*, commits
+Generator  →  docs/sprint-N-contract.md (no application code yet)
+    ↓
+Contract review  →  docs/sprint-N-contract-review.md (one cycle, fresh context)
+    ↓
+Generator  →  app/*, commits, Ready for QA
     ↓
 Pre-QA Gate  →  docs/mechanical-checks-sprint-N.md  (PASS / FAIL)
     ↓
@@ -47,8 +51,10 @@ Pass → next sprint  |  Fail → Generator retry (round++, up to budget)
 | Phase | Reads | Writes | Who decides quality? |
 |-------|-------|--------|----------------------|
 | **Planner** | Prompt or [intent brief](docs/planner-input.md), `agents/criteria/*`, optional `design/brief.md` | Spec, sprint plan, status tracker | — |
-| **Generator** | Spec, contract template, prior QA report if retrying | Sprint contract, `app/` code, status → Ready for QA | Self-eval only (first pass) |
-| **Pre-QA Gate** | `app/` source, harness lints | Mechanical checks report | Script (deterministic) |
+| **Generator** (contract) | Spec, sprint plan, contract template | Sprint contract only | — |
+| **Contract review** | Contract, sprint plan, spec | `docs/sprint-N-contract-review.md` | Fresh context, one cycle |
+| **Generator** (build) | Contract, contract review, prior QA report if retrying | `app/` code, status → Ready for QA | Self-eval only (first pass) |
+| **Pre-QA Gate** | `app/` source, harness lints, diff floor guard | Mechanical checks report | Script (deterministic) |
 | **Evaluator** | Contract, criteria, live app via Playwright | QA report, status → Pass/Fail | Evaluator (isolated context) |
 | **Retrospector** | QA reports from the run | `harness/lessons.jsonl`, guardrail proposals | — |
 

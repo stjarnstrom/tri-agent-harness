@@ -1,6 +1,6 @@
 # Sprint Contract — Sprint 2: Habits + check-in
 
-> **Example only.** Generator output before QA.
+> **Example only.** The contract that reached QA. [`sprint-2-contract-review.md`](sprint-2-contract-review.md) is the one pass that ran on the draft, before implementation. The self-evaluation below is the section that review does not receive.
 
 ## Scope
 
@@ -37,6 +37,21 @@
 - [ ] Check-in uses 180ms ease-out animation per spec
 - [ ] Mobile layout: single column, 44px min touch targets
 
+## Acceptance tests
+
+- [ ] Home shows all habits with name and emoji — `app/src/habits.test.ts`
+- [ ] Each row shows done/undone state for today — `app/src/habits.test.ts`
+- [ ] Empty state when no habits exist, with link to create first habit — `app/src/habits.test.ts`
+- [ ] Clicking row or checkbox marks habit done for today — `app/src/check-in.test.ts`
+- [ ] Second click same day undoes check-in — `app/src/check-in.test.ts`
+- [ ] After a full page load, done state matches the last action — `app/src/check-in.test.ts`
+- [ ] User can create a habit with name and optional emoji — `app/src/habits.test.ts`
+- [ ] User can edit name/emoji and delete a habit — `app/src/habits.test.ts`
+
+## Stack APIs
+
+No framework APIs. Persistence is the Zustand store plus `localStorage` key `taskflow-habits`, covered by `app/src/check-in.test.ts`.
+
 ## Out of scope
 
 - Streak calculation (Sprint 3)
@@ -52,6 +67,8 @@
 ## Definition of done
 
 - All acceptance criteria pass via Playwright
+- Each acceptance criterion had a failing test in the named file before the behavior landed
+- Stack APIs are cited, marked UNVERIFIED, or recorded as “No framework APIs”
 - No console errors on happy path
 - Commits with descriptive messages
 

@@ -10,6 +10,12 @@
   "cycleAttempts": {
     "2": 1
   },
+  "contractPrep": {
+    "2": {
+      "draftDispatches": 1,
+      "reviewDispatches": 1
+    }
+  },
   "lastCompletedPhase": "evaluator",
   "lastRun": {
     "phase": "evaluator",

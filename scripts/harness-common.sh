@@ -837,7 +837,7 @@ Check git log for what's already built.
 $qa_context
 $mech_context
 
-You are building Sprint $sprint. Write the sprint contract to docs/sprint-${sprint}-contract.md if it doesn't exist, then implement it. Commit to git after each meaningful unit of work.
+You are building Sprint $sprint. Read docs/sprint-${sprint}-contract-review.md when it exists, classify each finding (contract misread, actionable, trade-off, noise), then implement. Do not spawn another reviewer. Commit to git after each meaningful unit of work.
 
 After building, write your self-evaluation to the end of docs/sprint-${sprint}-contract.md and update docs/sprint-status.md to 'Ready for QA'.
 $HARNESS_AUTONOMOUS_SUFFIX
@@ -958,6 +958,77 @@ harness_post_qa_write() {
   fi
 }
 
+# ─── Contract draft + one review cycle, before implementation ─────────
+# Neither step consumes a QA round. contract-prep reads the files and the
+# dispatch counters, so a missing review cannot loop forever.
+
+harness_build_contract_prompt() {
+  local sprint="${1:?sprint required}"
+  cat <<EOF
+$(cat agents/generator.md)
+
+$GUARDRAIL_CONTEXT
+$LESSONS_CONTEXT
+
+AUTONOMOUS MODE: Do not ask for confirmation.
+You are writing the sprint contract ONLY for sprint $sprint.
+Write docs/sprint-${sprint}-contract.md using docs/templates/sprint-contract.md.
+Include ## Acceptance criteria, ## Acceptance tests, and ## Stack APIs.
+If the sprint plan has a ship bar, copy it into the acceptance criteria.
+Do not implement application code.
+Do not mark the sprint Ready for QA.
+Do not spawn a reviewer.
+EOF
+}
+
+harness_build_contract_review_prompt() {
+  local sprint="${1:?sprint required}"
+  local artifact
+  artifact="$(node "$PROJECT_DIR/harness-runtime/cli.mjs" contract-artifact --sprint "$sprint")"
+  cat <<EOF
+$(cat "$PROJECT_DIR/agents/contract-reviewer.md")
+
+Sprint: $sprint
+
+ARTIFACT (sprint contract, generator self-evaluation removed):
+$artifact
+
+CONTRACT: Read docs/sprint-plan.md and docs/spec.md. Do not read agents/generator.md, the generator self-evaluation, or any QA report.
+
+Write docs/sprint-${sprint}-contract-review.md now. One cycle. Stop after writing the file.
+EOF
+}
+
+harness_prepare_sprint_contract() {
+  local sprint="$1"
+  local action
+
+  if [ ! -f "$PROJECT_DIR/harness-runtime/cli.mjs" ] || ! command -v node >/dev/null 2>&1; then
+    echo "⚠ contract prep skipped — node or harness-runtime is unavailable." >&2
+    return 0
+  fi
+
+  action="$(node "$PROJECT_DIR/harness-runtime/cli.mjs" contract-prep --sprint "$sprint")"
+  if [ "$action" = "write-contract" ]; then
+    echo ""
+    echo "▶ GENERATOR (Sprint $sprint, contract only)"
+    echo ""
+    harness_maybe_pause_phase "generator" "$sprint" "contract"
+    run_phase_agent generator "$sprint" "$(harness_build_contract_prompt "$sprint")"
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" next-step --record contract-draft --sprint "$sprint" >/dev/null
+  fi
+
+  action="$(node "$PROJECT_DIR/harness-runtime/cli.mjs" contract-prep --sprint "$sprint")"
+  if [ "$action" = "review" ]; then
+    echo ""
+    echo "▶ CONTRACT REVIEW (Sprint $sprint, one cycle)"
+    echo ""
+    harness_maybe_pause_phase "contract-review" "$sprint" "1"
+    run_phase_agent contract-review "$sprint" "$(harness_build_contract_review_prompt "$sprint")"
+    node "$PROJECT_DIR/harness-runtime/cli.mjs" next-step --record contract-review --sprint "$sprint" >/dev/null
+  fi
+}
+
 # ─── Shared Phase 1 + sprint loop ─────────────────────────────────────
 # The entrypoint MUST define, before calling these:
 #
@@ -1053,6 +1124,10 @@ harness_run_sprint_loop() {
       if [ "$qa_round" -eq 1 ]; then
         harness_maybe_pause_sprint "$current" "$total"
       fi
+
+      # Contract draft and one review, before the round's implementation.
+      # QA and gate retries skip both — contract-prep returns "implement".
+      harness_prepare_sprint_contract "$current"
 
       # ─── Generator ───────────────────────────────────────────────
       echo ""

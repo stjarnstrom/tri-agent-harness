@@ -35,13 +35,17 @@ Run this until the step is a stopping step:
 node harness-runtime/cli.mjs next-step
 ```
 
-It prints `Step`, `Sprint`, `Round`, `Subagent`, `Focus`, `Command`, `Reason`,
-`Instruction`, and `Context files`. Act on the step:
+It prints `Step`, `Sprint`, `Round`, `Subagent`, `Focus`, `Command`, `Record`,
+`Reason`, `Instruction`, and `Context files`. Act on the step. When `Record`
+is printed, record that phase — `contract-draft` and `contract-review` are not
+`generator`.
 
 | Step | What you do |
 |---|---|
 | `run-planner` | Dispatch the `planner` subagent (see below), then record `planner`. |
-| `run-generator` | Dispatch the `generator` subagent, then record `generator`. |
+| `run-generator` with Focus `write-contract` | Dispatch the `generator` subagent to write the sprint contract only. Record `contract-draft`, not `generator`. This does not use a QA round. |
+| `run-contract-review` | Dispatch the `contract-reviewer` subagent. Pass the ARTIFACT from the printed `Command`. Record `contract-review`. This does not use a QA round. |
+| `run-generator` | Dispatch the `generator` subagent, then record `generator`. On Focus `build`, it implements after the contract review. |
 | `run-pre-qa-gate` | Run the printed `Command` with Bash, then record `pre-qa-gate` with `--result pass\|fail`. Never dispatch the evaluator instead. |
 | `run-evaluator` | Dispatch the `evaluator` subagent, then record `evaluator`. |
 | `run-retro` | Dispatch the `retrospector` subagent, then record `retrospector`. |
@@ -53,6 +57,8 @@ It prints `Step`, `Sprint`, `Round`, `Subagent`, `Focus`, `Command`, `Reason`,
 After every phase, record it, then loop:
 
 ```bash
+node harness-runtime/cli.mjs next-step --record contract-draft --sprint 3
+node harness-runtime/cli.mjs next-step --record contract-review --sprint 3
 node harness-runtime/cli.mjs next-step --record generator --sprint 3
 node harness-runtime/cli.mjs next-step --record pre-qa-gate --sprint 3 --result fail
 node harness-runtime/cli.mjs next-step --record evaluator --sprint 3
@@ -65,7 +71,7 @@ numbers yourself — you never need to.
 ## Dispatching a phase
 
 Use the Agent tool with `subagent_type` matching the `Subagent` field
-(`planner`, `generator`, `evaluator`, `retrospector`). Each subagent already
+(`planner`, `generator`, `contract-reviewer`, `evaluator`, `retrospector`). Each subagent already
 knows its own persona and required reading; your prompt gives it the target and
 the focus, not a re-explanation of its job.
 
@@ -73,9 +79,13 @@ Include in the prompt:
 
 - The `Instruction` line from `next-step`, verbatim.
 - The sprint number and, for the generator, the round and `Focus`:
-  - `build` — implement the sprint (write the contract first if missing).
+  - `write-contract` — write `docs/sprint-[N]-contract.md` only. Do not implement. Record `contract-draft`.
+  - `build` — read the contract review, classify findings, implement, mark Ready for QA. Record `generator`.
   - `fix-qa-failures` — fix every failure in the QA report **before** new work.
   - `fix-mechanical-checks` — fix every item in the mechanical-checks report.
+- For `run-contract-review`, the subagent type is `contract-reviewer`. Paste the
+  command output in as the ARTIFACT. Do not include generator reasoning. The
+  subagent writes the review file and stops. Record `contract-review`.
 - The `Context files` list, as the files to read.
 - Any extra context the user gave you for this run.
 

@@ -1,17 +1,34 @@
-Dispatch the build phase to the **generator** subagent so it runs in its own
-clean, isolated context — do **not** implement the sprint in this conversation
-yourself.
+Dispatch the build phase so each part runs in its own isolated context — do
+**not** implement the sprint in this conversation yourself.
 
-Launch the `generator` subagent now using the Agent tool (`subagent_type: generator`).
-Pass it this task:
+Find the current sprint N from `docs/sprint-status.md` (the first row that is
+not Pass or Skipped). Then ask the orchestrator what the contract still needs:
 
-> Read `agents/generator.md`, the spec, sprint plan, sprint status, criteria,
-> and any prior QA/mechanical-check reports, then build the current sprint:
-> write its contract if missing, implement it, commit as you go, run
-> `bun lint:harness`, write your self-evaluation, and mark the sprint
-> "Ready for QA" per your instructions.
->
-> Additional context: $ARGUMENTS
+```bash
+node harness-runtime/cli.mjs contract-prep --sprint N
+```
+
+Act on the single word it prints. Do each step at most once.
+
+1. `write-contract` — dispatch the `generator` subagent. Tell it to write
+   `docs/sprint-N-contract.md` only (acceptance criteria, `## Acceptance tests`,
+   `## Stack APIs`, and the sprint's ship bar if the plan has one). It must
+   not implement and must not mark Ready for QA. Then record:
+   `node harness-runtime/cli.mjs next-step --record contract-draft --sprint N`
+   and run `contract-prep` again.
+2. `review` — dispatch the `contract-reviewer` subagent. Pass the ARTIFACT from
+   `node harness-runtime/cli.mjs contract-artifact --sprint N` and point it at
+   `docs/sprint-plan.md` and `docs/spec.md`. Do not pass generator reasoning.
+   It writes `docs/sprint-N-contract-review.md` and stops. Then record:
+   `node harness-runtime/cli.mjs next-step --record contract-review --sprint N`
+3. `implement` — dispatch the `generator` subagent to classify the review
+   findings, implement the sprint, commit as it goes, run `bun lint:harness`,
+   write the self-evaluation, and mark the sprint "Ready for QA".
+
+Additional context: $ARGUMENTS
+
+If `review` was dispatched once and the review file still has no
+`Stop: reviewed` line, stop and tell the user. Do not dispatch it again.
 
 Why a subagent: the Generator builds and a separate Evaluator judges. Running
 the generator in its own context (rather than role-playing it here) keeps this
