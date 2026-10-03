@@ -29,6 +29,8 @@ const RECORDABLE_PHASES = new Set([
   "pre-qa-gate",
   "evaluator",
   "retrospector",
+  "contract-draft",
+  "contract-review",
 ]);
 // Phases the handoff manifest schema accepts as lastCompletedPhase.
 const HANDOFF_PHASES = new Set(["planner", "generator", "evaluator"]);
@@ -80,6 +82,25 @@ async function resolveRecordSprint({ sprint, phase, handoff, state }) {
   }
 
   return handoff?.targetSprint ?? state?.currentSprint ?? null;
+}
+
+async function recordContractPrep({ state, sprint, phase }) {
+  const prep = { ...(state?.contractPrep ?? {}) };
+  const current = prep[String(sprint)] ?? {};
+  const draftDispatches = Number.isInteger(current.draftDispatches) ? current.draftDispatches : 0;
+  const reviewDispatches = Number.isInteger(current.reviewDispatches) ? current.reviewDispatches : 0;
+  prep[String(sprint)] = {
+    draftDispatches: draftDispatches + (phase === "contract-draft" ? 1 : 0),
+    reviewDispatches: reviewDispatches + (phase === "contract-review" ? 1 : 0),
+  };
+
+  await updateOrchestratorState({
+    currentSprint: sprint,
+    contractPrep: prep,
+    lastRun: { phase, sprint, source: "contract-prep" },
+  });
+  await logEvent({ event: "phase.done", phase, sprint });
+  return { phase, sprint, recorded: true };
 }
 
 async function recordPlanner(source) {
@@ -192,6 +213,13 @@ export async function recordPhase({ phase, sprint, result, source = CYCLE_SOURCE
       source,
     });
     return { phase, sprint: sprint ?? null, recorded: true };
+  }
+
+  if (phase === "contract-draft" || phase === "contract-review") {
+    if (!Number.isInteger(sprint) || sprint < 1) {
+      throw new Error(`--sprint is required to record ${phase}.`);
+    }
+    return recordContractPrep({ state, sprint, phase });
   }
 
   if (phase === "planner") {

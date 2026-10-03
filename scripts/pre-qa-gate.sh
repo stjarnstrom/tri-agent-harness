@@ -211,6 +211,24 @@ fi
 echo "Checking generator self-evaluation..."
 check_generator_self_eval
 
+# ── 4b. Floor guard: suppressions, skipped tests, stubs, thresholds ────────
+echo "Running floor guard..."
+if [ ! -f "scripts/floor-guard.mjs" ]; then
+  FAILURES+=("scripts/floor-guard.mjs is missing")
+else
+  floor_rc=0
+  floor_out="$(node scripts/floor-guard.mjs --sprint "$SPRINT")" || floor_rc=$?
+  if [ "$floor_rc" -ne 0 ]; then
+    if [ -z "$floor_out" ]; then
+      FAILURES+=("Floor guard failed")
+    else
+      while IFS= read -r line; do
+        [ -n "$line" ] && FAILURES+=("$line")
+      done <<< "$floor_out"
+    fi
+  fi
+fi
+
 # ── 5. Application build, typecheck, tests, Playwright config ──────────────
 check_app_build_and_tests
 
@@ -241,6 +259,8 @@ Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 All pre-QA mechanical checks passed:
 - Sprint contract and status validated
 - Generator self-evaluation present (if contract exists)
+- Floor guard clean (no new suppressions, skipped or deleted tests, stubs, or loosened CONSTRAINTS.md thresholds)
+- Acceptance tests and stack API notes present when app source exists
 - Harness lints clean (if applicable)
 - Build/typecheck/tests passed (if application product exists under app/)
 - test:unit and test:e2e passed separately (never test:harness in pre-QA gate)

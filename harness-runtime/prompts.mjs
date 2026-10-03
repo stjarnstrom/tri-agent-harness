@@ -76,7 +76,7 @@ Read AGENTS.md for the design language and stack.
 Check git log for what's already built.
 ${qaContext}
 
-You are building Sprint ${sprint}. Write the sprint contract to docs/sprint-${sprint}-contract.md if it doesn't exist, then implement it. Commit to git after each meaningful unit of work.
+You are building Sprint ${sprint}. The sprint contract and its one review cycle are already handled when docs/sprint-${sprint}-contract-review.md contains "Stop: reviewed". Read that review, classify each finding (contract misread, actionable, trade-off, noise), then implement. Do not spawn another reviewer. Commit to git after each meaningful unit of work.
 
 After building, write your self-evaluation to the end of docs/sprint-${sprint}-contract.md and update docs/sprint-status.md to 'Ready for QA'.
 ${PHASE_AUTONOMOUS_SUFFIX.generator}`;

@@ -57,7 +57,8 @@ them at any point, including mid-sprint.
 
 - **Planner** (Fable): Expands a product prompt (one-liner or intent brief) into spec, sprint plan, and status tracker. See `docs/planner-input.md`.
 - **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
-- **Pre-QA Gate**: Mechanical checks (lints, artifacts) before Evaluator runs.
+- **Contract review**: One fresh-context pass on the sprint contract before implementation. The Generator does not review its own contract.
+- **Pre-QA Gate**: Mechanical checks (lints, artifacts, diff floor guard) before Evaluator runs.
 - **Evaluator** (Fable): Playwright testing + rubric grading + review persona checklists.
 - **Retrospector** (Fable): End-of-run learning — distills QA failures into `harness/LESSONS.md` and drafts guardrail proposals at 2 strikes.
 

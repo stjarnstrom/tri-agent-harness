@@ -41,6 +41,14 @@ async function makeGateProject({ contract, gitleaksExit, sprint = 1 } = {}) {
     path.join(ROOT, "scripts", "pre-qa-gate.sh"),
     path.join(dir, "scripts", "pre-qa-gate.sh"),
   );
+  await copyFile(
+    path.join(ROOT, "scripts", "floor-guard.mjs"),
+    path.join(dir, "scripts", "floor-guard.mjs"),
+  );
+  await copyFile(
+    path.join(ROOT, "scripts", "floor-constraints.mjs"),
+    path.join(dir, "scripts", "floor-constraints.mjs"),
+  );
   const rows = [];
   for (let i = 1; i <= sprint; i += 1) {
     rows.push(`| ${i} | Sprint ${i} | ${i === sprint ? "Ready for QA" : "Pass"} | |`);
@@ -141,9 +149,37 @@ test("gate fails from sprint 2 on when no app product is found under app/", asyn
   assert.match(result.stdout, /app\/package\.json/);
 });
 
-test("gate passes from sprint 2 when app/package.json and app/src exist", async () => {
+const CONTRACT_WITH_EVIDENCE = [
+  CONTRACT_WITH_CHECKLIST.trimEnd(),
+  "",
+  "## Acceptance tests",
+  "- [x] Boots — app/src/main.test.ts",
+  "",
+  "## Stack APIs",
+  "- No framework APIs",
+  "",
+].join("\n");
+
+test("gate fails from sprint 2 when the contract names no acceptance test", async () => {
   const project = await makeGateProject({
     contract: CONTRACT_WITH_CHECKLIST,
+    sprint: 2,
+  });
+  const appDir = path.join(project.dir, "app");
+  await mkdir(path.join(appDir, "src"), { recursive: true });
+  await writeFile(
+    path.join(appDir, "package.json"),
+    JSON.stringify({ name: "product", scripts: { "test:e2e": "node -e \"process.exit(0)\"" } }),
+  );
+  await writeFile(path.join(appDir, "src", "main.ts"), "export {};\n");
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 1, `expected contract evidence failure:\n${result.stdout}`);
+  assert.match(result.stdout, /Acceptance tests/);
+});
+
+test("gate passes from sprint 2 when app/package.json and app/src exist", async () => {
+  const project = await makeGateProject({
+    contract: CONTRACT_WITH_EVIDENCE,
     sprint: 2,
   });
   const appDir = path.join(project.dir, "app");
@@ -162,6 +198,7 @@ test("gate passes from sprint 2 when app/package.json and app/src exist", async 
     ),
   );
   await writeFile(path.join(appDir, "src", "main.ts"), "export {};\n");
+  await writeFile(path.join(appDir, "src", "main.test.ts"), "import assert from 'node:assert/strict';\nassert.ok(true);\n");
   const result = await runGate(project, 2);
   assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
 });

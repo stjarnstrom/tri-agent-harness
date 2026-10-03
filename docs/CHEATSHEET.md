@@ -16,7 +16,9 @@ Layer 3  Phase gates     pre-qa-gate.sh (lints, artifacts, secrets)
 
 ```
 Prompt or intent brief → Planner (spec, sprint plan, status)
-       → Generator (contract, app/, Ready for QA)
+       → Generator (sprint contract only)
+       → Contract review (one cycle, fresh context)
+       → Generator (app/, Ready for QA)
        → Pre-QA Gate (mechanical-checks-sprint-N.md)
        → Evaluator (qa-report-sprint-N.md, Pass/Fail)
        → next sprint  |  retry (round++)
@@ -28,7 +30,9 @@ Prompt or intent brief → Planner (spec, sprint plan, status)
 | Phase | Agent / script | Key output |
 |-------|----------------|------------|
 | Planner | planner | `docs/spec.md`, `docs/sprint-plan.md`, `docs/sprint-status.md` |
-| Generator | generator | `docs/sprint-N-contract.md`, code under `app/` |
+| Generator (contract) | generator, focus `write-contract` | `docs/sprint-N-contract.md` |
+| Contract review | contract-reviewer | `docs/sprint-N-contract-review.md` |
+| Generator (build) | generator | code under `app/`, status Ready for QA |
 | Pre-QA Gate | `scripts/pre-qa-gate.sh` | `docs/mechanical-checks-sprint-N.md` |
 | Evaluator | evaluator | `docs/qa-report-sprint-N.md` |
 | Retrospector | retrospector | `harness/lessons.jsonl`, `harness/LESSONS.md` |
@@ -38,8 +42,10 @@ Prompt or intent brief → Planner (spec, sprint plan, status)
 ## Decision tree
 
 ```
+Sprint not yet implemented?
+  └─ contract, then one contract review, then Generator implements
 Generator marked Ready for QA?
-  └─ pre-qa-gate.sh N
+  └─ pre-qa-gate.sh N (includes the diff floor guard)
        FAIL → Generator retry (uses a QA round)
        PASS → Evaluator
             FAIL → Generator retry

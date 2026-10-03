@@ -68,6 +68,7 @@ identically to the shell loop.
 
 ### Sprint artifacts
 - `docs/sprint-[N]-contract.md`: sprint scope, acceptance criteria, self-eval.
+- `docs/sprint-[N]-contract-review.md`: one fresh-context review of that contract, written before implementation.
 - `docs/mechanical-checks-sprint-[N].md`: pre-QA gate results (written by orchestrator).
 - `docs/qa-report-sprint-[N].md`: evaluator QA results and recommendations.
 
@@ -112,6 +113,23 @@ identically to the shell loop.
 | Complete | `docs/spec.md` + `docs/sprint-status.md` | Resume build loop |
 | Initial | planning artifacts missing | Run planner |
 
+### Contract review (orchestrator, before implementation)
+
+Runs once per sprint, before the Generator writes application code, and does
+not consume a QA round. Skipped on QA and pre-QA retries.
+
+1. If `docs/sprint-[N]-contract.md` has no acceptance criteria, the Generator
+   writes the contract only and stops.
+2. A fresh context (`agents/contract-reviewer.md`) reviews that contract
+   against the sprint plan and spec. It does not receive the Generator's
+   self-evaluation or reasoning. It writes `docs/sprint-[N]-contract-review.md`
+   with `Stop: reviewed` and `Cross-model: skipped (autonomous)`, then stops.
+3. The Generator implements, classifies the findings, and marks Ready for QA.
+
+`docs/orchestrator-state.json` `contractPrep` counts those two dispatches so a
+missing review file cannot loop. One draft and one review, then implementation
+proceeds.
+
 ### Generator phase
 - Reads:
   - `docs/spec.md`
@@ -123,6 +141,7 @@ identically to the shell loop.
   - `agents/criteria/*.md`
   - previous `docs/qa-report-sprint-[N].md` if present
   - previous `docs/mechanical-checks-sprint-[N].md` if gate failed
+  - `docs/sprint-[N]-contract-review.md` before implementing
 - Writes:
   - `docs/sprint-[N]-contract.md` (create/update)
   - `docs/sprint-status.md` (set target sprint to `Ready for QA`)
@@ -132,6 +151,11 @@ identically to the shell loop.
 - Reads: sprint contract, sprint status, application source
 - Writes: `docs/mechanical-checks-sprint-[N].md`
 - Blocks Evaluator if Result: FAIL
+- Floor guard (`scripts/floor-guard.mjs`) fails the sprint when the diff adds
+  a suppression, a skipped or deleted test, a stub, stripped assertions, or a
+  loosened `CONSTRAINTS.md` threshold (`docs/templates/constraints.md`)
+- When `app/` source exists, the contract must name existing test files under
+  `## Acceptance tests` and must cite stack APIs (or mark them `UNVERIFIED`)
 - A gate report older than `docs/sprint-status.md` or the sprint contract is
   **stale** — it was written before the code it claims to have checked, so the
   gate must run again before the Evaluator does.

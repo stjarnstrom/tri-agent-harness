@@ -26,6 +26,21 @@ Each criterion must be testable by the Evaluator using Playwright. Be specific.
 - [ ] [Specific design expectations — e.g., "Navigation follows the spec's dark sidebar pattern"]
 - [ ] [Color, typography, spacing checks]
 
+## Acceptance tests
+
+One item per acceptance criterion. Name a test file that exists under `app/`
+before the sprint is marked Ready for QA. Write that test so it fails, then
+implement.
+
+- [ ] [Criterion 1] — `app/src/[feature].test.ts`
+
+## Stack APIs
+
+Cite the official docs, or mark the call `UNVERIFIED`. Use `No framework APIs`
+when the sprint does not call one.
+
+- [Library or endpoint] — https://example.com/docs or UNVERIFIED
+
 ## Out of scope
 [Explicitly list what is NOT being built in this sprint to prevent scope creep]
 
@@ -34,6 +49,9 @@ Each criterion must be testable by the Evaluator using Playwright. Be specific.
 
 ## Definition of done
 - All acceptance criteria pass when tested via Playwright
+- Each acceptance criterion has a test that failed before the implementation
+- Stack APIs are cited or marked UNVERIFIED
+- Ship-bar items from the sprint plan are acceptance criteria when this sprint has them
 - No console errors or warnings
 - Git commits with descriptive messages
 - Application runs without manual intervention after `npm run dev` / equivalent

@@ -65,16 +65,18 @@ harness_preflight_model_ping "$PLANNER_MODEL" "$GENERATOR_MODEL" "$EVALUATOR_MOD
 
 # ─── Phase runner (contract consumed by harness-common.sh) ──────────
 run_phase_agent() {
-  local phase="${1:?phase required (planner|generator|evaluator)}"
+  local phase="${1:?phase required (planner|generator|evaluator|contract-review)}"
   local sprint="${2:?sprint required}"
   local phase_prompt="${3:?prompt required}"
   local model
 
   case "$phase" in
-    planner)   model="$PLANNER_MODEL" ;;
-    generator) model="$GENERATOR_MODEL" ;;
-    evaluator) model="$EVALUATOR_MODEL" ;;
-    *)         model="$PLANNER_MODEL" ;;
+    planner)         model="$PLANNER_MODEL" ;;
+    generator)       model="$GENERATOR_MODEL" ;;
+    evaluator)       model="$EVALUATOR_MODEL" ;;
+    # Judgment, in a fresh context. Same model as the Evaluator.
+    contract-review) model="$EVALUATOR_MODEL" ;;
+    *)               model="$PLANNER_MODEL" ;;
   esac
 
   claude $(harness_claude_permission_args) \

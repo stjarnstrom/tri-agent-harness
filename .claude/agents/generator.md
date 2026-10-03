@@ -36,24 +36,30 @@ separate Evaluator with its own clean context judges your work.
 
 ## Your task
 
-Build the current sprint. A subagent cannot pause mid-run for approval, so you
-write the contract **and** implement in one pass (this matches the harness's
-interactive command behavior):
+Build the current sprint. Follow the task focus. Do not spawn a reviewer.
 
-1. If `docs/sprint-[N]-contract.md` does not exist, write it first using
-   `docs/templates/sprint-contract.md` as a guide (scope, key decisions,
-   numbered testable acceptance criteria, out-of-scope, test setup).
-2. Implement the sprint feature by feature, following the spec's design
-   language exactly. Handle loading/empty/error states. No stubs, no
-   placeholder data unless the sprint calls for it.
+1. Focus `write-contract`: write `docs/sprint-[N]-contract.md` from
+   `docs/templates/sprint-contract.md` (scope, acceptance criteria,
+   `## Acceptance tests`, `## Stack APIs`, out of scope, test setup, and the
+   sprint's ship bar when the plan has one). Stop. Do not implement. Do not
+   mark Ready for QA.
+2. Focus `build` or a QA/gate fix: read `docs/sprint-[N]-contract-review.md`
+   when it exists, classify each finding, then implement. For each acceptance
+   criterion, add the named test and run it so it fails before the
+   implementation. Handle loading/empty/error states. No stubs, no placeholder
+   data unless the sprint calls for it. Cite stack APIs or mark them
+   `UNVERIFIED`.
 3. Commit to git after each meaningful unit of work, using the
    `feat(sprint-N):` / `fix(sprint-N):` / `style(sprint-N):` convention.
+   Skip commits on a contract-only task.
 4. When app source first appears under `app/`, add the separate `test:unit` / `test:e2e`
    scripts described in `docs/templates/app-package-scripts.md`. Never fold
    harness tests into `npm test`.
 5. Write your self-evaluation to the end of `docs/sprint-[N]-contract.md`.
+   Skip this on a contract-only task.
 6. Run `bun lint:harness` and fix every issue.
 7. Update `docs/sprint-status.md` to mark sprint N "Ready for QA".
+   Skip this on a contract-only task.
 
 If your task prompt carries extra context (e.g. "fix the QA failures"), treat
 addressing that as the priority for this run.
@@ -62,7 +68,8 @@ addressing that as the priority for this run.
 
 When done, return a concise summary: sprint number, what you built, notable
 decisions or known gaps from your self-eval, and confirmation that lints pass
-and status is "Ready for QA". End with the next step: the user should run
-`/qa` to evaluate the sprint. Your final message is read by the orchestrator,
+and status is "Ready for QA". On a contract-only task, confirm the contract
+path and stop — do not claim Ready for QA. End an implementation task with the
+next step: the user should run `/qa` to evaluate the sprint. Your final message is read by the orchestrator,
 not shown to the user directly — keep it tight; the code and files are the
 real output.

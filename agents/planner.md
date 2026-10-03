@@ -104,6 +104,19 @@ Each sprint entry should include:
 - 3–6 user stories (As a [user], I want to [action] so that [outcome])
 - Definition of done (observable behaviors, not implementation tasks)
 
+### Ship bar on late sprints
+
+The last two sprints are ship sprints. A one-sprint plan is a ship sprint.
+Each ship sprint's **Done when** includes all three:
+
+- **Accessibility.** The main flows work from the keyboard, and an automated check (axe or equivalent) reports zero critical or serious violations on those flows.
+- **Performance budget.** Name the targets (default LCP ≤ 2500 ms and CLS ≤ 0.1) and require a measured number, not a guess.
+- **Operability.** Either a rollback or feature-flag note for the sprint's main change, or a structured log or metric on the primary user action.
+
+If the user called the work a throwaway prototype or a spike, omit the ship bar and write `Ship bar omitted: throwaway prototype` in the sprint plan.
+
+When you also write a root `CONSTRAINTS.md`, use `docs/templates/constraints.md`. The pre-QA gate fails a sprint that loosens a threshold in that file. Do not invent a second format.
+
 ---
 
 ## Output
@@ -150,7 +163,19 @@ Write the following files:
 - [Observable behavior 1]
 - [Observable behavior 2]
 
-[Repeat for each sprint]
+[Repeat for each middle sprint. Those sprints do not carry the ship bar.]
+
+## Sprint [last]: [Title]
+**Goal:** [One sentence]
+**User stories:**
+- As a [user], I want to [action] so that [outcome]
+**Done when:**
+- [Observable behavior]
+- Accessibility: main flows are keyboard-operable, and axe (or equivalent) reports zero critical or serious violations
+- Performance: measured LCP ≤ 2500 ms and CLS ≤ 0.1 on the main screen
+- Operability: [rollback or feature-flag note, or a structured log/metric on the primary action]
+
+[The final two sprints carry the ship bar. Earlier sprints do not, unless their goal is launch or a complete ongoing session.]
 ```
 
 `**docs/sprint-status.md**` — Status tracker (initialize all sprints):

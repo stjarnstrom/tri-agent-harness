@@ -18,6 +18,7 @@ import { readOrchestratorState } from "./state-store.mjs";
 import { EVENT_LOG_FILE } from "./event-log.mjs";
 import { computeNextStep, formatNextStep } from "./next-step.mjs";
 import { recordPhase } from "./cycle-record.mjs";
+import { contractPrepAction, loadContractPrep, stripSelfEvaluation } from "./contract-prep.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -68,7 +69,9 @@ function usage() {
   node harness-runtime/cli.mjs status [--json]
   node harness-runtime/cli.mjs next-step [--json]
                                        (read-only: prints the single next step for a chat-driven cycle)
-  node harness-runtime/cli.mjs next-step --record <planner|generator|pre-qa-gate|evaluator|retrospector> [--sprint N] [--result pass|fail]
+  node harness-runtime/cli.mjs next-step --record <planner|generator|contract-draft|contract-review|pre-qa-gate|evaluator|retrospector> [--sprint N] [--result pass|fail]
+  node harness-runtime/cli.mjs contract-prep --sprint <N>
+  node harness-runtime/cli.mjs contract-artifact --sprint <N>
   node harness-runtime/cli.mjs validate --phase <planner|generator|evaluator> --sprint <N>
   node harness-runtime/cli.mjs sprint-mark-skipped --sprint <N> [--notes "..."]
   node harness-runtime/cli.mjs handoff-write --phase <planner|generator|evaluator> --sprint <N> --qa-round <N> --next <run-planner|run-generator|run-evaluator|done|manual-review> --source <workflow> [--artifacts <comma,separated,paths>] [--runtime-mode <local|cloud>] [--agent-id <id>] [--run-id <id>] [--notes <text>]
@@ -318,7 +321,7 @@ async function runNextStep(flags, policy) {
 
   if (flags.record === true) {
     throw new Error(
-      "next-step --record requires a phase: planner, generator, pre-qa-gate, evaluator, or retrospector.",
+      "next-step --record requires a phase: planner, generator, contract-draft, contract-review, pre-qa-gate, evaluator, or retrospector.",
     );
   }
 
@@ -457,6 +460,20 @@ async function main() {
 
   if (command === "next-step") {
     await runNextStep(flags, policy);
+    return;
+  }
+
+  if (command === "contract-prep" || command === "contract-artifact") {
+    const sprint = Number.parseInt(flags.sprint, 10);
+    if (!Number.isInteger(sprint) || sprint < 1) {
+      throw new Error(`${command} requires --sprint <N>.`);
+    }
+    if (command === "contract-prep") {
+      console.log(await contractPrepAction(sprint));
+      return;
+    }
+    const loaded = await loadContractPrep(sprint);
+    console.log(stripSelfEvaluation(loaded.contractText));
     return;
   }
 

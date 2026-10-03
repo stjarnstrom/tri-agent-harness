@@ -25,17 +25,21 @@ Before writing any code, define exactly what "done" means for this sprint.
 - 2–3 sentence scope summary
 - Key technical decisions (not exhaustive — just what matters for testing)
 - Numbered acceptance criteria: specific, testable behaviors
+- `## Acceptance tests`: one checklist item per criterion, each naming a test file under `app/` (for example `app/src/habits.test.tsx`)
+- `## Stack APIs`: a doc URL for every framework or library call, or the word `UNVERIFIED`. Write `No framework APIs` when the sprint truly calls none
 - Out of scope for this sprint
 - Test setup notes (seed data, env vars, running services)
+- The sprint plan's ship bar, copied into the acceptance criteria when that sprint has one
 
 **Interactive mode** (Claude Code slash commands / interactive sessions without
 `AUTONOMOUS MODE` in the prompt): After writing the contract, pause and tell
 the user: "Contract written. Review `docs/sprint-[N]-contract.md` before I build,
 or say 'proceed' to continue." Wait for approval before implementing.
 
-**Autonomous mode** (orchestrator prompts include `AUTONOMOUS MODE`): Write
-the contract and implement it immediately in the same session. Do not wait for
-user approval.
+**Autonomous mode** (orchestrator prompts include `AUTONOMOUS MODE`): The
+orchestrator writes the contract, runs one contract review, then asks you to
+implement. Do not wait for user approval. A task that says "contract only"
+stops after the contract — do not implement it in that same session.
 
 ---
 
@@ -45,7 +49,13 @@ user approval.
 
 - Implement features one at a time, in order of dependency
 - Get each piece working before moving to the next
+- **Test first.** For each acceptance criterion, add the test named under `## Acceptance tests` and run it so it fails. Then implement until that test passes. Commit the failing test and the implementation separately when they are not the same edit. The pre-QA gate checks that the named file exists; it cannot see that the test failed first.
+- **Stack APIs.** Cite official docs in `## Stack APIs` for every framework or library you call, or mark that line `UNVERIFIED`. This includes Convex, Clerk, Tailwind, and the Anthropic SDK when the spec chose them.
+- **Ship bar.** When the sprint plan's Done when includes accessibility, a performance budget, or a rollback or telemetry note, those items are acceptance criteria. Meet them in this sprint.
+- **Contract review.** Read `docs/sprint-[N]-contract-review.md` before coding. Classify every finding as contract misread, actionable, trade-off, or noise, and apply the actionable ones. Do not spawn a reviewer. The orchestrator already ran one cycle.
+- A task that says to write the contract only stops after `docs/sprint-[N]-contract.md`. Do not implement, do not mark Ready for QA, and do not review your own contract.
 - **Scaffold the product only under `app/`** — see `app/README.md`. Never put application source at the repo root.
+- Do not weaken `CONSTRAINTS.md` to make a check pass. The floor guard fails the sprint when a threshold moves the wrong way, or when the diff adds a suppression, a skipped or deleted test, or a stub.
 - Follow the design language from the spec exactly
 - If `design/references/` exists, spot-check Sprint 1 UI against reference intent during design-system work
 - Every screen should look like it belongs to the same product
@@ -157,6 +167,18 @@ open issues from that report before or alongside the new sprint work, unless
 they've been explicitly deferred.
 
 ---
+
+## Common rationalizations
+
+| Rationalization | Reality |
+| --- | --- |
+| I'll add tests after it works | Each acceptance criterion gets a failing test before the implementation. |
+| A stub is fine until the next sprint | `Not implemented`, an empty `catch`, or a throw-TODO in this sprint fails the floor guard. |
+| I'll silence the lint to get green | A new `eslint-disable`, `@ts-ignore`, or coverage ignore fails the gate. |
+| QA will catch it | The Evaluator is the second look. The failing test is the first. |
+| This API call is obviously right | Cite the official docs in `## Stack APIs`, or write `UNVERIFIED`. |
+| The contract review was nitpicks | Classify each finding. Dropping one without a class is how a wrong contract becomes a sprint. |
+| I'll lower the coverage number | Loosening `CONSTRAINTS.md` in the same change fails the gate. Fix the code. |
 
 ## What success looks like
 
