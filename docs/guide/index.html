@@ -126,7 +126,7 @@
     position: relative; max-width: 100%;
   }
   .plate svg { display: block; width: 100%; height: auto; min-width: 620px; }
-  .plate svg.circuit { min-width: 1040px; }
+  .plate svg.circuit { min-width: 0; }
   .plate-caption {
     font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em;
     color: var(--muted); margin-top: 1rem; text-transform: uppercase;
@@ -175,8 +175,11 @@
   .start-step strong { color: var(--ink); }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.9rem; margin: 2rem 0; min-width: 0;
+  }
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .card {
     background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem;
@@ -438,7 +441,7 @@
     </div>
     <div class="wrap-wide">
       <div class="plate">
-        <svg class="circuit" viewBox="0 0 1040 280" role="img" aria-label="Diagram: Planner, then each sprint drafts a contract, one review, implementation, the Pre-QA gate, and the Evaluator. A fail wire returns to implementation. After the run, the Retrospector writes lessons that feed the next run.">
+        <svg class="circuit" viewBox="0 0 800 310" role="img" aria-label="Diagram: Planner, then each sprint drafts a contract, one review, and implementation on the top row. The Pre-QA gate, Evaluator, and Retrospector continue on the row below. A fail wire returns to implementation. After the run, the Retrospector writes lessons that feed the next run.">
           <defs>
             <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
               <path d="M0,0 L8,4 L0,8 z" fill="#10202e"/>
@@ -452,60 +455,61 @@
           </defs>
 
           <!-- nodes -->
-          <g font-family="ui-monospace, Menlo, monospace" font-size="12">
-            <rect x="12" y="68" width="108" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="66" y="96" text-anchor="middle" fill="#10202e">Planner</text>
+          <g font-family="ui-monospace, Menlo, monospace" font-size="13">
+            <rect x="36" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="114" y="84" text-anchor="middle" fill="#10202e">Planner</text>
 
-            <rect x="142" y="68" width="116" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="200" y="96" text-anchor="middle" fill="#10202e">Contract</text>
+            <rect x="228" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="306" y="84" text-anchor="middle" fill="#10202e">Contract</text>
 
-            <rect x="280" y="68" width="108" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="334" y="96" text-anchor="middle" fill="#10202e">Review</text>
+            <rect x="420" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="498" y="84" text-anchor="middle" fill="#10202e">Review</text>
 
-            <rect x="410" y="68" width="124" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
-            <text x="472" y="96" text-anchor="middle" fill="#10202e">Generator</text>
+            <rect x="612" y="56" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="690" y="84" text-anchor="middle" fill="#10202e">Generator</text>
 
-            <rect x="556" y="68" width="132" height="46" rx="23" fill="#d8dfe5" stroke="#52616e" stroke-width="1.2"/>
-            <text x="622" y="96" text-anchor="middle" fill="#10202e">Pre-QA gate</text>
+            <rect x="612" y="188" width="156" height="46" rx="23" fill="#d8dfe5" stroke="#52616e" stroke-width="1.2"/>
+            <text x="690" y="216" text-anchor="middle" fill="#10202e">Pre-QA gate</text>
 
-            <rect x="710" y="68" width="124" height="46" rx="8" fill="#2062ae" stroke="#2062ae"/>
-            <text x="772" y="96" text-anchor="middle" fill="#f1f3f5">Evaluator</text>
+            <rect x="420" y="188" width="156" height="46" rx="8" fill="#2062ae" stroke="#2062ae"/>
+            <text x="498" y="216" text-anchor="middle" fill="#f1f3f5">Evaluator</text>
 
-            <rect x="856" y="68" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#d14d21" stroke-width="1.5"/>
-            <text x="934" y="96" text-anchor="middle" fill="#d14d21">Retrospector</text>
+            <rect x="36" y="188" width="156" height="46" rx="8" fill="#f1f3f5" stroke="#d14d21" stroke-width="1.5"/>
+            <text x="114" y="216" text-anchor="middle" fill="#d14d21">Retrospector</text>
           </g>
 
-          <!-- forward wires -->
-          <line x1="120" y1="91" x2="136" y2="91" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="258" y1="91" x2="274" y2="91" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="388" y1="91" x2="404" y2="91" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="534" y1="91" x2="550" y2="91" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="688" y1="91" x2="704" y2="91" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
-          <line x1="834" y1="91" x2="850" y2="91" stroke="#10202e" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#arr)"/>
+          <!-- forward wires, top row -->
+          <line x1="192" y1="79" x2="222" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="384" y1="79" x2="414" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="576" y1="79" x2="606" y2="79" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- down into the gate, then back along the second row -->
+          <line x1="690" y1="102" x2="690" y2="188" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="612" y1="211" x2="576" y2="211" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="420" y1="211" x2="192" y2="211" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
 
           <!-- fail wire: evaluator back to implementation -->
-          <path d="M 772 114 C 772 168, 520 172, 478 118" fill="none" stroke="#2062ae" stroke-width="1.5" marker-end="url(#arr-j)"/>
-          <text x="640" y="188" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">FAIL — back to implementation (max 3 rounds/sprint)</text>
+          <path d="M 498 188 C 520 138, 640 132, 678 102" fill="none" stroke="#2062ae" stroke-width="1.5" marker-end="url(#arr-j)"/>
+          <text x="306" y="136" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">FAIL — back to implementation</text>
+          <text x="306" y="152" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#2062ae">max 3 rounds / sprint</text>
 
           <!-- pass wire: next sprint starts at a new contract -->
-          <path d="M 772 68 C 772 16, 260 12, 200 62" fill="none" stroke="#52616e" stroke-width="1.2" stroke-dasharray="3 4" marker-end="url(#arr)"/>
-          <text x="500" y="14" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#52616e">PASS — next sprint</text>
+          <path d="M 690 56 C 690 28, 400 26, 306 50" fill="none" stroke="#52616e" stroke-width="1.2" stroke-dasharray="3 4" marker-end="url(#arr)"/>
+          <text x="520" y="20" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#52616e">PASS — next sprint</text>
 
-          <!-- learn wire: retrospector back to the start -->
-          <path d="M 934 114 C 934 248, 90 248, 66 120" fill="none" stroke="#d14d21" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-l)"/>
-          <text x="500" y="266" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#d14d21">harness/LESSONS.md — required reading for every agent, every run</text>
+          <!-- learn wire: retrospector back to the planner -->
+          <path d="M 36 211 C 8 211, 8 79, 36 79" fill="none" stroke="#d14d21" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arr-l)"/>
+          <text x="400" y="286" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#d14d21">harness/LESSONS.md — required reading for every agent, every run</text>
 
           <!-- signature: signal lights travelling the circuit, then the fail wire home -->
           <g aria-hidden="true">
-            <circle class="signal" cx="131" cy="91" r="3.5" fill="#2062ae" style="animation-delay: 0s"/>
-            <circle class="signal" cx="269" cy="91" r="3.5" fill="#2062ae" style="animation-delay: 0.45s"/>
-            <circle class="signal" cx="399" cy="91" r="3.5" fill="#2062ae" style="animation-delay: 0.9s"/>
-            <circle class="signal" cx="545" cy="91" r="3.5" fill="#2062ae" style="animation-delay: 1.35s"/>
-            <circle class="signal" cx="699" cy="91" r="3.5" fill="#2062ae" style="animation-delay: 1.8s"/>
-            <circle class="signal" cx="740" cy="140" r="3.5" fill="#2062ae" style="animation-delay: 2.25s"/>
-            <circle class="signal" cx="640" cy="165" r="3.5" fill="#2062ae" style="animation-delay: 2.7s"/>
-            <circle class="signal" cx="540" cy="155" r="3.5" fill="#2062ae" style="animation-delay: 3.15s"/>
-            <circle class="signal" cx="490" cy="130" r="3.5" fill="#2062ae" style="animation-delay: 3.6s"/>
+            <circle class="signal" cx="207" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 0s"/>
+            <circle class="signal" cx="399" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 0.5s"/>
+            <circle class="signal" cx="591" cy="79" r="3.5" fill="#2062ae" style="animation-delay: 1s"/>
+            <circle class="signal" cx="690" cy="145" r="3.5" fill="#2062ae" style="animation-delay: 1.5s"/>
+            <circle class="signal" cx="590" cy="211" r="3.5" fill="#2062ae" style="animation-delay: 2s"/>
+            <circle class="signal" cx="300" cy="211" r="3.5" fill="#2062ae" style="animation-delay: 2.5s"/>
+            <circle class="signal" cx="560" cy="155" r="3.5" fill="#2062ae" style="animation-delay: 3.1s"/>
+            <circle class="signal" cx="640" cy="128" r="3.5" fill="#2062ae" style="animation-delay: 3.6s"/>
           </g>
         </svg>
         <p class="plate-caption">Fig. 1 — contract, one review, build, gate, grade, and the learning return wire</p>
