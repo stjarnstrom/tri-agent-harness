@@ -8,6 +8,7 @@
 
 import path from "node:path";
 import { readFile, stat } from "node:fs/promises";
+import { latestResultVerdict } from "./result-line.mjs";
 import { readOrchestratorState } from "./state-store.mjs";
 
 export const CONTRACT_PREP_ACTIONS = new Set(["write-contract", "review", "implement"]);
@@ -143,7 +144,7 @@ async function qaRetryFor(sprint) {
     return true;
   }
   const gate = await readText(path.join("docs", `mechanical-checks-sprint-${sprint}.md`));
-  return /Result[^a-z0-9]*FAIL/i.test(gate);
+  return latestResultVerdict(gate) === "fail";
 }
 
 export async function loadContractPrep(sprint, { state } = {}) {

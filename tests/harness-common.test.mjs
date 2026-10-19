@@ -276,6 +276,19 @@ async function makePromptProject() {
   return dir;
 }
 
+test("generator prompt leaves a passing addendum alone", async () => {
+  const dir = await makeProject([[1, "Foundation", "Pass"]]);
+  await mkdir(path.join(dir, "agents"), { recursive: true });
+  await writeFile(path.join(dir, "agents", "generator.md"), "GENERATOR PERSONA BODY\n");
+  await writeFile(
+    path.join(dir, "docs", "qa-report-sprint-1.md"),
+    ["## Result: FAIL", "", "Round 1 failed.", "", "## Result: PASS", ""].join("\n"),
+  );
+  const { code, stdout } = await runCommon(dir, "harness_build_generator_prompt 1");
+  assert.equal(code, 0);
+  assert.doesNotMatch(stdout, /fix ALL failures/);
+});
+
 test("generator prompt includes lessons, guardrails, lint context, and QA context", async () => {
   const dir = await makePromptProject();
   await writeFile(path.join(dir, "docs", "qa-report-sprint-1.md"), "Result: FAIL\n");

@@ -156,6 +156,19 @@ test("ready-for-QA sprint runs the pre-QA gate before the evaluator", async () =
   });
 });
 
+test("a later gate FAIL beats an earlier PASS", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([{ sprint: 1, status: "Ready for QA" }]);
+    await writeFile(
+      path.join("docs", "mechanical-checks-sprint-1.md"),
+      ["# Mechanical Checks", "", "## Result: PASS", "", "Round 1.", "", "## Result: FAIL", ""].join("\n"),
+      "utf8",
+    );
+    const gate = await readGateState(1);
+    assert.equal(gate.result, "fail");
+  });
+});
+
 test("a fresh gate PASS dispatches the evaluator", async () => {
   await inTempProject(async () => {
     await writePlanningArtifacts([{ sprint: 1, status: "Ready for QA" }]);

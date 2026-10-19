@@ -3,6 +3,7 @@ import {
   buildPlannerModeInstructions,
   collectDesignBriefContext,
 } from "./design-brief.mjs";
+import { latestResultVerdict } from "./result-line.mjs";
 import { getSprintStatus } from "./validate.mjs";
 
 const AUTONOMOUS_PREAMBLE =
@@ -21,8 +22,6 @@ async function readAgentPersona(phase) {
   return readFile(`agents/${phase}.md`, "utf8");
 }
 
-const QA_REPORT_FAIL_PATTERN = /Result[^a-z0-9]*FAIL/i;
-
 async function lastQaFailed(sprint) {
   let report;
   try {
@@ -31,7 +30,7 @@ async function lastQaFailed(sprint) {
     return false;
   }
 
-  if (QA_REPORT_FAIL_PATTERN.test(report)) {
+  if (latestResultVerdict(report) === "fail") {
     return true;
   }
 

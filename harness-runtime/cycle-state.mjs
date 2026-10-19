@@ -8,6 +8,7 @@
 import path from "node:path";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { fileExists } from "./fs-utils.mjs";
+import { latestResultVerdict } from "./result-line.mjs";
 import { readSprintRows, SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 import { resolveQaRound } from "./state-store.mjs";
 
@@ -63,12 +64,8 @@ export async function readGateState(sprint, { docsDir = DOCS_DIR } = {}) {
   }
 
   const raw = await readFile(report, "utf8");
-  let result = null;
-  if (/Result[^a-z0-9]*PASS/i.test(raw)) {
-    result = "pass";
-  } else if (/Result[^a-z0-9]*FAIL/i.test(raw)) {
-    result = "fail";
-  }
+  const verdict = latestResultVerdict(raw);
+  const result = verdict === "pass" || verdict === "fail" ? verdict : null;
 
   const statusMtime = await mtimeMs(path.join(docsDir, "sprint-status.md"));
   const contractMtime = await mtimeMs(path.join(docsDir, `sprint-${sprint}-contract.md`));

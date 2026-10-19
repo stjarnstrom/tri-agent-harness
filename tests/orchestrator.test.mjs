@@ -203,6 +203,22 @@ test("buildGeneratorPrompt omits fix instructions when the QA report passed", as
   });
 });
 
+test("buildGeneratorPrompt omits fix instructions when a later result heading passes", async () => {
+  await inTempProject(async () => {
+    await mkdir("agents", { recursive: true });
+    await writeFile(path.join("agents", "generator.md"), "# Generator persona\n", "utf8");
+    await writeSprintStatus([{ sprint: 1, status: "Pass" }]);
+    await writeFile(
+      path.join("docs", "qa-report-sprint-1.md"),
+      ["# QA Report", "", "## Result: FAIL", "", "## Result: PASS", ""].join("\n"),
+      "utf8",
+    );
+
+    const prompt = await buildGeneratorPrompt({ sprint: 1 });
+    assert.ok(!prompt.includes("fix ALL failures"));
+  });
+});
+
 test("buildGeneratorPrompt injects fix instructions when the QA report failed", async () => {
   await inTempProject(async () => {
     await mkdir("agents", { recursive: true });
