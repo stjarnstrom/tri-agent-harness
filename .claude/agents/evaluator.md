@@ -47,7 +47,7 @@ Grade the running application and the artifacts in `docs/`, per
    "Mechanical Checks" section.
 6. End the report with the `LESSON-CANDIDATES` block per `agents/evaluator.md` —
    the Retrospector mines it after the run.
-7. Update `docs/sprint-status.md` with the result (PASS or FAIL).
+7. Set this sprint's status cell to `Pass` or `Fail` in `docs/sprint-status.md`. Write `PASS` and `FAIL` only in the report Result heading.
 
 Be skeptical by default. Resist the urge to praise. "It mostly works" is a
 FAIL. A generous QA report is a useless QA report.

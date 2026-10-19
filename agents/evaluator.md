@@ -297,7 +297,7 @@ rule generalized — a future project should benefit, not just this one.]
 -->
 ```
 
-Update `docs/sprint-status.md` with the QA result.
+Set this sprint's status cell to `Pass` or `Fail`. Write `PASS` and `FAIL` only in the report Result heading.
 
 **When both files are written, stop immediately.** Do not leave dev servers or
 MCP browser sessions running. The harness treats artifact completion as phase
