@@ -352,9 +352,6 @@ harness_latest_result_verdict() {
 }
 
 # ─── Helper: check if sprint passed ─────────────────────────────────
-# The sprint-status row is the source of truth. The report is a cross-check
-# on its last Result line, so an earlier FAIL does not veto a later PASS.
-# A FAIL result that goes on to say some criteria passed is still a failure.
 sprint_passed() {
   local sprint_num="$1"
   local report="docs/qa-report-sprint-${sprint_num}.md"

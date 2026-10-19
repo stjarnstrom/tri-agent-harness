@@ -22,8 +22,6 @@ const PHASE_REQUIRED_FILES = {
   ],
 };
 
-// The sprint-status row is the source of truth. The report is a cross-check
-// on its last Result line, so an earlier FAIL does not veto a later PASS.
 export async function sprintPassed(sprintNum) {
   const status = await getSprintStatus(sprintNum);
   if (status !== "Pass") {
