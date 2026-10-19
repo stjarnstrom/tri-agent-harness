@@ -77,6 +77,19 @@ const PASS_REPORT = [
   "",
 ].join("\n");
 
+const ADDENDUM_PASS_REPORT = [
+  "# QA Report — Sprint 1",
+  "",
+  "## Result: FAIL",
+  "",
+  "Round 1 failed.",
+  "",
+  "## Addendum",
+  "",
+  "## Result: PASS",
+  "",
+].join("\n");
+
 test("bash sprint_passed rejects FAIL report mentioning criteria passed", async () => {
   const dir = await makeProject({ status: "Fail", report: FAIL_REPORT_WITH_PASS_WORD });
   assert.equal(await bashSprintPassed(dir), false);
@@ -109,5 +122,15 @@ test("mjs sprintPassed rejects template 'Result: PASS / FAIL' line", async () =>
 
 test("mjs sprintPassed accepts Pass row", async () => {
   const dir = await makeProject({ status: "Pass", report: PASS_REPORT });
+  assert.equal(await mjsSprintPassed(dir), true);
+});
+
+test("bash sprint_passed accepts a Pass row when a later result heading passes", async () => {
+  const dir = await makeProject({ status: "Pass", report: ADDENDUM_PASS_REPORT });
+  assert.equal(await bashSprintPassed(dir), true);
+});
+
+test("mjs sprintPassed accepts a Pass row when a later result heading passes", async () => {
+  const dir = await makeProject({ status: "Pass", report: ADDENDUM_PASS_REPORT });
   assert.equal(await mjsSprintPassed(dir), true);
 });
