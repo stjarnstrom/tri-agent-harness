@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileExists } from "./fs-utils.mjs";
+import { latestResultVerdict } from "./result-line.mjs";
 import { readSprintRows, SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 
 const PHASES = new Set(["planner", "generator", "evaluator"]);
@@ -21,9 +22,8 @@ const PHASE_REQUIRED_FILES = {
   ],
 };
 
-// The sprint-status row is the source of truth (a loose grep on the QA
-// report matches failing phrasings like "Result: FAIL — 12 of 15 criteria
-// passed"). The report is only consulted as a FAIL cross-check.
+// The sprint-status row is the source of truth. The report is a cross-check
+// on its last Result line, so an earlier FAIL does not veto a later PASS.
 export async function sprintPassed(sprintNum) {
   const status = await getSprintStatus(sprintNum);
   if (status !== "Pass") {
@@ -32,7 +32,7 @@ export async function sprintPassed(sprintNum) {
   const reportPath = path.join("docs", `qa-report-sprint-${sprintNum}.md`);
   try {
     const raw = await readFile(reportPath, "utf8");
-    if (/Result[^a-z0-9]*FAIL/i.test(raw)) {
+    if (latestResultVerdict(raw) === "fail") {
       console.warn(
         `WARNING: sprint-status row says Pass but ${reportPath} records Result: FAIL — not counting sprint ${sprintNum} as passed.`,
       );

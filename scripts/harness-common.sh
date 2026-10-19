@@ -331,17 +331,37 @@ harness_print_isolation() {
   echo "  Isolation: $HARNESS_ISOLATION"
 }
 
+harness_latest_result_verdict() {
+  local file="$1"
+  local verdict
+  if [ ! -f "$file" ]; then
+    printf '%s' "absent"
+    return 0
+  fi
+  if ! verdict=$(node --input-type=module -e '
+    import { readFile } from "node:fs/promises";
+    import { pathToFileURL } from "node:url";
+    const mod = await import(pathToFileURL(process.argv[1]).href);
+    const text = await readFile(process.argv[2], "utf8");
+    process.stdout.write(mod.latestResultVerdict(text));
+  ' "$PROJECT_DIR/harness-runtime/result-line.mjs" "$file"); then
+    printf '%s' "fail"
+    return 0
+  fi
+  printf '%s' "$verdict"
+}
+
 # ─── Helper: check if sprint passed ─────────────────────────────────
-# The sprint-status row is the source of truth (a loose grep on the QA
-# report matches failing phrasings like "Result: FAIL — 12 of 15 criteria
-# passed"). The report is only consulted as a FAIL cross-check.
+# The sprint-status row is the source of truth. The report is a cross-check
+# on its last Result line, so an earlier FAIL does not veto a later PASS.
+# A FAIL result that goes on to say some criteria passed is still a failure.
 sprint_passed() {
   local sprint_num="$1"
   local report="docs/qa-report-sprint-${sprint_num}.md"
   local row_status
   row_status="$(harness_get_sprint_row_status "$sprint_num")"
   [ "$row_status" = "Pass" ] || return 1
-  if [ -f "$report" ] && grep -qiE 'Result[^[:alnum:]]*FAIL' "$report" 2>/dev/null; then
+  if [ -f "$report" ] && [ "$(harness_latest_result_verdict "$report")" = "fail" ]; then
     echo "WARNING: sprint-status row says Pass but $report records Result: FAIL — not counting sprint $sprint_num as passed." >&2
     return 1
   fi
@@ -811,12 +831,18 @@ harness_build_generator_prompt() {
   local qa_context=""
   local mech_context=""
 
+  local qa_verdict=""
+  local row_status=""
   if [ -f "docs/qa-report-sprint-${sprint}.md" ]; then
+    qa_verdict="$(harness_latest_result_verdict "docs/qa-report-sprint-${sprint}.md")"
+  fi
+  row_status="$(harness_get_sprint_row_status "$sprint")"
+  if [ "$qa_verdict" = "fail" ] || [ "$row_status" = "Fail" ]; then
     qa_context="
 
 IMPORTANT: The evaluator found issues in the last round. Read docs/qa-report-sprint-${sprint}.md and fix ALL failures before proceeding to new features."
   fi
-  if [ -f "docs/mechanical-checks-sprint-${sprint}.md" ] && grep -qi "Result:.*FAIL" "docs/mechanical-checks-sprint-${sprint}.md" 2>/dev/null; then
+  if [ -f "docs/mechanical-checks-sprint-${sprint}.md" ] && [ "$(harness_latest_result_verdict "docs/mechanical-checks-sprint-${sprint}.md")" = "fail" ]; then
     mech_context="
 
 IMPORTANT: Pre-QA mechanical checks failed. Read docs/mechanical-checks-sprint-${sprint}.md and fix ALL listed issues."
