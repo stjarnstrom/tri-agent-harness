@@ -179,7 +179,7 @@ if [ -f ".eslintrc.harness.cjs" ] && [ -f "package.json" ]; then
   elif command -v npm >/dev/null 2>&1; then
     LINT_CMD="npm run lint:harness"
   elif command -v npx >/dev/null 2>&1; then
-    LINT_CMD="npx eslint --config .eslintrc.harness.cjs"
+    LINT_CMD="npx eslint --config .eslintrc.harness.cjs --no-error-on-unmatched-pattern"
   fi
 
   if [ -n "$LINT_CMD" ]; then
@@ -194,8 +194,16 @@ if [ -f ".eslintrc.harness.cjs" ] && [ -f "package.json" ]; then
     fi
 
     if [ -n "$(echo "$LINT_TARGETS" | xargs)" ]; then
-      if ! $LINT_CMD -- $LINT_TARGETS 2>&1; then
+      lint_rc=0
+      lint_out="$($LINT_CMD -- $LINT_TARGETS 2>&1)" || lint_rc=$?
+      if [ -n "$lint_out" ]; then
+        printf '%s\n' "$lint_out"
+      fi
+      if [ "$lint_rc" -ne 0 ]; then
         FAILURES+=("Harness lints failed — run 'bun lint:harness' and fix all issues")
+        while IFS= read -r line; do
+          [ -n "$line" ] && FAILURES+=("$line")
+        done <<< "$lint_out"
       fi
     else
       echo "No app source directories found — skipping lints (sprint may be docs-only)."

@@ -2,12 +2,17 @@
 // Flat config (ESLint 9+): an array of config objects. The first entry is a
 // global ignore block (replaces the no-longer-supported .eslintignore file).
 const plugin = require('./harness/eslint-plugin-harness');
+const tsParser = require('@typescript-eslint/parser');
 
 module.exports = [
   {
     ignores: ['**/_ref/**', '**/node_modules/**', '**/dist/**', '**/build/**'],
   },
   {
+    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx}'],
+    languageOptions: {
+      parser: tsParser,
+    },
     plugins: { harness: plugin },
     rules: {
       'harness/no-leaked-secrets': 'error',
