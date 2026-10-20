@@ -4,8 +4,9 @@ import test from "node:test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { chmod, copyFile, mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { installLintHarness, leakedSecretSource, warningsOnlySource } from "./lint-fixture.mjs";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -67,6 +68,8 @@ async function makeGateProject({ contract, gitleaksExit, sprint = 1 } = {}) {
   if (contract !== undefined) {
     await writeFile(path.join(dir, "docs", `sprint-${sprint}-contract.md`), contract);
   }
+
+  await installLintHarness(dir);
 
   let env = process.env;
   if (gitleaksExit !== undefined) {
@@ -197,8 +200,83 @@ test("gate passes from sprint 2 when app/package.json and app/src exist", async 
       2,
     ),
   );
-  await writeFile(path.join(appDir, "src", "main.ts"), "export {};\n");
+  await writeFile(
+    path.join(appDir, "src", "main.ts"),
+    "export const label: string = \"ready\";\n",
+  );
   await writeFile(path.join(appDir, "src", "main.test.ts"), "import assert from 'node:assert/strict';\nassert.ok(true);\n");
   const result = await runGate(project, 2);
   assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
+  assert.doesNotMatch(result.stdout, /all of the files matching the glob pattern/);
+});
+
+const APP_PACKAGE = JSON.stringify(
+  {
+    name: "product",
+    scripts: {
+      "test:e2e": "node -e \"process.exit(0)\"",
+    },
+  },
+  null,
+  2,
+);
+
+async function appProduct(project) {
+  const appDir = path.join(project.dir, "app");
+  await mkdir(path.join(appDir, "src"), { recursive: true });
+  await writeFile(path.join(appDir, "package.json"), APP_PACKAGE);
+  await writeFile(
+    path.join(appDir, "src", "main.test.ts"),
+    "import assert from 'node:assert/strict';\nassert.ok(true);\n",
+  );
+  return appDir;
+}
+
+test("gate passes a TypeScript file that only has console.log and a bare fetch", async () => {
+  const project = await makeGateProject({
+    contract: CONTRACT_WITH_EVIDENCE,
+    sprint: 2,
+  });
+  const appDir = await appProduct(project);
+  await writeFile(path.join(appDir, "src", "warn.tsx"), warningsOnlySource({ typed: true }));
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
+});
+
+test("gate fails a TypeScript secret and the report names the rule", async () => {
+  const project = await makeGateProject({
+    contract: CONTRACT_WITH_EVIDENCE,
+    sprint: 2,
+  });
+  const appDir = await appProduct(project);
+  await writeFile(path.join(appDir, "src", "leak.tsx"), leakedSecretSource({ typed: true }));
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 1, result.stdout);
+  const report = await readFile(
+    path.join(project.dir, "docs", "mechanical-checks-sprint-2.md"),
+    "utf8",
+  );
+  assert.match(report, /no-leaked-secrets/);
+  assert.match(result.stdout, /no-leaked-secrets/);
+});
+
+test("gate passes when app/src has no JavaScript or TypeScript files", async () => {
+  const contract = [
+    CONTRACT_WITH_CHECKLIST.trimEnd(),
+    "",
+    "## Acceptance tests",
+    "- [x] Boots — app/src/test_main.py",
+    "",
+    "## Stack APIs",
+    "- No framework APIs",
+    "",
+  ].join("\n");
+  const project = await makeGateProject({ contract, sprint: 2 });
+  const appDir = path.join(project.dir, "app");
+  await mkdir(path.join(appDir, "src"), { recursive: true });
+  await writeFile(path.join(appDir, "package.json"), APP_PACKAGE);
+  await writeFile(path.join(appDir, "src", "test_main.py"), "def test_main():\n    assert True\n");
+  const result = await runGate(project, 2);
+  assert.equal(result.code, 0, `gate failed:\n${result.stdout}`);
+  assert.doesNotMatch(result.stdout, /Harness lints failed/);
 });

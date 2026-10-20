@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "setup": "bash scripts/install-harness.sh",
-    "lint:harness": "eslint --config .eslintrc.harness.cjs",
+    "lint:harness": "eslint --config .eslintrc.harness.cjs --no-error-on-unmatched-pattern",
     "gc:weekly": "node scripts/anti-slop.mjs",
     "lessons:validate": "node scripts/validate-lessons.mjs",
     "lessons:render": "node scripts/render-lessons.mjs",
@@ -17,7 +17,9 @@
     "pre-qa-gate": "bash scripts/pre-qa-gate.sh"
   },
   "devDependencies": {
-    "eslint": "^9.0.0"
+    "@typescript-eslint/parser": "^8.72.0",
+    "eslint": "^9.0.0",
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=20.12.0"
