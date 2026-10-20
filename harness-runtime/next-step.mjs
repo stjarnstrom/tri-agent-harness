@@ -12,10 +12,11 @@
 import path from "node:path";
 import { getNextDecision } from "./orchestrator.mjs";
 import { fileExists } from "./fs-utils.mjs";
-import { isTerminalStatus, readSprintRows, SPRINT_STATUS_FILE } from "./sprint-status.mjs";
+import { SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 import { HANDOFF_FILE, readWorkflowHandoff } from "./workflow-handoff.mjs";
-import { readOrchestratorState, updateOrchestratorState } from "./state-store.mjs";
+import { readOrchestratorState } from "./state-store.mjs";
 import { contractPrepAction } from "./contract-prep.mjs";
+import { cappedRunStep, doneRetroStep, haltWithRetro } from "./run-end.mjs";
 import {
   contractPath,
   DOCS_DIR,
@@ -24,7 +25,6 @@ import {
   nextAttemptNumber,
   qaReportPath,
   readGateState,
-  retroIsPending,
 } from "./cycle-state.mjs";
 
 async function generatorContext(sprint, gate) {
@@ -84,86 +84,6 @@ function exhausted({ base, sprint, attempt, onMaxRounds, docsDir }) {
   };
 }
 
-function terminalSprintIds(rows) {
-  return rows.filter((row) => isTerminalStatus(row.status)).map((row) => row.sprint);
-}
-
-function terminalAtRunStart(state) {
-  const ids = state?.sprintCap?.terminalAtRunStart;
-  if (!Array.isArray(ids) || !ids.every((id) => Number.isInteger(id))) {
-    return null;
-  }
-  return ids;
-}
-
-async function resolveSprintCap({ maxSprintsPerRun, newRun, state }) {
-  if (!Number.isInteger(maxSprintsPerRun) || maxSprintsPerRun < 1) {
-    return null;
-  }
-
-  const rows = await readSprintRows(SPRINT_STATUS_FILE).catch(() => []);
-  const terminalIds = terminalSprintIds(rows);
-  const started = newRun ? null : terminalAtRunStart(state);
-  const terminalAtStart = started ?? terminalIds;
-
-  if (!started) {
-    await updateOrchestratorState({
-      sprintCap: { terminalAtRunStart: terminalAtStart },
-    });
-  }
-
-  const seen = new Set(terminalAtStart);
-  const finishedThisRun = terminalIds.filter((id) => !seen.has(id)).length;
-  return {
-    max: maxSprintsPerRun,
-    finished: finishedThisRun,
-    reached: finishedThisRun >= maxSprintsPerRun,
-  };
-}
-
-async function shouldDispatchRetro({ retro, state, docsDir }) {
-  if (retro === "off") {
-    return false;
-  }
-  return retroIsPending(state, docsDir);
-}
-
-async function retroStep(base, { reason, instruction }) {
-  return {
-    ...base,
-    step: "run-retro",
-    agent: "retrospector",
-    instruction,
-    context: await existingFiles(["agents/retrospector.md", "harness/lessons.jsonl"]),
-    reason,
-  };
-}
-
-async function sprintCapStep(base, cap) {
-  return {
-    ...base,
-    step: "sprint-cap",
-    agent: null,
-    instruction: `Stop. Reached the sprint cap of ${cap.max} for this invocation. Completed ${cap.finished} sprint(s) this run. Re-run with the same prompt to continue. Do not report the cycle complete.`,
-    context: await existingFiles([SPRINT_STATUS_FILE]),
-    reason: `Reached the sprint cap of ${cap.max} for this invocation.`,
-  };
-}
-
-async function finishHalt(step, { retro, state, docsDir }) {
-  if (step.step !== "halt" || !(await shouldDispatchRetro({ retro, state, docsDir }))) {
-    return step;
-  }
-  return retroStep(
-    { maxQaRounds: step.maxQaRounds, onMaxRounds: step.onMaxRounds, reason: step.reason },
-    {
-      reason: step.reason,
-      instruction:
-        "This run is halting. Dispatch the retrospector subagent once to distill this run's QA reports into the lessons ledger and draft guardrail proposals. Then call next-step again.",
-    },
-  );
-}
-
 /**
  * Resolve the single next step in the build cycle.
  *
@@ -183,21 +103,16 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR, newRun = fal
 
   const base = { maxQaRounds, onMaxRounds, reason: decision.reason };
   const retro = policy?.retro === "off" ? "off" : "on";
-  const cap = await resolveSprintCap({
+  const capped = await cappedRunStep({
     maxSprintsPerRun: policy?.maxSprintsPerRun ?? null,
+    retro,
     newRun,
     state,
+    docsDir,
+    base,
   });
-
-  if (cap?.reached) {
-    if (await shouldDispatchRetro({ retro, state, docsDir })) {
-      return retroStep(base, {
-        reason: `Sprint cap reached (${cap.finished} of ${cap.max}) and QA reports are not yet distilled.`,
-        instruction:
-          "Dispatch the retrospector subagent to distill this run's QA reports into the lessons ledger and draft guardrail proposals. Then call next-step again. Do not report the cycle complete.",
-      });
-    }
-    return sprintCapStep(base, cap);
+  if (capped) {
+    return capped;
   }
 
   if (decision.action === "run-planner") {
@@ -223,12 +138,9 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR, newRun = fal
   }
 
   if (decision.action === "done") {
-    if (await shouldDispatchRetro({ retro, state, docsDir })) {
-      return retroStep(base, {
-        reason: "All sprints complete; QA reports not yet distilled into lessons.",
-        instruction:
-          "All sprints are terminal. Dispatch the retrospector subagent to distill this run's QA reports into the lessons ledger and draft guardrail proposals.",
-      });
+    const pendingRetro = await doneRetroStep({ retro, state, docsDir, base });
+    if (pendingRetro) {
+      return pendingRetro;
     }
 
     return {
@@ -266,7 +178,7 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR, newRun = fal
     if (gate.result === "fail") {
       const attempt = await nextAttemptNumber({ state, handoff, sprint });
       if (attempt > maxQaRounds) {
-        return finishHalt(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
+        return haltWithRetro(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
           retro,
           state,
           docsDir,
@@ -305,7 +217,7 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR, newRun = fal
   // a sprint whose status regressed to In progress.
   const attempt = await nextAttemptNumber({ state, handoff, sprint });
   if (attempt > maxQaRounds) {
-    return finishHalt(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
+    return haltWithRetro(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
       retro,
       state,
       docsDir,
