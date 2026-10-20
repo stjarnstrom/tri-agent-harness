@@ -67,8 +67,9 @@ function usage() {
   node harness-runtime/cli.mjs qa [--sprint N] [--dry-run]
   node harness-runtime/cli.mjs dry-run [--prompt "..."] [--max-steps N]
   node harness-runtime/cli.mjs status [--json]
-  node harness-runtime/cli.mjs next-step [--json]
-                                       (read-only: prints the single next step for a chat-driven cycle)
+  node harness-runtime/cli.mjs next-step [--json] [--new-run]
+                                       (prints the single next step for a chat-driven cycle)
+                                       (--new-run restarts the sprint-cap count for this invocation)
   node harness-runtime/cli.mjs next-step --record <planner|generator|contract-draft|contract-review|pre-qa-gate|evaluator|retrospector> [--sprint N] [--result pass|fail]
   node harness-runtime/cli.mjs contract-prep --sprint <N>
   node harness-runtime/cli.mjs contract-artifact --sprint <N>
@@ -82,6 +83,8 @@ Environment overrides:
   HARNESS_MAX_QA_ROUNDS    Override max QA rounds
   HARNESS_RUNNER=cli       Prefer cursor CLI over SDK
   HARNESS_ON_MAX_ROUNDS=advance  Advance instead of halt on max rounds
+  HARNESS_MAX_SPRINTS_PER_RUN=N  Stop after N sprints become Pass or Skipped this invocation
+  HARNESS_RETRO=off              Skip the retrospector
   HARNESS_ISOLATION=off|claude|docker  Opt-in cycle jail (see ./harness.sh --sandbox)
   CURSOR_API_KEY           Required for SDK runner (cli fallback if unset)
 `);
@@ -325,7 +328,10 @@ async function runNextStep(flags, policy) {
     );
   }
 
-  const step = await computeNextStep({ policy });
+  const step = await computeNextStep({
+    policy,
+    newRun: flags["new-run"] === true,
+  });
 
   if (asJson) {
     console.log(JSON.stringify(step, null, 2));

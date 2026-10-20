@@ -383,6 +383,49 @@ test("a sprint cap runs the retrospector once after a passing sprint, then stops
   });
 });
 
+test("a sprint cap suppresses the completion summary when the last sprint passes", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([{ sprint: 1, status: "Not started" }]);
+    await computeNextStep({ policy: capPolicy });
+    await writeSprintStatus([{ sprint: 1, status: "Pass" }]);
+    await writeQaReport(1, "PASS");
+
+    const retro = await computeNextStep({ policy: capPolicy });
+    assert.equal(retro.step, "run-retro");
+
+    await recordPhase({ phase: "retrospector" });
+
+    const stop = await computeNextStep({ policy: capPolicy });
+    assert.equal(stop.step, "sprint-cap");
+    assert.doesNotMatch(stop.instruction, /cycle is complete/);
+  });
+});
+
+test("raising the sprint cap does not forget a sprint finished at the old cap", async () => {
+  await inTempProject(async () => {
+    await writePlanningArtifacts([
+      { sprint: 1, status: "Not started" },
+      { sprint: 2, status: "Not started" },
+    ]);
+    await computeNextStep({ policy: capPolicy });
+    await writeSprintStatus([
+      { sprint: 1, status: "Pass" },
+      { sprint: 2, status: "Not started" },
+    ]);
+    await writeQaReport(1, "PASS");
+    await recordPhase({ phase: "retrospector" });
+
+    const raised = await computeNextStep({
+      policy: { ...capPolicy, maxSprintsPerRun: 2 },
+    });
+    assert.equal(raised.step, "run-generator");
+    assert.equal(raised.sprint, 2);
+
+    const restored = await computeNextStep({ policy: capPolicy });
+    assert.equal(restored.step, "sprint-cap");
+  });
+});
+
 test("retro off skips the retrospector when a sprint cap stops the run", async () => {
   await inTempProject(async () => {
     await writePlanningArtifacts([

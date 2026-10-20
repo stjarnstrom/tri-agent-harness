@@ -47,6 +47,16 @@ export async function loadPolicy(configPath = DEFAULT_CONFIG_PATH) {
   if (raw !== null) {
     // A malformed config must fail loudly, not silently use DEFAULT_POLICY.
     filePolicy = JSON.parse(raw);
+    if (
+      filePolicy
+      && typeof filePolicy === "object"
+      && (Object.prototype.hasOwnProperty.call(filePolicy, "maxSprintsPerRun")
+        || Object.prototype.hasOwnProperty.call(filePolicy, "retro"))
+    ) {
+      throw new Error(
+        "Set HARNESS_MAX_SPRINTS_PER_RUN and HARNESS_RETRO in the environment. harness-runtime.config.json cannot set maxSprintsPerRun or retro.",
+      );
+    }
   }
 
   const policy = mergePolicy(DEFAULT_POLICY, filePolicy);
@@ -76,7 +86,31 @@ export async function loadPolicy(configPath = DEFAULT_CONFIG_PATH) {
     }
   }
 
+  policy.maxSprintsPerRun = null;
+  policy.retro = "on";
+
+  if (process.env.HARNESS_RETRO === "off") {
+    policy.retro = "off";
+  }
+
+  const maxSprints = process.env.HARNESS_MAX_SPRINTS_PER_RUN;
+  if (maxSprints) {
+    policy.maxSprintsPerRun = parsePositiveInt("HARNESS_MAX_SPRINTS_PER_RUN", maxSprints);
+  }
+
   return policy;
+}
+
+function parsePositiveInt(name, raw) {
+  const value = raw.trim();
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error(`${name} must be a positive integer, got '${raw}'.`);
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new Error(`${name} must be a positive integer, got '${raw}'.`);
+  }
+  return parsed;
 }
 
 export function getModelForPhase(policy, phase) {

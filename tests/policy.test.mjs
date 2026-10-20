@@ -90,6 +90,19 @@ test("HARNESS_MAX_SPRINTS_PER_RUN and HARNESS_RETRO map onto the cycle policy", 
   });
 });
 
+test("harness-runtime.config.json cannot set the sprint cap or retro", async () => {
+  await withCleanEnv(async () => {
+    await withTempDir(async (dir) => {
+      const configPath = path.join(dir, "harness-runtime.config.json");
+      await writeFile(configPath, JSON.stringify({ maxSprintsPerRun: 2, retro: "off" }), "utf8");
+      await assert.rejects(
+        () => loadPolicy(configPath),
+        /cannot set maxSprintsPerRun or retro/,
+      );
+    });
+  });
+});
+
 test("HARNESS_MAX_SPRINTS_PER_RUN rejects a value that is not a positive integer", async () => {
   await withCleanEnv(async () => {
     process.env.HARNESS_MAX_SPRINTS_PER_RUN = "abc";
