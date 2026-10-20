@@ -273,3 +273,86 @@ harness_run_sprint_loop 3`,
   assert.match(stdout, /All sprints complete!/);
   assert.doesNotMatch(stdout, /RETRO_HOOK_RAN/);
 });
+
+function retroHookCount(stdout) {
+  return (stdout.match(/RETRO_HOOK_RAN/g) ?? []).length;
+}
+
+function assertCapStop(result) {
+  assert.equal(result.code, 0, `stdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
+  assert.equal(retroHookCount(result.stdout), 1, result.stdout);
+  assert.match(result.stdout, /Reached HARNESS_MAX_SPRINTS_PER_RUN=1/);
+  assert.doesNotMatch(result.stdout, /All sprints complete!/);
+  assert.doesNotMatch(result.stdout, /HARNESS COMPLETE/);
+}
+
+async function sprintStatus(dir) {
+  return readFile(path.join(dir, "docs", "sprint-status.md"), "utf8");
+}
+
+test("sprint cap runs the retro hook once and skips the completion summary", async () => {
+  const dir = await makeProject(2);
+  const result = await runLoop(
+    dir,
+    `${AGENT_STUB}
+verdict() { return 0; }
+harness_run_retro_hook() { echo "RETRO_HOOK_RAN"; }
+harness_run_sprint_loop 3
+harness_print_summary "HARNESS COMPLETE"`,
+    { env: { HARNESS_MAX_SPRINTS_PER_RUN: "1" } },
+  );
+  assertCapStop(result);
+  assert.deepEqual(await readCalls(dir), [
+    "generator 1",
+    "contract-review 1",
+    "generator 1",
+    "evaluator 1",
+  ]);
+  assert.match(await sprintStatus(dir), /\| 2 \| Sprint 2 \| Not started \|/);
+});
+
+test("sprint cap runs the retro hook once after advancing a failed sprint", async () => {
+  const dir = await makeProject(2);
+  const result = await runLoop(
+    dir,
+    `${AGENT_STUB}
+verdict() { return 1; }
+harness_run_retro_hook() { echo "RETRO_HOOK_RAN"; }
+harness_run_sprint_loop 1
+harness_print_summary "HARNESS COMPLETE"`,
+    { env: { HARNESS_MAX_SPRINTS_PER_RUN: "1", HARNESS_ON_MAX_ROUNDS: "advance" } },
+  );
+  assertCapStop(result);
+  assert.match(await sprintStatus(dir), /\| 2 \| Sprint 2 \| Not started \|/);
+});
+
+test("sprint cap runs the retro hook once when the pre-QA gate never passes", async () => {
+  const dir = await makeProject(2);
+  const result = await runLoop(
+    dir,
+    `${AGENT_STUB}
+verdict() { return 0; }
+run_pre_qa_gate() { return 1; }
+harness_run_retro_hook() { echo "RETRO_HOOK_RAN"; }
+harness_run_sprint_loop 1
+harness_print_summary "HARNESS COMPLETE"`,
+    { env: { HARNESS_MAX_SPRINTS_PER_RUN: "1", HARNESS_ON_MAX_ROUNDS: "advance" } },
+  );
+  assertCapStop(result);
+  assert.match(await sprintStatus(dir), /\| 2 \| Sprint 2 \| Not started \|/);
+});
+
+test("halt runs the retro hook once and exits 1", async () => {
+  const dir = await makeProject(1);
+  const { code, stdout } = await runLoop(
+    dir,
+    `${AGENT_STUB}
+verdict() { return 1; }
+harness_run_retro_hook() { echo "RETRO_HOOK_RAN"; }
+harness_run_sprint_loop 1`,
+    { env: { HARNESS_ON_MAX_ROUNDS: "halt" } },
+  );
+  assert.equal(code, 1);
+  assert.match(stdout, /HALTED/);
+  assert.equal(retroHookCount(stdout), 1, stdout);
+});

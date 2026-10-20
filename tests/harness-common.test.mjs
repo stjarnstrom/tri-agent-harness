@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { chmod, mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -451,3 +452,210 @@ async function readFileText(filePath) {
   const { readFile } = await import("node:fs/promises");
   return readFile(filePath, "utf8");
 }
+
+// ─── checkpoint prompts ───────────────────────────────────────────────
+
+async function runWithoutTerminal(cwd, snippet, env = {}) {
+  const childEnv = { ...process.env, ...env };
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      "setsid",
+      ["--wait", "bash", "-c", snippet],
+      { cwd, env: childEnv },
+    );
+    return { code: 0, stdout, stderr };
+  } catch (error) {
+    if (typeof error.code !== "number") throw error;
+    return { code: error.code, stdout: error.stdout ?? "", stderr: error.stderr ?? "" };
+  }
+}
+
+const pythonPty = spawnSync("python3", ["-c", "import pty"], { encoding: "utf8" });
+const pythonPtyMissing = pythonPty.status !== 0;
+
+function checkpointScript(tail = "") {
+  return [
+    "unset HARNESS_YES",
+    `source ${JSON.stringify(COMMON)}`,
+    'harness_prompt_continue "checkpoint"',
+    tail,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+async function runCheckpointPty(cwd, input, tail = "") {
+  const script = `
+import base64, os, pty, select, signal, sys, time, fcntl, termios
+
+cwd = os.environ["PTY_CWD"]
+snippet = os.environ["PTY_SNIPPET"]
+payload = base64.b64decode(os.environ["PTY_INPUT_B64"])
+master, slave = pty.openpty()
+pid = os.fork()
+if pid == 0:
+    os.close(master)
+    os.setsid()
+    fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+    os.dup2(slave, 0)
+    os.dup2(slave, 1)
+    os.dup2(slave, 2)
+    if slave > 2:
+        os.close(slave)
+    os.chdir(cwd)
+    os.execvp("bash", ["bash", "-c", snippet])
+os.close(slave)
+output = bytearray()
+sent = False
+status = None
+deadline = time.time() + 5
+while time.time() < deadline and status is None:
+    pid_done, wait_status = os.waitpid(pid, os.WNOHANG)
+    readable, _, _ = select.select([master], [], [], 0.2)
+    if readable:
+        try:
+            chunk = os.read(master, 4096)
+        except OSError:
+            chunk = b""
+        if chunk:
+            output.extend(chunk)
+            if not sent and b"Continue?" in output:
+                os.write(master, payload)
+                sent = True
+    if pid_done:
+        status = wait_status
+deadline_hit = status is None
+if deadline_hit:
+    os.kill(pid, signal.SIGKILL)
+    _, status = os.waitpid(pid, 0)
+while True:
+    readable, _, _ = select.select([master], [], [], 0.1)
+    if not readable:
+        break
+    try:
+        chunk = os.read(master, 4096)
+    except OSError:
+        break
+    if not chunk:
+        break
+    output.extend(chunk)
+os.close(master)
+if not sent:
+    sys.stderr.write("pty helper never saw the checkpoint prompt\\n")
+if deadline_hit:
+    sys.stderr.write("pty helper timed out waiting for the checkpoint\\n")
+sys.stdout.buffer.write(output)
+if deadline_hit or not sent:
+    sys.exit(124)
+sys.exit(os.waitstatus_to_exitcode(status))
+`;
+  try {
+    const { stdout, stderr } = await execFileAsync("python3", ["-c", script], {
+      cwd,
+      env: {
+        ...process.env,
+        PTY_CWD: cwd,
+        PTY_SNIPPET: checkpointScript(tail),
+        PTY_INPUT_B64: Buffer.from(input).toString("base64"),
+      },
+    });
+    return { code: 0, stdout, stderr };
+  } catch (error) {
+    if (typeof error.code !== "number") throw error;
+    return { code: error.code, stdout: error.stdout ?? "", stderr: error.stderr ?? "" };
+  }
+}
+
+test("checkpoint without a controlling terminal exits non-zero", async () => {
+  const dir = await makeProject([]);
+  const childEnv = { ...process.env };
+  delete childEnv.HARNESS_YES;
+  const { code, stdout, stderr } = await runWithoutTerminal(
+    dir,
+    `unset HARNESS_YES; source ${JSON.stringify(COMMON)}; harness_prompt_continue "checkpoint"`,
+    childEnv,
+  );
+  assert.notEqual(
+    code,
+    0,
+    `missing tty exited ${code}\\nstdout: ${JSON.stringify(stdout)}\\nstderr: ${JSON.stringify(stderr)}`,
+  );
+  assert.match(stderr, /\/dev\/tty/);
+  assert.match(stderr, /Set HARNESS_YES=1 or HARNESS_PAUSE=off to run without prompts/);
+  assert.doesNotMatch(stdout, /Paused/);
+  assert.doesNotMatch(stdout, /Checkpoint/);
+});
+
+test("HARNESS_YES=1 continues a checkpoint without a terminal", async () => {
+  const dir = await makeProject([]);
+  const { code, stdout, stderr } = await runWithoutTerminal(
+    dir,
+    `export HARNESS_YES=1; source ${JSON.stringify(COMMON)}; harness_prompt_continue "checkpoint"; echo CONTINUED`,
+    { HARNESS_YES: "1" },
+  );
+  assert.equal(code, 0, `stdout: ${JSON.stringify(stdout)}\\nstderr: ${JSON.stringify(stderr)}`);
+  assert.match(stdout, /CONTINUED/);
+  assert.doesNotMatch(`${stdout}\n${stderr}`, /\/dev\/tty/);
+  assert.doesNotMatch(stderr, /Set HARNESS_YES=1 or HARNESS_PAUSE=off/);
+});
+
+test(
+  pythonPtyMissing
+    ? "skipped: python3 pty module is missing"
+    : "a declined checkpoint answer pauses",
+  { skip: pythonPtyMissing },
+  async () => {
+    const dir = await makeProject([]);
+    const answers = [
+      ["n", Buffer.from("n\n")],
+      ["N", Buffer.from("N\n")],
+      ["empty line", Buffer.from("\n")],
+      ["nope", Buffer.from("nope\n")],
+      ["Ctrl-D", Buffer.from([0x04])],
+    ];
+    for (const [label, input] of answers) {
+      const { code, stdout, stderr } = await runCheckpointPty(dir, input);
+      assert.equal(
+        code,
+        0,
+        `${label}\\nstdout: ${JSON.stringify(stdout)}\\nstderr: ${JSON.stringify(stderr)}`,
+      );
+      assert.match(stdout, /Paused/, label);
+    }
+  },
+);
+
+test(
+  pythonPtyMissing
+    ? "skipped: python3 pty module is missing"
+    : "checkpoint answer y continues without setting HARNESS_YES",
+  { skip: pythonPtyMissing },
+  async () => {
+    const dir = await makeProject([]);
+    const { code, stdout, stderr } = await runCheckpointPty(
+      dir,
+      Buffer.from("y\n"),
+      "printf 'HARNESS_YES=%s\\n' \"$HARNESS_YES\"",
+    );
+    assert.equal(code, 0, `stdout: ${JSON.stringify(stdout)}\\nstderr: ${JSON.stringify(stderr)}`);
+    assert.match(stdout, /HARNESS_YES=0/);
+    assert.doesNotMatch(stdout, /HARNESS_YES=1/);
+  },
+);
+
+test(
+  pythonPtyMissing
+    ? "skipped: python3 pty module is missing"
+    : "checkpoint answer a sets HARNESS_YES and continues",
+  { skip: pythonPtyMissing },
+  async () => {
+    const dir = await makeProject([]);
+    const { code, stdout, stderr } = await runCheckpointPty(
+      dir,
+      Buffer.from("a\n"),
+      "printf 'HARNESS_YES=%s\\n' \"$HARNESS_YES\"",
+    );
+    assert.equal(code, 0, `stdout: ${JSON.stringify(stdout)}\\nstderr: ${JSON.stringify(stderr)}`);
+    assert.match(stdout, /HARNESS_YES=1/);
+  },
+);
