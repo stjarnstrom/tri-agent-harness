@@ -1075,10 +1075,8 @@ harness_prepare_sprint_contract() {
 #
 # Optional hook:
 #   harness_run_retro_hook
-#     The tail runs on a finished plan and on a cap stop, and
-#     handle_max_rounds calls it on the halt path. The cap exit 0 is
-#     what keeps the completion summary from printing. harness.sh
-#     defines it (Retrospector).
+#     Runs after the loop completes and on the handle_max_rounds halt
+#     path. harness.sh defines it (Retrospector).
 
 harness_run_planning_phase() {
   local product_prompt="${1:?product prompt required}"

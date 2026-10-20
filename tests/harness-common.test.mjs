@@ -453,8 +453,6 @@ async function readFileText(filePath) {
   return readFile(filePath, "utf8");
 }
 
-// ─── checkpoint prompts ───────────────────────────────────────────────
-
 async function runWithoutTerminal(cwd, snippet, env = {}) {
   const childEnv = { ...process.env, ...env };
   try {

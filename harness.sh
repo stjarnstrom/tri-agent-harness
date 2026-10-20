@@ -118,9 +118,6 @@ $HARNESS_AUTONOMOUS_SUFFIX"; then
   fi
 }
 
-# Hook consumed by harness_run_sprint_loop. The tail runs on a finished
-# plan and on a cap stop. The cap exit 0 is what keeps the completion
-# summary from printing. handle_max_rounds calls it on the halt path.
 harness_run_retro_hook() {
   harness_run_retrospector
 }
