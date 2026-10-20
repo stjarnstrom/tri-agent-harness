@@ -30,6 +30,8 @@ HARNESS_YES="${HARNESS_YES:-0}"
 HARNESS_USAGE_CHECK="${HARNESS_USAGE_CHECK:-0}"
 HARNESS_MAX_SPRINTS_PER_RUN="${HARNESS_MAX_SPRINTS_PER_RUN:-}"
 SPRINTS_COMPLETED_THIS_RUN=0
+_harness_sprint_cap_reached=0
+export -n _harness_sprint_cap_reached
 
 # Isolation: off (default) | claude | docker
 # Canonical env is HARNESS_ISOLATION. --sandbox on harness.sh sets the same knob.
@@ -55,6 +57,12 @@ harness_prompt_continue() {
     return 0
   fi
 
+  exec 9</dev/tty || {
+    echo "ERROR: This checkpoint needs a terminal, and /dev/tty could not be opened." >&2
+    echo "       Set HARNESS_YES=1 or HARNESS_PAUSE=off to run without prompts." >&2
+    exit 1
+  }
+
   echo ""
   echo "⏸  Checkpoint: $label"
   if [ -n "$next_sprint" ] && [ "$next_sprint" != "done" ]; then
@@ -62,7 +70,8 @@ harness_prompt_continue() {
   fi
   echo "   State saved in docs/sprint-status.md — resume with the same harness command."
   echo ""
-  read -r -p "Continue? [y/N/a=all remaining sprints] " answer </dev/tty || answer=""
+  read -r -p "Continue? [y/N/a=all remaining sprints] " answer <&9 || answer=""
+  exec 9<&-
   case "$answer" in
     y|Y|yes|Yes)
       return 0
@@ -148,8 +157,11 @@ harness_track_sprint_finished() {
     echo "⏸ Reached HARNESS_MAX_SPRINTS_PER_RUN=$HARNESS_MAX_SPRINTS_PER_RUN for this invocation."
     echo "   Completed $SPRINTS_COMPLETED_THIS_RUN sprint(s) this run."
     echo "   Re-run with the same prompt to continue."
-    exit 0
+    _harness_sprint_cap_reached=1
+    return 0
   fi
+
+  return 0
 }
 
 harness_print_pause_config() {
@@ -1228,10 +1240,17 @@ harness_run_sprint_loop() {
     fi
 
     last_handled_sprint="$current"
+    if [ "${_harness_sprint_cap_reached}" -ne 0 ]; then
+      break
+    fi
   done
 
   if declare -F harness_run_retro_hook >/dev/null; then
     harness_run_retro_hook
+  fi
+
+  if [ "${_harness_sprint_cap_reached}" -ne 0 ]; then
+    exit 0
   fi
 }
 

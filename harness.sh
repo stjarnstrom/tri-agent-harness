@@ -118,8 +118,6 @@ $HARNESS_AUTONOMOUS_SUFFIX"; then
   fi
 }
 
-# Hook consumed by harness_run_sprint_loop (normal completion) and by
-# handle_max_rounds (halt path) in harness-common.sh.
 harness_run_retro_hook() {
   harness_run_retrospector
 }
