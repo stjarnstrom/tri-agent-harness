@@ -13,7 +13,7 @@ Common forms:
 - `/cycle build a habit tracker with streak analytics` — plan, then build every sprint
 - `/cycle` with a pasted intent brief — same loop; you do not have to start from a one-liner (`docs/planner-input.md`)
 - `/cycle` — continue from wherever `docs/sprint-status.md` currently stands
-- `/cycle sprints=1` — one sprint, then stop and report
+- `/cycle sprints=1` — one sprint, then the retrospector, then stop
 - `/cycle rounds=5 advance` — five QA rounds per sprint, advance on persistent failure
 - `/cycle pause=sprint` — confirm before each new sprint
 - `/cycle sandbox` — run via `./harness.sh --sandbox` (Docker/Podman jail)

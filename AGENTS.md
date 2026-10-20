@@ -237,7 +237,7 @@ HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."   # override a single ph
 ```
 /cycle build a habit tracker with streak analytics   # plan, then build every sprint
 /cycle                                              # continue from current sprint-status
-/cycle sprints=1                                    # one sprint, then stop
+/cycle sprints=1                                    # one sprint, then retro, then stop
 /cycle rounds=5 advance                             # 5 QA rounds/sprint, advance on failure
 /cycle sandbox                                      # equivalent ./harness.sh --sandbox (container)
 ```
@@ -251,7 +251,9 @@ node harness-runtime/cli.mjs next-step --record generator --sprint 3
 ```
 
 `next-step` owns round counting, pre-QA gate ordering, gate-report staleness, the
-round budget, and halt-vs-advance. It is side-effect-free until `--record`.
+round budget, the sprint cap, and halt-vs-advance. A capped run writes
+`sprintCap.terminalAtRunStart` when that list is missing, and `--new-run`
+replaces it. Changing the cap does not replace it.
 
 **Interactive mode (Claude Code slash commands):**
 
