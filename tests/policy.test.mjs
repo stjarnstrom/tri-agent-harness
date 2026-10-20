@@ -10,6 +10,8 @@ const POLICY_ENV_VARS = [
   "HARNESS_RUNNER",
   "HARNESS_ON_MAX_ROUNDS",
   "HARNESS_MAX_QA_ROUNDS",
+  "HARNESS_MAX_SPRINTS_PER_RUN",
+  "HARNESS_RETRO",
 ];
 
 async function withCleanEnv(run) {
@@ -45,6 +47,8 @@ test("loadPolicy falls back to defaults when config file is missing", async () =
     const policy = await loadPolicy(path.join(os.tmpdir(), "does-not-exist-policy.json"));
     assert.equal(policy.maxQaRounds, 3);
     assert.equal(policy.onMaxRoundsReached, "halt");
+    assert.equal(policy.maxSprintsPerRun, null);
+    assert.equal(policy.retro, "on");
   });
 });
 
@@ -73,6 +77,26 @@ test("policy no longer defines the unimplemented wallClockTimeoutPerPhaseMs budg
   await withCleanEnv(async () => {
     const policy = await loadPolicy(path.join(os.tmpdir(), "does-not-exist-policy.json"));
     assert.equal("wallClockTimeoutPerPhaseMs" in policy.budgets, false);
+  });
+});
+
+test("HARNESS_MAX_SPRINTS_PER_RUN and HARNESS_RETRO map onto the cycle policy", async () => {
+  await withCleanEnv(async () => {
+    process.env.HARNESS_MAX_SPRINTS_PER_RUN = "1";
+    process.env.HARNESS_RETRO = "off";
+    const policy = await loadPolicy(path.join(os.tmpdir(), "does-not-exist-policy.json"));
+    assert.equal(policy.maxSprintsPerRun, 1);
+    assert.equal(policy.retro, "off");
+  });
+});
+
+test("HARNESS_MAX_SPRINTS_PER_RUN rejects a value that is not a positive integer", async () => {
+  await withCleanEnv(async () => {
+    process.env.HARNESS_MAX_SPRINTS_PER_RUN = "abc";
+    await assert.rejects(
+      () => loadPolicy(path.join(os.tmpdir(), "does-not-exist-policy.json")),
+      /HARNESS_MAX_SPRINTS_PER_RUN must be a positive integer, got 'abc'/,
+    );
   });
 });
 
