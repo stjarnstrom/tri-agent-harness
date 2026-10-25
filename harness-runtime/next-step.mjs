@@ -7,8 +7,7 @@
 // answers that question the same way the shell loop does, so the chat
 // orchestrator only has to *execute* steps, never decide them.
 //
-// Read-only: computeNextStep() is safe to call repeatedly. Bookkeeping after a
-// phase finishes lives in cycle-record.mjs.
+// Bookkeeping after a phase finishes lives in cycle-record.mjs.
 
 import path from "node:path";
 import { getNextDecision } from "./orchestrator.mjs";
@@ -17,6 +16,7 @@ import { SPRINT_STATUS_FILE } from "./sprint-status.mjs";
 import { HANDOFF_FILE, readWorkflowHandoff } from "./workflow-handoff.mjs";
 import { readOrchestratorState } from "./state-store.mjs";
 import { contractPrepAction } from "./contract-prep.mjs";
+import { cappedRunStep, doneRetroStep, haltWithRetro } from "./run-end.mjs";
 import {
   contractPath,
   DOCS_DIR,
@@ -25,7 +25,6 @@ import {
   nextAttemptNumber,
   qaReportPath,
   readGateState,
-  retroIsPending,
 } from "./cycle-state.mjs";
 
 async function generatorContext(sprint, gate) {
@@ -89,11 +88,12 @@ function exhausted({ base, sprint, attempt, onMaxRounds, docsDir }) {
  * Resolve the single next step in the build cycle.
  *
  * Steps map 1:1 onto what the chat orchestrator does:
- *   run-planner / run-generator / run-evaluator / run-retro → dispatch a subagent
- *   run-pre-qa-gate / advance-sprint                        → run a shell command
- *   halt / manual-review / done                             → stop and report
+ *   run-planner / run-generator / run-contract-review /
+ *   run-evaluator / run-retro                                  → dispatch a subagent
+ *   run-pre-qa-gate / advance-sprint                           → run a shell command
+ *   halt / sprint-cap / manual-review / done                   → stop and report
  */
-export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
+export async function computeNextStep({ policy, docsDir = DOCS_DIR, newRun = false } = {}) {
   const maxQaRounds = policy?.maxQaRounds ?? 3;
   const onMaxRounds = policy?.onMaxRoundsReached ?? "halt";
 
@@ -102,6 +102,18 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
   const decision = await getNextDecision();
 
   const base = { maxQaRounds, onMaxRounds, reason: decision.reason };
+  const retro = policy?.retro === "off" ? "off" : "on";
+  const capped = await cappedRunStep({
+    maxSprintsPerRun: policy?.maxSprintsPerRun ?? null,
+    retro,
+    newRun,
+    state,
+    docsDir,
+    base,
+  });
+  if (capped) {
+    return capped;
+  }
 
   if (decision.action === "run-planner") {
     return {
@@ -126,16 +138,9 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
   }
 
   if (decision.action === "done") {
-    if (await retroIsPending(state, docsDir)) {
-      return {
-        ...base,
-        step: "run-retro",
-        agent: "retrospector",
-        instruction:
-          "All sprints are terminal. Dispatch the retrospector subagent to distill this run's QA reports into the lessons ledger and draft guardrail proposals.",
-        context: await existingFiles(["agents/retrospector.md", "harness/lessons.jsonl"]),
-        reason: "All sprints complete; QA reports not yet distilled into lessons.",
-      };
+    const pendingRetro = await doneRetroStep({ retro, state, docsDir, base });
+    if (pendingRetro) {
+      return pendingRetro;
     }
 
     return {
@@ -173,7 +178,11 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
     if (gate.result === "fail") {
       const attempt = await nextAttemptNumber({ state, handoff, sprint });
       if (attempt > maxQaRounds) {
-        return exhausted({ base, sprint, attempt, onMaxRounds, docsDir });
+        return haltWithRetro(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
+          retro,
+          state,
+          docsDir,
+        });
       }
 
       return {
@@ -208,7 +217,11 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
   // a sprint whose status regressed to In progress.
   const attempt = await nextAttemptNumber({ state, handoff, sprint });
   if (attempt > maxQaRounds) {
-    return exhausted({ base, sprint, attempt, onMaxRounds, docsDir });
+    return haltWithRetro(exhausted({ base, sprint, attempt, onMaxRounds, docsDir }), {
+      retro,
+      state,
+      docsDir,
+    });
   }
 
   const gate = await readGateState(sprint, { docsDir });

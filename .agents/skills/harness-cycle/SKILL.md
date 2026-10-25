@@ -58,6 +58,7 @@ is printed, record that phase — `contract-draft` and `contract-review` are not
 | `run-retro` | Dispatch the `retrospector` subagent, then record `retrospector`. |
 | `advance-sprint` | Run the printed `Command`, tell the user what stays broken, continue. |
 | `halt` | Stop. Report the blocking issues and offer the choices in the instruction. |
+| `sprint-cap` | Stop. Tell the user this invocation reached its sprint cap and that a later run can continue. Do not report the cycle complete. |
 | `manual-review` | Stop. Report the inconsistent sprint row for a human to fix. |
 | `done` | Stop. Report final statuses and QA results. |
 
@@ -134,15 +135,20 @@ through in full; do not summarize it down to a slogan.
 Defaults come from `harness-runtime.config.json` (`maxQaRounds`,
 `onMaxRoundsReached`). Honor these arguments when the user gives them:
 
-- **`sprints=N`** — stop after N sprints reach a terminal state and report where
-  the cycle stands. Default: run until `done`.
+- **`sprints=N`**. Export `HARNESS_MAX_SPRINTS_PER_RUN=N` on every `next-step`
+  call in this invocation. Pass `--new-run` on the first `next-step` only.
+  Do not pass `--new-run` again inside the loop. `next-step` counts sprints
+  that become Pass or Skipped after that first call. At the cap it schedules
+  `run-retro` once, then `sprint-cap`. Follow that step. Do not stop on your own.
+  Default with no cap: run until `done`.
 - **`rounds=N`** — override the QA-round budget per sprint. Export
   `HARNESS_MAX_QA_ROUNDS=N` for the `next-step` calls so the budget is enforced
   by the tool, not by you.
 - **`advance`** — on an exhausted budget, advance with known issues instead of
   halting: export `HARNESS_ON_MAX_ROUNDS=advance`.
 - **`pause=sprint`** — confirm with the user before starting each new sprint.
-- **`retro=off`** — skip the `run-retro` step and go straight to reporting.
+- **`retro=off`**. Export `HARNESS_RETRO=off` on every `next-step` call.
+  `next-step` then skips `run-retro`.
 - **`sandbox`** or **`sandbox=docker`** — do **not** claim this chat is jailed.
   Print or run the equivalent `./harness.sh --sandbox "…"` (Docker/Podman).
   Fail with the same install hint if neither engine is on PATH.
@@ -166,10 +172,16 @@ tool failure.
 
 ## Finishing
 
-When you reach `done` (or the sprint/round limit), report:
+When the step is `done`, report:
 
 - Sprints completed, with pass/fail/skipped status.
 - Where the QA reports and lessons live (`docs/qa-report-sprint-*.md`,
   `harness/LESSONS.md`).
 - Anything left broken or skipped, stated plainly.
 - Any guardrail proposals the Retrospector drafted in `docs/proposals/`.
+
+When the step is `sprint-cap`, say what the instruction says. Do not add the
+completion summary above.
+
+When the step is `halt`, report the blocking issues and the choices in the
+instruction.

@@ -173,7 +173,12 @@ proceeds.
   counts generator dispatches (the round budget) for chat-driven runs;
   `retro.completedAt` and `retro.processedReports` record the last Retrospector
   pass so retro re-triggers when a new QA report appears or an existing report
-  is rewritten after that pass.
+  is rewritten after that pass. `sprintCap.terminalAtRunStart` lists sprint ids
+  that were already Pass or Skipped when this capped invocation started.
+  `next-step` writes it when it is missing. `--new-run` replaces it. Sprints
+  that become Pass or Skipped after that list count toward
+  `HARNESS_MAX_SPRINTS_PER_RUN`. A missing list records the current terminal
+  sprints and does not count them.
 - Advisory means exactly that: if it disagrees with `docs/sprint-status.md`, the
   status file wins. `next-step` cross-checks its counter against the canonical
   docs and takes the higher round, so lost bookkeeping can never silently grant
