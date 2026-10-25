@@ -1,12 +1,14 @@
 ---
 name: harness-cycle
-description: Run the full tri-agent build cycle (Planner → Generator → Pre-QA Gate → Evaluator → Retrospector) from a single Claude Code conversation, dispatching each phase to an isolated subagent. Use when the user wants to build a product with the harness without running ./harness.sh in a terminal — "run the harness", "build this with the harness", "run the cycle", "continue the build", "next sprint" — or invokes /harness-cycle. For a single phase, use /plan, /build, /qa, or /retro instead.
+description: Run the full tri-agent build cycle (Planner → Generator → Pre-QA Gate → Evaluator → Retrospector) from a Cursor or Claude Code chat, dispatching each phase to an isolated subagent. Use when the user wants to build a product with the harness without running ./harness.sh — "run the harness", "build this with the harness", "run the cycle", "continue the build", "next sprint" — or invokes /cycle or /harness-cycle. For a single phase, use /plan, /build, /qa, or /retro instead.
 ---
 
 # Harness cycle (chat-driven)
 
-You are the **orchestrator**. `./harness.sh` does this job in bash; here you do it
-in one conversation, and every phase still runs in its own isolated subagent.
+You are the **orchestrator** in a Cursor chat or a Claude Code chat. `./harness.sh`
+does this job as a separate bash process; do not start it. Here the same phases
+run in this conversation, each in its own isolated subagent. `next-step` is a
+small node command the orchestrator runs. It is not the bash runner.
 
 Your job is to execute steps, not to decide them. `next-step` decides.
 
@@ -26,6 +28,11 @@ Your job is to execute steps, not to decide them. `next-step` decides.
 5. **Keep your own context thin.** Read status files and short reports; never
    read app source to "check" a subagent's work. The files on disk are the
    handoff.
+6. **Do not start the cycle with `./harness.sh`.** The only shell commands you
+   run are the ones `next-step` prints (`next-step` itself, `contract-artifact`,
+   the pre-QA gate, `sprint-mark-skipped`). The exception is an explicit
+   `sandbox` request, which starts a jailed `./harness.sh` and does not
+   continue the cycle in this chat.
 
 ## The loop
 
@@ -46,7 +53,7 @@ is printed, record that phase — `contract-draft` and `contract-review` are not
 | `run-generator` with Focus `write-contract` | Dispatch the `generator` subagent to write the sprint contract only. Record `contract-draft`, not `generator`. This does not use a QA round. |
 | `run-contract-review` | Dispatch the `contract-reviewer` subagent. Pass the ARTIFACT from the printed `Command`. Record `contract-review`. This does not use a QA round. |
 | `run-generator` | Dispatch the `generator` subagent, then record `generator`. On Focus `build`, it implements after the contract review. |
-| `run-pre-qa-gate` | Run the printed `Command` with Bash, then record `pre-qa-gate` with `--result pass\|fail`. Never dispatch the evaluator instead. |
+| `run-pre-qa-gate` | Run the printed `Command` in the shell (Cursor: Shell tool; Claude Code: Bash tool), then record `pre-qa-gate` with `--result pass\|fail`. Never dispatch the evaluator instead. |
 | `run-evaluator` | Dispatch the `evaluator` subagent, then record `evaluator`. |
 | `run-retro` | Dispatch the `retrospector` subagent, then record `retrospector`. |
 | `advance-sprint` | Run the printed `Command`, tell the user what stays broken, continue. |
@@ -70,10 +77,25 @@ numbers yourself — you never need to.
 
 ## Dispatching a phase
 
-Use the Agent tool with `subagent_type` matching the `Subagent` field
-(`planner`, `generator`, `contract-reviewer`, `evaluator`, `retrospector`). Each subagent already
-knows its own persona and required reading; your prompt gives it the target and
-the focus, not a re-explanation of its job.
+Dispatch with the subagent tool this chat actually has. If neither tool
+exists, stop and tell the user. Do not run the phase in this thread.
+
+- **Claude Code** (an Agent tool is available): call the Agent tool with
+  `subagent_type` set to the printed `Subagent` (`planner`, `generator`,
+  `contract-reviewer`, `evaluator`, `retrospector`). The subagent's
+  `model: opus` frontmatter in `.claude/agents/` applies.
+- **Cursor** (no Agent tool; a Task tool is available): call the Task tool.
+  Set `subagent_type` to that same field. Set `run_in_background` to false
+  and wait. Set `description` to a short phase title ("Plan product",
+  "Write sprint 2 contract"). Do not pass `model` unless the user named a
+  slug from this session's allowed list. `opus` is a Claude Code alias, not
+  a Cursor model id; `.cursor/agents/` uses `inherit` (the model selected
+  in this chat). A Cursor slash command that names the Task tool wins over
+  this branch.
+
+Each subagent already knows its persona and required reading. Your prompt
+gives it the target and the focus, not a re-explanation of its job. Do not
+launch the next phase in parallel.
 
 Include in the prompt:
 

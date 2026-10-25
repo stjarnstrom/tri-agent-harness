@@ -91,6 +91,64 @@ test("git stores .claude/skills as a symlink", () => {
   assert.match(listing, /^120000 /);
 });
 
+test("cursor chat commands dispatch phases without harness.sh", () => {
+  const commands = {
+    cycle: /Task tool/,
+    plan: /subagent_type`: `planner`/,
+    build: /contract-prep/,
+    qa: /subagent_type`: `evaluator`/,
+    retro: /subagent_type`: `retrospector`/,
+  };
+
+  for (const [name, marker] of Object.entries(commands)) {
+    const text = read(`.cursor/commands/${name}.md`);
+    assert.match(text, marker, `${name} should describe its Cursor dispatch`);
+    assert.match(text, /Do not run\n`\.\/harness\.sh`|Do not run `\.\/harness\.sh`/);
+    assert.match(read(`.claude/commands/${name}.md`), /Agent tool|harness-cycle/);
+  }
+
+  const build = read(".cursor/commands/build.md");
+  assert.match(build, /contract-reviewer/);
+  assert.match(build, /write-contract/);
+  assert.match(read(".claude/commands/build.md"), /contract-prep/);
+
+  const skill = read(".agents/skills/harness-cycle/SKILL.md");
+  assert.match(skill, /Task tool/);
+  assert.match(skill, /Agent tool/);
+  assert.match(skill, /Do not start the cycle with `\.\/harness\.sh`/);
+});
+
+test("cursor subagents inherit the chat model and keep claude descriptions", () => {
+  const names = [
+    "planner",
+    "generator",
+    "evaluator",
+    "contract-reviewer",
+    "retrospector",
+    "claude-md-optimizer",
+  ];
+
+  for (const name of names) {
+    const cursor = read(`.cursor/agents/${name}.md`);
+    const claude = read(`.claude/agents/${name}.md`);
+    assert.match(cursor, /^model: inherit$/m);
+    assert.doesNotMatch(cursor, /^model: opus$/m);
+    const description = claude.match(/^description: (.+)$/m)?.[1];
+    assert.ok(description, `${name} claude agent should have a description`);
+    assert.match(cursor, new RegExp(`^description: ${escapeRegExp(description)}$`, "m"));
+    assert.match(cursor, new RegExp(`\\.claude/agents/${name}\\.md`));
+  }
+
+  const mcp = JSON.parse(read(".cursor/mcp.json"));
+  assert.equal(mcp.mcpServers.playwright.command, "npx");
+  assert.deepEqual(mcp.mcpServers.playwright.args, ["@playwright/mcp@latest"]);
+  assert.match(read(".cursor/agents/evaluator.md"), /Playwright/);
+});
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 test("setup repairs a plain-file .claude/skills checkout", () => {
   const script = read("scripts/install-harness.sh");
   const fn = script.match(/ensure_claude_skills_symlink\(\) \{[\s\S]*?\n\}/);

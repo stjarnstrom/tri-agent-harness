@@ -15,8 +15,9 @@
 
 ## Agent-agnostic layout
 
-The **runner** is Claude Code (`./harness.sh`, slash commands, subagents). Sibling
-repos exist for other tools. Instructions and skills are still shared so they
+Unattended runs use Claude Code via `./harness.sh`. Chat runs use slash
+commands in Cursor or Claude Code and do not start `./harness.sh`. Sibling
+repos exist for other CLIs. Instructions and skills are still shared so they
 do not fork per vendor:
 
 | Path | Role |
@@ -26,6 +27,7 @@ do not fork per vendor:
 | `.agents/skills/` | Canonical skills (`SKILL.md`). The directory is **`.agents`** (plural), not `.agent`. |
 | `.claude/skills` | Symlink → `.agents/skills` so Claude Code discovers the same skills. |
 | `.claude/commands/`, `.claude/agents/`, `.claude/settings.json` | Claude Code adapters (slash commands, subagent defs, sandbox). Stay tool-specific. |
+| `.cursor/commands/`, `.cursor/agents/`, `.cursor/mcp.json` | Cursor chat adapters (the same slash commands, subagent defs with `model: inherit`, Playwright MCP). Stay tool-specific. |
 
 Edit `AGENTS.md` and `.agents/skills/`. Nested packages use the same pair:
 `AGENTS.md` plus a one-line `CLAUDE.md` that imports it. `bun run setup`
@@ -51,9 +53,9 @@ This project uses a **combined harness** with two layers:
 ### Orchestration (who runs when)
 
 Three runners drive the same phases over the same files: `./harness.sh`
-(unattended terminal), the `harness-cycle` skill via `/cycle` (one Claude Code
-conversation drives the loop), and the per-phase slash commands. Switch between
-them at any point, including mid-sprint.
+(unattended terminal), the `harness-cycle` skill via `/cycle` (a Cursor or
+Claude Code chat drives the loop and does not start `./harness.sh`), and the
+per-phase slash commands. Switch between them at any point, including mid-sprint.
 
 - **Planner** (Fable): Expands a product prompt (one-liner or intent brief) into spec, sprint plan, and status tracker. See `docs/planner-input.md`.
 - **Generator** (Sonnet): Builds sprint-by-sprint; commits pass pre-commit hooks.
@@ -232,7 +234,7 @@ HARNESS_MODEL=claude-fable-5 ./harness.sh "..."           # force one model for 
 HARNESS_PLANNER_MODEL=claude-fable-5 ./harness.sh "..."   # override a single phase (Fable for planning)
 ```
 
-**Chat-driven cycle** (whole loop in one Claude Code conversation — terminal, desktop, or mobile):
+**Chat-driven cycle** (Cursor or Claude Code — the loop runs in the chat, not via `./harness.sh`):
 
 ```
 /cycle build a habit tracker with streak analytics   # plan, then build every sprint
@@ -253,12 +255,12 @@ node harness-runtime/cli.mjs next-step --record generator --sprint 3
 `next-step` owns round counting, pre-QA gate ordering, gate-report staleness, the
 round budget, and halt-vs-advance. It is side-effect-free until `--record`.
 
-**Interactive mode (Claude Code slash commands):**
+**Interactive mode (slash commands in Cursor or Claude Code):**
 
-- `/project:plan [description]` — Expand idea into full spec
-- `/project:build` — Implement the current sprint
-- `/project:qa` — Run QA against the current sprint
-- `/project:retro` — Distill QA failures into lessons and guardrail proposals
+- `/plan` (Claude Code also accepts `/project:plan`) — Expand idea into full spec
+- `/build` — Implement the current sprint
+- `/qa` — Run QA against the current sprint
+- `/retro` — Distill QA failures into lessons and guardrail proposals
 
 **Utilities:**
 
