@@ -63,7 +63,7 @@ All sprints Pass or Skipped?
 | Richer than a one-liner | [planner-input.md](planner-input.md) — intent brief, not a PRD |
 | One sprint demo | `HARNESS_MAX_SPRINTS_PER_RUN=1 ./harness.sh "…"` |
 | Sandboxed cycle | `./harness.sh --sandbox "…"` |
-| Chat loop | `/cycle` then `/cycle` to continue |
+| Chat loop | `/cycle` in Cursor or Claude Code (does not start `./harness.sh`) |
 | Single phase | `/plan` · `/build` · `/qa` · `/retro` |
 | Next step (cycle) | `node harness-runtime/cli.mjs next-step` |
 

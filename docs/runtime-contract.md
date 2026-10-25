@@ -1,45 +1,53 @@
 # Runtime Contract
 
-This document defines the shared file and state contract used by the **Claude Code
-harness** (orchestration + guardrails):
+This document defines the shared file and state contract used by the harness
+(orchestration + guardrails):
 
-- `./harness.sh` autonomous execution — **canonical**
-- Claude Code interactive execution (`.claude/commands/*` → `.claude/agents/*` subagents)
+- `./harness.sh` autonomous execution — **canonical** unattended runner
+- Chat execution, which does not start `./harness.sh`:
+  - Claude Code (`.claude/commands/*` → `.claude/agents/*` subagents)
+  - Cursor (`.cursor/commands/*` → `.cursor/agents/*` subagents)
 
-Sibling repos for other tools (separate products, not adapters in this tree):
+Sibling repos for other CLIs (separate products, not these chat adapters):
 
 - [tri-agent-harness-cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) — Cursor CLI
 - [tri-agent-harness-opencode](https://github.com/stjarnstrom/tri-agent-harness-opencode) — OpenCode CLI
 
-The interactive Claude Code path dispatches each phase to a dedicated subagent
-(`planner`, `generator`, `evaluator`, `retrospector`) via the `/plan`,
-`/build`, `/qa`, and `/retro` slash commands. Each subagent runs in its own isolated context and communicates
-only through the canonical files below — the same isolation `harness.sh` gets
-from separate `claude -p` processes. Subagents cannot pause mid-run, so
-`/build` writes the sprint contract and implements in a single pass.
+The chat path dispatches each phase to a dedicated subagent (`planner`,
+`generator`, `contract-reviewer`, `evaluator`, `retrospector`) via `/cycle`,
+or one phase at a time via `/plan`, `/build`, `/qa`, and `/retro`. `/build`
+asks `contract-prep` and dispatches contract draft, contract review, and
+implementation as separate subagents. Each subagent runs in its own isolated
+context and communicates only through the canonical files below — the same
+isolation `harness.sh` gets from separate `claude -p` processes.
 
 On the Claude Code paths, every phase defaults to `opus` — the alias for the
 latest Opus (currently Opus 5) — so defaults track new releases automatically.
-Interactive/mobile runs read this from the `model:` field in
-`.claude/agents/*`; `harness.sh` reads it from per-phase defaults, overridable
-via `HARNESS_PLANNER_MODEL` / `HARNESS_GENERATOR_MODEL` /
-`HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`, or `HARNESS_MODEL` for all
-phases (e.g. `HARNESS_PLANNER_MODEL=claude-fable-5` to plan on Fable).
-`HARNESS_RETRO=off` disables the Retrospector phase on `./harness.sh`.
+Claude Code chat reads this from the `model:` field in `.claude/agents/*`.
+Cursor chat cannot use that alias: `.cursor/agents/*` sets `model: inherit`,
+so each phase uses the model selected in the chat. `harness.sh` reads its
+models from per-phase defaults, overridable via `HARNESS_PLANNER_MODEL` /
+`HARNESS_GENERATOR_MODEL` / `HARNESS_EVALUATOR_MODEL` / `HARNESS_RETRO_MODEL`,
+or `HARNESS_MODEL` for all phases (e.g. `HARNESS_PLANNER_MODEL=claude-fable-5`
+to plan on Fable). `HARNESS_RETRO=off` disables the Retrospector phase on
+`./harness.sh`; in chat, pass `retro=off` to `/cycle`.
 
-If both autonomous and interactive modes follow this contract, you can switch
-between them at any time within the same repo.
+If autonomous and chat modes follow this contract, you can switch between them
+at any time within the same repo.
 
 Autonomous runs write `docs/workflow-handoff.json` at phase boundaries
-via `harness-runtime/cli.mjs`.
+via `harness-runtime/cli.mjs`. The chat path writes the same file when it
+records a phase through `next-step --record`.
 
 There are three runners, all bound by this contract: `./harness.sh`
-(autonomous), the `harness-cycle` skill (one Claude Code conversation drives the
-whole loop), and the per-phase slash commands (`/plan`, `/build`, `/qa`,
-`/retro`). The skill path takes its control flow from
+(autonomous), the `harness-cycle` skill (one Cursor or Claude Code conversation
+drives the whole loop), and the per-phase slash commands (`/plan`, `/build`,
+`/qa`, `/retro`). The skill path takes its control flow from
 `node harness-runtime/cli.mjs next-step` — never from a model's own reading of
 the docs — so round counting, gate ordering, and the round budget behave
-identically to the shell loop.
+identically to the shell loop. Cursor dispatches with the Task tool. Claude
+Code dispatches with the Agent tool. Neither chat runner starts `./harness.sh`
+unless the user asked for `sandbox`.
 
 ## Architecture Layers
 
@@ -216,11 +224,11 @@ Rules:
 
 ## Mode Switching Rules
 
-Within this repo, prefer `./harness.sh` for unattended terminal runs, the
-`harness-cycle` skill (`/cycle`) when you are working inside a single Claude Code
-conversation, and the per-phase slash commands when you want a checkpoint
-between phases. All three share the canonical files above, so you can switch
-between them mid-project — including mid-sprint.
+Within this repo, prefer `./harness.sh` for unattended terminal runs. For a
+chat run in Cursor or Claude Code, use `/cycle` (the `harness-cycle` skill);
+that path does not start `./harness.sh`. Use `/plan`, `/build`, `/qa`, and
+`/retro` when you want a checkpoint between phases. All of them share the
+canonical files above, so you can switch mid-project — including mid-sprint.
 
 ## Conflict Resolution
 

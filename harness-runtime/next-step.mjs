@@ -1,7 +1,7 @@
 // next-step.mjs — deterministic control flow for chat-driven harness runs.
 //
 // ./harness.sh owns the loop in bash (harness_run_sprint_loop). When the cycle
-// runs from a single Claude Code conversation instead, the orchestrator is a
+// runs from a Cursor or Claude Code chat instead, the orchestrator is a
 // model, and a model re-deriving "which phase now, which round, has the gate
 // run" from prose will eventually skip the gate or miscount rounds. This module
 // answers that question the same way the shell loop does, so the chat
@@ -162,7 +162,7 @@ export async function computeNextStep({ policy, docsDir = DOCS_DIR } = {}) {
         agent: null,
         sprint,
         command: `bash scripts/pre-qa-gate.sh ${sprint}`,
-        instruction: `Run the pre-QA mechanical gate for sprint ${sprint} with Bash, then call next-step again. Do not dispatch the evaluator until the gate passes.`,
+        instruction: `Run the pre-QA mechanical gate for sprint ${sprint} in the shell, then call next-step again. Do not dispatch the evaluator until the gate passes.`,
         context: [],
         reason: gate.present
           ? `Sprint ${sprint} is ready for QA but ${gate.report} predates the current generator output (stale).`

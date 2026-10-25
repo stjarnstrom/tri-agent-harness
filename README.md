@@ -7,7 +7,7 @@ product prompt — a sentence **or** a richer [intent brief](docs/planner-input.
 agents create planning artifacts in `docs/` and application code under `app/`
 sprint by sprint. You do not have to start from a one-liner.
 
-> **Claude Code runner.** Sibling repos for [Cursor](https://github.com/stjarnstrom/tri-agent-harness-cursor) and [OpenCode](https://github.com/stjarnstrom/tri-agent-harness-opencode) share the loop idea but omit the Retrospector in v1. Project instructions live in `AGENTS.md`; `CLAUDE.md` is a one-line `@AGENTS.md` loader. Skills live in `.agents/skills/` with `.claude/skills` as a symlink.
+> **Unattended runner:** Claude Code via `./harness.sh`. **Chat runner:** `/cycle` in Cursor or Claude Code, which does not start `./harness.sh`. Sibling repos for [Cursor CLI](https://github.com/stjarnstrom/tri-agent-harness-cursor) and [OpenCode](https://github.com/stjarnstrom/tri-agent-harness-opencode) share the loop idea but omit the Retrospector in v1. Project instructions live in `AGENTS.md`; `CLAUDE.md` is a one-line `@AGENTS.md` loader. Skills live in `.agents/skills/` with `.claude/skills` as a symlink.
 
 ## The core insight
 
@@ -128,7 +128,11 @@ Three runners, same files, same contract — switch between them at any point:
 ./harness.sh --sandbox "your product prompt"   # Docker/Podman jail (opt-in)
 ```
 
-### 2. Chat-driven cycle (one conversation)
+### 2. Chat-driven cycle (Cursor or Claude Code)
+
+Does not start `./harness.sh`. Type the command in chat. Cursor reads
+`.cursor/commands/`; Claude Code reads `.claude/commands/`. Both follow the
+`harness-cycle` skill, and `next-step` decides the phase.
 
 ```
 /cycle build a habit tracker with streak analytics
