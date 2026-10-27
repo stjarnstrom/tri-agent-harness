@@ -63,7 +63,7 @@ Write `docs/proposals/guardrail-<id>.md`:
 # Guardrail proposal: <id>
 
 **Lesson:** <rule text> (<N> strikes: <project/sprint list>)
-**Mechanism:** ESLint harness rule | review-persona checklist item | pre-QA gate check
+**Mechanism:** ESLint harness rule | review-persona checklist item | pre-QA gate check | `docs/review.md` brief bullet
 **Status:** proposed — a human reviews, commits the guardrail, then sets the
 ledger entry's status to "graduated".
 
@@ -74,7 +74,10 @@ ledger entry's status to "graduated".
   where to register it.
 - For a persona item: the exact checklist lines to add and to which file in
   review-personas/.
-- For a gate check: the exact block to add to scripts/pre-qa-gate.sh.]
+- For a gate check: the exact block to add to scripts/pre-qa-gate.sh.
+- For a reviewer brief: the exact bullet(s) to add to `docs/review.md`
+  (create from `docs/templates/review.md` if missing). Prefer lint or persona
+  when the check can be mechanical.]
 
 ## Why this beats a lesson
 

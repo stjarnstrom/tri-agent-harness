@@ -75,14 +75,18 @@ unless the user asked for `sandbox`.
 - `brand-guidelines.md` (root or `agents/`): legacy alias for brief content.
 
 ### Sprint artifacts
-- `docs/sprint-[N]-contract.md`: sprint scope, acceptance criteria, self-eval.
+- `docs/sprint-[N]-contract.md`: sprint scope, acceptance criteria, Risk / How
+  tested / How to revert, optional Reviewer brief, self-eval + finding disposition.
 - `docs/sprint-[N]-contract-review.md`: one fresh-context review of that contract, written before implementation.
 - `docs/mechanical-checks-sprint-[N].md`: pre-QA gate results (written by orchestrator).
-- `docs/qa-report-sprint-[N].md`: evaluator QA results and recommendations.
+- `docs/qa-report-sprint-[N].md`: evaluator QA results and recommendations
+  (severity + disposition Ids; Observations never Fail alone).
 
 ### Guardrail artifacts
 - `harness/AGENT-INSTRUCTIONS.md`: universal agent rules (sandbox, lints, anti-slop).
 - `review-personas/*.md`: security, frontend, reliability review checklists.
+- `docs/review.md` (optional): project Reviewer brief — template
+  `docs/templates/review.md`. Evaluator and contract-reviewer follow it when present.
 - `.gc-cache/weekly-report.jsonl`: QA failure log for anti-slop loop (gitignored).
 
 ### Learning artifacts (owned by the Retrospector)
@@ -123,8 +127,9 @@ unless the user asked for `sandbox`.
 
 ### Contract review (orchestrator, before implementation)
 
-Runs once per sprint, before the Generator writes application code, and does
-not consume a QA round. Skipped on QA and pre-QA retries.
+**Always-on** fresh-context review. Runs once per sprint, before the Generator
+writes application code, and does not consume a QA round. Skipped on QA and
+pre-QA retries (the contract already had its one cycle).
 
 1. If `docs/sprint-[N]-contract.md` has no acceptance criteria, the Generator
    writes the contract only and stops.
@@ -137,6 +142,33 @@ not consume a QA round. Skipped on QA and pre-QA retries.
 `docs/orchestrator-state.json` `contractPrep` counts those two dispatches so a
 missing review file cannot loop. One draft and one review, then implementation
 proceeds.
+
+### Pre-Ready review (Generator, after implementation — conditional)
+
+Post-build fresh-context diff review against personas / `docs/review.md` is
+**not** every sprint. Run it only when **Risk is High**, the sprint is a
+**Fail retry**, or the diff is **large**. Otherwise the Generator marks Ready
+for QA after self-eval + lint. Details: `agents/generator.md`.
+
+### Sprint risk → review depth
+
+Planner and Generator set **Risk: Low | Medium | High** on each sprint
+contract (and optionally on the sprint plan). Depth:
+
+| Risk | Pre-QA | Evaluator | Personas / Playwright |
+|------|--------|-----------|------------------------|
+| Low | Required | May **lighten or skip** when Pre-QA is green | Lightened: Standard criteria only, brief-named personas. Skip: status `Pass` with Notes `Evaluator skipped (low-risk, Pre-QA green)` — human who ran the harness still owns the product call |
+| Medium | Required | Full Evaluator | Personas as needed for the feature |
+| High | Required | Full Evaluator (no skip) | All personas + deeper Playwright; Pre-Ready review required |
+
+**Ownership:** Pre-QA / Evaluator Pass (or a low-risk skip) is not a substitute
+for a human product decision on scope/taste when a user is in the loop.
+`Skipped` from max-rounds advance is not an Evaluator approval.
+
+**Convergence:** Evaluator must not re-file resolved findings; Generator fixes
+by class and must dispose every Blocking/Non-blocking Id; near max QA rounds
+prefer approach rethink; Observations never Fail a sprint. See
+`agents/evaluator.md` and `agents/generator.md`.
 
 ### Generator phase
 - Reads:
@@ -189,15 +221,19 @@ proceeds.
   - `docs/spec.md`
   - `design/brief.md` (if present — compare implementation to user brief)
   - `docs/sprint-status.md`
-  - `docs/sprint-[N]-contract.md`
+  - `docs/sprint-[N]-contract.md` (Risk, How tested, How to revert, Reviewer brief)
+  - `docs/review.md` (if present)
   - `docs/mechanical-checks-sprint-[N].md`
   - `harness/AGENT-INSTRUCTIONS.md`
   - `agents/evaluator.md`
   - `agents/criteria/*.md`
   - `review-personas/*.md`
 - Writes:
-  - `docs/qa-report-sprint-[N].md` (including the `LESSON-CANDIDATES` block)
+  - `docs/qa-report-sprint-[N].md` (including severity/Ids and the
+    `LESSON-CANDIDATES` block)
   - `docs/sprint-status.md` (set QA result for target sprint)
+- May be lightened or skipped on **Low** risk when Pre-QA is green (see
+  Sprint risk → review depth above).
 
 ### Retrospector phase (end of run, best-effort)
 - Reads:

@@ -102,9 +102,9 @@ After mechanical checks pass, the Evaluator:
 1. Starts the dev server from `app/` and drives **Playwright** like a real user.
 2. Grades against **`agents/criteria/`** rubrics (feature completeness, product depth, code quality).
 3. Runs **review persona** checklists for security and architecture.
-4. Writes **`docs/qa-report-sprint-N.md`** with a binary Pass/Fail and a `LESSON-CANDIDATES` block.
+4. Writes **`docs/qa-report-sprint-N.md`** with a binary Pass/Fail, severity-tagged findings, and a `LESSON-CANDIDATES` block.
 
-Mechanical FAIL in the pre-QA gate report = automatic sprint FAIL — the Evaluator never runs until the gate passes.
+Mechanical FAIL in the pre-QA gate report = automatic sprint FAIL — the Evaluator never runs until the gate passes. **Low-risk** sprints may lighten or skip full Evaluator when Pre-QA is green; contract review stays always-on. Convergence rules (no re-filed resolved findings, fix-by-class, Observations ≠ Fail) live in `agents/evaluator.md` / `agents/generator.md` and `docs/runtime-contract.md`.
 
 ## Learning loop
 

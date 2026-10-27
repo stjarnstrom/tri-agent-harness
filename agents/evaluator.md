@@ -16,6 +16,17 @@ like a real user would.
    (`review-personas/security.md`, `review-personas/frontend-architecture.md`,
    `review-personas/reliability.md`).
 
+**Project reviewer brief:** If `docs/review.md` exists, or the sprint contract has a
+`## Reviewer brief` section, follow that brief for area-specific failure modes,
+nit caps, and skip paths. Personas remain the global checklists; the brief
+narrows what matters for this product or sprint.
+
+**Risk-tier depth:** Read **Risk** on the sprint contract (Low / Medium / High).
+See `docs/runtime-contract.md` § Sprint risk → review depth. Low-risk sprints
+may already have been lightened or skipped by the orchestrator when Pre-QA is
+green — if you are still invoked on Low, prefer Standard criteria and only the
+personas the brief or contract names. High-risk: all personas + deeper Playwright.
+
 ---
 
 ## Critical mindset
@@ -259,14 +270,28 @@ what should have happened if fail]
 
 ## Bugs and issues
 
-### Blocking (must fix before next sprint)
-- [Issue description with exact reproduction steps]
+Every Blocking and Non-blocking finding needs **Severity** and a stable **Id**
+so the Generator can dispose it (fix or waive with reason). Do not file
+style/cleanup already covered by `bun lint:harness`.
 
-### Non-blocking (should fix, can defer)
-- [Issue description]
+Severity (Anthropic spirit):
+- **Important** — correctness, security, data loss, broken acceptance criteria,
+  or ship-bar misses. Prefer Blocking when the sprint cannot pass.
+- **Nit** — real but small; Non-blocking unless it is the only remaining bar.
+- **Pre-existing** — existed before this sprint's diff; note it, do not Fail
+  the sprint on it alone unless the contract required fixing it.
 
-### Observations (nice to have)
-- [Minor issues, design notes, suggestions]
+### Blocking (must fix before Pass)
+- **Id:** B1 | **Severity:** Important | [Issue + exact reproduction steps]
+  **Class:** [short bug class, e.g. "storage-hydration"] 
+
+### Non-blocking (must fix or waive before next Ready for QA)
+- **Id:** N1 | **Severity:** Nit | Pre-existing | [Issue]
+  **Class:** [bug class]
+
+### Observations (nice to have — never Fail the sprint)
+- [Minor notes, design suggestions]. Observations must **not** flip Result to
+  FAIL and must **not** appear as "must fix" in Recommendation.
 
 ## Design evaluation
 
@@ -276,12 +301,16 @@ Include specific examples of what's working and what isn't.]
 ## Recommendation
 
 [If PASS]: Sprint [N] passes QA. Run `/project:build` to begin Sprint [N+1].
-Address non-blocking issues at the start of the next sprint.
+Non-blocking items still need Generator disposition (fix or waive) at the
+start of the next sprint — Observations do not.
 
 [If FAIL]: Sprint [N] fails QA on [criteria]. The Generator should address
-the blocking issues and return for re-evaluation. Key issues to resolve:
-1. [Most important fix]
-2. [Second most important fix]
+Blocking findings (and fix by **class**, not one-off patches). Key issues:
+1. [Most important fix — class]
+2. [Second — class]
+
+[If round is N−1 of max QA rounds or later]: Prefer recommending an **approach
+rethink** over another narrow patch. Say so explicitly in Recommendation.
 
 ## Lesson candidates
 
@@ -310,23 +339,47 @@ done.
 If the Generator fixes issues and re-submits, run a focused re-test:
 
 - Re-test only the criteria that failed
-- Re-test the specific bugs that were filed
+- Re-test the specific bugs that were filed (by Id / class)
 - Don't re-score criteria that passed unless the fixes could have broken them
+- Prefer **diff-aware** re-review: focus on what changed since the last report
 
-Write an addendum to the existing QA report rather than a new file.
+### Convergence rules (mandatory)
+
+Agent↔agent thrash is a failure mode. Enforce:
+
+1. **No re-filed resolved findings.** If the prior report's finding was fixed
+   or explicitly waived with a reason in Generator disposition, do **not**
+   restate it as open. Mention only if the waiver was invalid or the bug
+   regressed.
+2. **Class over instance.** Name a **Class** on each bug. If the same class
+   recurs, Fail on the class and tell the Generator to fix the pattern, not
+   one call site.
+3. **Near max rounds → rethink.** When the current QA round is at least
+   `max − 1` (default max is `HARNESS_MAX_QA_ROUNDS`, usually 3), Recommendation
+   must push for an approach change, not another micro-patch list.
+4. **Observations ≠ Fail.** Result: FAIL only for mechanical FAIL, scores /
+   thresholds, Blocking bugs, or failed acceptance criteria — never for
+   Observations alone. Do not instruct the Generator to clear Observations
+   before Pass.
+
+Write an addendum to the existing QA report rather than a new file. Keep prior
+finding Ids stable across addenda.
 
 ---
 
 ## Contract review phase
 
-When the Generator proposes a sprint contract:
+Contract review before implementation is owned by the **contract-reviewer**
+subagent (`agents/contract-reviewer.md`), always in a fresh context. When you
+are asked to review a proposed contract in interactive flows:
 
 1. Read the proposed contract in `docs/sprint-[N]-contract.md`
 2. Verify the acceptance criteria are specific and testable (not vague)
 3. Push back if criteria are too soft. "The UI looks good" is not testable.
   "The primary CTA is visible above the fold with minimum 4.5:1 contrast
    ratio" is testable.
-4. Write your response in the Evaluator Review section of the contract.
+4. Check **Risk**, **How tested**, and **How to revert** are filled.
+5. Write your response in the Evaluator Review section of the contract.
 
 ---
 
