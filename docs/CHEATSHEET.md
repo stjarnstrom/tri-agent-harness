@@ -83,7 +83,9 @@ All sprints Pass or Skipped?
 
 - **Mechanical FAIL** in gate report → sprint FAIL (Evaluator skipped).
 - **Rubrics:** `agents/criteria/*`
-- **QA report:** weighted scores + per-criterion Pass/Fail + `LESSON-CANDIDATES`
+- **QA report:** weighted scores + per-criterion Pass/Fail + severity/Ids + `LESSON-CANDIDATES` (Observations ≠ Fail)
+- **Risk:** Low may lighten/skip Evaluator when Pre-QA green; High → full review + Pre-Ready
+- **Disposition:** Generator fixes or waives every Blocking/Non-blocking Id before next Ready for QA
 - **Threshold:** weighted total ≥ 7.0 (see `agents/evaluator.md`)
 
 ## Useful dials

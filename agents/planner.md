@@ -103,6 +103,10 @@ Each sprint entry should include:
 - Sprint number and title
 - 3–6 user stories (As a [user], I want to [action] so that [outcome])
 - Definition of done (observable behaviors, not implementation tasks)
+- **Risk:** Low / Medium / High (one line why). Low = docs/copy/scaffold UI /
+  flag flips; Medium = normal features; High = auth, payments, data deletion,
+  harness/CI, security-sensitive paths. Low-risk sprints may lighten or skip
+  full Evaluator when Pre-QA is green — see `docs/runtime-contract.md`.
 
 ### Ship bar on late sprints
 
@@ -157,6 +161,7 @@ Write the following files:
 
 ## Sprint 1: [Title]
 **Goal:** [One sentence]
+**Risk:** Low / Medium / High — [one line why]
 **User stories:**
 - As a [user], I want to [action] so that [outcome]
 **Done when:**
@@ -167,6 +172,7 @@ Write the following files:
 
 ## Sprint [last]: [Title]
 **Goal:** [One sentence]
+**Risk:** High — [ship sprints default High unless throwaway]
 **User stories:**
 - As a [user], I want to [action] so that [outcome]
 **Done when:**

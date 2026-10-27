@@ -27,9 +27,19 @@ Before writing any code, define exactly what "done" means for this sprint.
 - Numbered acceptance criteria: specific, testable behaviors
 - `## Acceptance tests`: one checklist item per criterion, each naming a test file under `app/` (for example `app/src/habits.test.tsx`)
 - `## Stack APIs`: a doc URL for every framework or library call, or the word `UNVERIFIED`. Write `No framework APIs` when the sprint truly calls none
+- **Risk** (Low / Medium / High), **How tested**, and **How to revert** — required
+- Optional **Reviewer brief** (or point at project `docs/review.md` if present)
 - Out of scope for this sprint
 - Test setup notes (seed data, env vars, running services)
 - The sprint plan's ship bar, copied into the acceptance criteria when that sprint has one
+
+**Risk tiers** (Planner may set these on the sprint plan; confirm or adjust):
+
+| Risk | Typical scope | Evaluator depth |
+|------|---------------|-----------------|
+| Low | Docs, copy, pure scaffold UI, flag flips | Pre-QA green may lighten or skip full Evaluator (see `docs/runtime-contract.md`) |
+| Medium | Normal product features | Standard Evaluator + personas as needed |
+| High | Auth, payments, data deletion, harness/CI, security-sensitive paths | Full personas, deeper Playwright; Pre-Ready review required before Ready for QA |
 
 **Interactive mode** (Claude Code slash commands / interactive sessions without
 `AUTONOMOUS MODE` in the prompt): After writing the contract, pause and tell
@@ -134,6 +144,22 @@ acceptance criterion in the contract. Be honest:
 - Check that the design matches the spec's design language
 - Check mobile layout if the product is intended to be responsive
 
+### Pre-Ready fresh-context review (conditional)
+
+**Contract review** (before code) is always-on — the orchestrator runs
+`agents/contract-reviewer.md` in a fresh context; do not skip or re-run it.
+
+**Post-build Pre-Ready** review (fresh-context diff pass against personas /
+`docs/review.md` before Ready for QA) runs **only** when any of:
+
+- Contract **Risk** is High
+- This is a **Fail retry** (prior QA or pre-QA FAIL for this sprint)
+- The sprint diff is **large** (rough guide: multi-feature surface area, or
+  substantially more than a single focused change set)
+
+Otherwise skip Pre-Ready to save tokens. When you do run it, dispose every
+finding (fix or waive with reason) in self-eval before marking Ready for QA.
+
 Write your self-evaluation to the end of `docs/sprint-[N]-contract.md`:
 
 ```
@@ -142,8 +168,16 @@ Write your self-evaluation to the end of `docs/sprint-[N]-contract.md`:
 - [ ] Criterion 2: ...
 [etc.]
 
+## Finding disposition
+[Every Blocking/Non-blocking Id from the latest QA report for this sprint,
+and any Pre-Ready findings. Observations: do not list unless you chose to act.]
+| Id | Disposition | Reason |
+|----|-------------|--------|
+| B1 | fixed / intentional / out-of-scope / pre-existing | [one line] |
+
 **Confidence:** [High / Medium / Low]
 **Known issues:** [Any honest gaps or rough edges]
+**Pre-Ready review:** [skipped — reason | ran — summary]
 ```
 
 Then run `bun lint:harness` on your changes and fix all issues.
@@ -155,16 +189,27 @@ The orchestrator will run the pre-QA gate before invoking the Evaluator.
 ## After evaluator feedback
 
 1. Read the QA report at `docs/qa-report-sprint-[N].md`
-2. Address every FAIL item. Don't skip issues or argue they're acceptable.
-3. If the evaluator's feedback seems wrong, explain your reasoning — but fix
-  it anyway unless it's clearly a misunderstanding.
+2. **Dispose every Blocking and Non-blocking finding** (by Id): fix it, or
+   waive with disposition `intentional` / `out-of-scope` / `pre-existing` and a
+   one-line reason in `## Finding disposition`. Silent ignore is not allowed.
+3. **Fix by class.** If the report names a Class (or the same pattern appears
+   more than once), fix the pattern across the sprint surface — not only the
+   cited instance.
+4. **Observations ≠ required work.** Do not burn a QA round chasing
+   Observations. They are optional polish, never a Pass gate.
+5. If the evaluator's feedback seems wrong, waive with reason — but fix it
+   when the disagreement is thin or the bar is clearly unmet.
+6. **Near max rounds:** If this is round `max − 1` or later (see
+   `HARNESS_MAX_QA_ROUNDS`, default 3), rethink the approach instead of another
+   narrow patch. Say what you changed in approach in the self-eval Known issues.
 
 ## Starting subsequent sprints
 
 When starting a sprint that follows a completed QA cycle, read the QA report
 for the previous sprint at `docs/qa-report-sprint-[N-1].md`. Address any
-open issues from that report before or alongside the new sprint work, unless
-they've been explicitly deferred.
+open **Blocking/Non-blocking** issues (or record disposition waivers) before
+or alongside the new sprint work. Do not treat Observations as carry-over
+debt unless you choose to.
 
 ---
 
@@ -179,6 +224,8 @@ they've been explicitly deferred.
 | This API call is obviously right | Cite the official docs in `## Stack APIs`, or write `UNVERIFIED`. |
 | The contract review was nitpicks | Classify each finding. Dropping one without a class is how a wrong contract becomes a sprint. |
 | I'll lower the coverage number | Loosening `CONSTRAINTS.md` in the same change fails the gate. Fix the code. |
+| I'll clear Observations so QA passes | Observations never Fail a sprint. Fix Blocking/Non-blocking (or waive with reason). |
+| One-line patch for a repeated bug class | Fix the class. Near max rounds, change approach. |
 
 ## What success looks like
 

@@ -101,6 +101,11 @@ application source with harness tooling at the root.
 4. **Evaluator tests the live app** via Playwright, not just code review.
 5. **Sprint contracts prevent scope drift.** See `docs/templates/sprint-contract.md`.
 6. **Guardrails improve over time.** Two-strike rule in `CONTRIBUTING.md`.
+7. **Review converges.** No re-filed resolved findings; fix-by-class; dispose every
+   Blocking/Non-blocking Id; Observations ≠ Fail; Low risk may lighten/skip
+   Evaluator when Pre-QA is green. Fresh-context contract review is always-on;
+   Pre-Ready post-build review only for High risk, Fail retries, or large diffs.
+   See `docs/runtime-contract.md`.
 
 ---
 
@@ -207,7 +212,8 @@ cd app && npx playwright test    # app E2E (after Generator scaffolds test:e2e)
 - Full spec: `docs/spec.md`
 - Sprint plan: `docs/sprint-plan.md`
 - Sprint status: `docs/sprint-status.md`
-- Sprint contracts: `docs/sprint-[N]-contract.md`
+- Sprint contracts: `docs/sprint-[N]-contract.md` (Risk / How tested / How to revert)
+- Reviewer brief (optional): `docs/review.md` ← `docs/templates/review.md`
 - Mechanical checks: `docs/mechanical-checks-sprint-[N].md`
 - QA reports: `docs/qa-report-sprint-[N].md`
 - Lessons: `harness/LESSONS.md` (rendered) / `harness/lessons.jsonl` (ledger)

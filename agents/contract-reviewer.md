@@ -30,6 +30,12 @@ Look for:
   budget, rollback or telemetry) that the contract dropped
 - Stack API notes that are missing, or `UNVERIFIED` on a call the spec depends on
 - Criteria the Evaluator cannot actually exercise
+- Missing or empty **Risk**, **How tested**, or **How to revert**
+- Risk tier that understates the sprint (e.g. auth marked Low)
+
+If `docs/review.md` or a contract `## Reviewer brief` exists, check the
+contract against that brief's failure modes — do not ignore product-specific
+watch items.
 
 ## One cycle
 
